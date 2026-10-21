@@ -11,11 +11,37 @@
     let timer;
     const transport = new MessageChannel();
     const port = transport.port1;
+    function navDataReady() {
+        const entries = window.ET?.Config?.navData?.entry;
+        return Array.isArray(entries) && entries.some(item => item.sectionID === 'Tracking');
+    }
+    function diagnostics() {
+        const report = { host: location.hostname, path: location.pathname, documentReady: document.readyState,
+            rootPresent: Boolean(document.querySelector('#etEmail')), navbarPresent: Boolean(document.querySelector('#navbar')),
+            leftFramePresent: Boolean(document.querySelector('#fraLeftNav')), contentFramePresent: Boolean(document.querySelector('#fraContent')),
+            stage: active?.stage || 'starting', recoveryAttempted: active?.recoveryAttempted === true };
+        const section = value => ['overview', 'subscribers', 'tracking', 'content', 'interactions', 'admin'].includes(String(value).toLowerCase()) ? String(value).toLowerCase() : null;
+        try {
+            const state = window._NavState;
+            const nav = state?.get?.('curNavItem');
+            report.statePresent = Boolean(state);
+            report.stateWritable = typeof state?.set === 'function';
+            report.section = section(state?.get?.('sectionId'));
+            report.currentNavPresent = Boolean(nav);
+            report.currentNavSection = section(nav?.get?.('sectionID'));
+            report.trackingInNativeMenu = navDataReady();
+            const left = document.querySelector('#fraLeftNav')?.contentWindow;
+            report.leftFrameReady = left?.isReady === true;
+            report.treeSection = section(left?.frames?.fraTree?.strCurSect);
+        } catch (_) { report.someFieldsUnavailable = true; }
+        return report;
+    }
     function respond(status) {
         clearInterval(timer);
         active.status = status;
         delete active.previousDocument;
-        port.postMessage({ channel, requestId: active.requestId, status, stage: active.stage });
+        port.postMessage({ channel, requestId: active.requestId, status, stage: active.stage,
+            ...(status === 'error' ? { diagnostics: diagnostics() } : {}) });
     }
     function stage(value) {
         if (active.stage === value) return;
@@ -55,7 +81,21 @@
             }
             const state = window._NavState;
             const navItem = state?.get?.('curNavItem');
-            if (typeof state?.set !== 'function' || typeof navItem?.get !== 'function' || !navItem.get('sectionID')) { stage('email'); return; }
+            if (typeof state?.set !== 'function') { stage('email'); return; }
+            if (typeof navItem?.get !== 'function' || !navItem.get('sectionID')) {
+                stage('email');
+                // legacyView is created after navView has registered its model
+                // listeners. If its iframe exists and Tracking is in navData,
+                // activate that native listener even when startup left curNavItem null.
+                if (!active.recoveryAttempted && document.querySelector('#fraLeftNav') && navDataReady()) {
+                    active.recoveryAttempted = true;
+                    const alreadyTracking = state.get('sectionId') === 'Tracking';
+                    state.set({ startData: null, curSubNavItem: null, sectionId: 'Tracking' });
+                    if (alreadyTracking && typeof state.trigger === 'function') state.trigger('change:sectionId', state);
+                    active.applied = true;
+                }
+                return;
+            }
             // Native menu clicks may leave sectionId null. curNavItem is the
             // selected menu and remains authoritative during legacy loading.
             if (String(navItem.get('sectionID')).toLowerCase() !== 'tracking') {
@@ -65,7 +105,7 @@
                     // Native navView._selectItem selects the existing Tracking menu
                     // and loads its legacy view. Triggering the root router instead
                     // calls switchPage(), which removes the current base view.
-                    state.set({ sectionId: 'Tracking' });
+                    state.set({ startData: null, curSubNavItem: null, sectionId: 'Tracking' });
                 }
                 return;
             }

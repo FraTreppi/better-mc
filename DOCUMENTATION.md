@@ -164,6 +164,10 @@ Dalla versione 1.1.8 Tracking usa `_NavState.curNavItem` per riconoscere il menu
 
 Dopo il clic sulla cartella, l’apertura viene confermata solo quando `fraContent` ha un documento caricato, non vuoto e diverso dal documento precedente (oppure già intitolato Test Send Emails). Il controllo è strutturale e non legge i record dell’elenco. Le fasi comunicate alla shell e gli errori distinguono inizializzazione, cambio di menu, ricerca della cartella e caricamento del contenuto.
 
+Dalla versione 1.1.9 l’URL iniziale di Tracking test usa `ks#Subscribers`, già impiegato dal collegamento DE funzionante; `sfmcfix_tracking=tests` mantiene separata la destinazione finale. Per un modello di stato esistente ma senza `curNavItem`, il codice verifica la presenza di `fraLeftNav` e della voce Tracking in `ET.Config.navData.entry`, quindi attiva una sola volta la selezione nativa, azzerando soltanto gli argomenti di navigazione transitori. Quando `sectionId` è già Tracking, riemette l’evento pubblico del modello perché il valore identico non genera un evento Backbone. Il listener nativo resta responsabile della scelta della voce; non vengono inventati modelli o identificativi.
+
+In caso di errore la shell permette di scaricare `sfmc-tracking-diagnostica.json`. Il documento C12 riporta solo host/percorso senza query, stato del documento, presenza di stato/menu/frame, sezioni appartenenti a un elenco fisso e flag del tentativo di recupero. La shell aggiunge versione, data e presenza del canale nativo. Non vengono esportati campi arbitrari del modello, nomi di utenti, MID, record, token o contenuti delle risposte. Il file viene creato solo al clic dell’utente e non inviato automaticamente.
+
 ## 8. Dove finiscono i dati
 
 | Dati | Posizione nella nuova versione | Note |
@@ -204,6 +208,8 @@ Le nuove prove coprono la scelta di visibilità nella pagina reale dell’estens
 La regressione 1.1.7 riproduce con il codice precedente il messaggio esatto di origine non corrispondente mostrato dall’utente. I nuovi controlli osservano anche gli errori console del browser e coprono iframe.src ancora su members con documento su mc, documento intermedio C12 prima di un secondo reindirizzamento, risposta ritardata e SSO senza aggiornamento del src. Le aperture DE e tracking devono completarsi senza l’errore di origine; un falso annuncio dalla shell non deve ricevere il GUID. Una prova esegue la shell in un mondo isolato del browser e il ricevitore nel mondo principale, anche con reindirizzamento su mc. Queste navigazioni sono simulate e non verificano la catena SSO autenticata del tenant.
 
 La regressione 1.1.8 usa Backbone 0.9.10 e i moduli nativi router, navView, uiView e legacyView forniti per l’analisi; i dati di navigazione e i server restano simulati. Con il codice precedente riproduce la rimozione della vista di base, che i vecchi test non simulavano. Con il nuovo codice verifica menu e vista preservati, sectionId nullo, menu già su Tracking, modello e contenuto ritardati, etichette span, risposta vuota del contenuto, cartella mancante e annullamento. Una prova usa shell isolata e documento reindirizzato da members a mc. Le dipendenze della prova sono esterne al pacchetto e non aggiungono librerie all’estensione.
+
+Le prove 1.1.9 riproducono il timeout con `curNavItem` nullo e verificano il recupero sia quando `sectionId` è diverso, sia quando è già Tracking, inclusi argomenti di navigazione iniziali ancora presenti. Verificano anche il link da Preview and Test con ingresso Subscribers e marcatore Tracking, il download reale del rapporto JSON in caso di modello assente e l’esclusione di valori fittizi di sessione/contatti dai dati esportati. Il bootstrap e i server del tenant restano simulati: il rapporto serve a rilevare lo stato effettivo se il problema persiste nella sessione autenticata.
 
 Prima di distribuire al team, il collaudo sul tenant deve coprire:
 

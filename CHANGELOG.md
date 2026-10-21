@@ -1,3 +1,10 @@
+# 1.1.9 — 21 ottobre 2026
+
+- Tracking test avvia Email Studio tramite Subscribers, l’ingresso usato dal collegamento DE funzionante, conservando l’intento Tracking nel marcatore dedicato e selezionando il menu dopo l’avvio.
+- Gestito il menu nativo inizializzato ma ancora privo di curNavItem: se esistono il frame legacy e la voce Tracking nei metadati nativi, viene riattivato una sola volta il normale listener di selezione. Non vengono costruiti modelli di menu fittizi né usata la rotta che rimuove la vista.
+- Gli errori offrono Scarica diagnostica tracking: rapporto locale con flag di inizializzazione, presenza dei frame e sezioni native note, senza URL di sessione, credenziali o record. Nessun invio automatico.
+- Riprodotto il timeout 1.1.8 su un menu non selezionato e verificato il recupero con i moduli nativi e server simulati. L’effettiva inizializzazione nel tenant dell’utente resta da verificare. Nessun nuovo permesso.
+
 # 1.1.8 — 21 ottobre 2026
 
 - Corretto il passaggio a Tracking: usa lo stato del menu nativo e non richiama più la rotta generale con trigger, che in switchPage può rimuovere la vista corrente. Riconosce il menu da curNavItem anche quando sectionId è nullo, uno stato valido della UI nativa.

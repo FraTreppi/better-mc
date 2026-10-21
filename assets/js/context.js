@@ -120,7 +120,9 @@
             return `${this.shell()}/cloud/#app/Journey%20Builder/%23${encodeURIComponent(id)}/${encodeURIComponent(version)}`;
         },
         testTracking() {
-            return `${this.shell()}/cloud/#app/Email/C12/Default.aspx?entityType=none&entityID=0&ks=ks%23Tracking&sfmcfix_tracking=tests`;
+            // Bootstrap through the same entry point used by the working DE link.
+            // The marker preserves the intent to select Tracking after startup.
+            return `${this.shell()}/cloud/#app/Email/C12/Default.aspx?entityType=none&entityID=0&ks=ks%23Subscribers&sfmcfix_tracking=tests`;
         },
         emailStudio(id) {
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) {

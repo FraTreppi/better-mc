@@ -14,6 +14,8 @@
     let toast;
     let stopped = false;
     let progress = 'Apertura di Tracking → Test Send Emails…';
+    let latestDiagnostics = null;
+    let nativeHandshakeReceived = false;
     const connections = new Map();
     function frames() {
         return Array.from(document.querySelectorAll('iframe')).filter(frame => {
@@ -43,6 +45,25 @@
         }
         toast.setAttribute('role', error ? 'alert' : 'status');
         toast.textContent = message;
+        if (error) {
+            toast.style.pointerEvents = 'auto';
+            const download = document.createElement('button');
+            download.type = 'button';
+            download.textContent = 'Scarica diagnostica tracking';
+            download.style.cssText = 'display:block;margin-top:8px;padding:6px 10px;border:1px solid #b5c8da;border-radius:4px;background:#fff;color:#145b92;cursor:pointer';
+            download.onclick = () => {
+                const report = { format: 'sfmcfix-test-tracking-v1', extensionVersion: '1.1.9', capturedAt: new Date().toISOString(),
+                    shellHost: location.hostname, stage: progress, nativeHandshakeReceived,
+                    native: latestDiagnostics };
+                const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'sfmc-tracking-diagnostica.json';
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            };
+            toast.appendChild(download);
+        }
     }
     function stop(cancel = false) {
         stopped = true;
@@ -65,6 +86,7 @@
         connections.get(event.source)?.port.close();
         const connection = { frame, port: event.ports[0] };
         connections.set(event.source, connection);
+        nativeHandshakeReceived = true;
         connection.port.onmessage = event => {
             if (!stopped && connections.get(frame.contentWindow) === connection && frame.isConnected) completed(event.data);
         };
@@ -91,6 +113,7 @@
                 history.replaceState(history.state, '', location.pathname + location.search + location.hash.slice(0, index) + '?' + query.toString());
             }
         } else if (data.status === 'error') {
+            latestDiagnostics = data.diagnostics || null;
             stop();
             const messages = {
                 email: 'Email Studio non ha completato l’inizializzazione. Ricarica la scheda e riprova Tracking test.',

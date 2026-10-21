@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.8
+# SFMC UI Fixer — Multi BU 1.1.9
 
 **Autore della versione Multi BU: Francesco Trepiccioni.**
 
@@ -51,9 +51,9 @@ Clicca l’icona dell’estensione nella barra del browser. Nella pagina **Impos
 
 ## Tracking delle email di prova
 
-In Preview and Test, accanto al pulsante nativo **Send Test**, compare **Tracking test**. Apre Email Studio → Tracking e seleziona la cartella nativa **Test Send Emails** in una nuova scheda. Il comando resta disponibile anche quando nascondi le due icone e non invia email. Dalla versione 1.1.8 seleziona Tracking con il meccanismo del menu nativo, mantenendo la vista Email Studio aperta: evita di richiamare il percorso che può rimuovere la vista corrente e lasciare una pagina vuota. Attende inoltre il caricamento del contenuto dopo la selezione della cartella. I messaggi distinguono inizializzazione di Email Studio, menu Tracking, ricerca della cartella e caricamento dell’elenco. Usa lo stack e la sessione SFMC correnti; non cambia la BU e non filtra automaticamente un singolo invio o una singola email.
+In Preview and Test, accanto al pulsante nativo **Send Test**, compare **Tracking test**. Apre Email Studio → Tracking e seleziona la cartella nativa **Test Send Emails** in una nuova scheda. Il comando resta disponibile anche quando nascondi le due icone e non invia email. Dalla versione 1.1.8 seleziona Tracking con il meccanismo del menu nativo, mantenendo la vista Email Studio aperta: evita di richiamare il percorso che può rimuovere la vista corrente e lasciare una pagina vuota. Attende inoltre il caricamento del contenuto dopo la selezione della cartella. I messaggi distinguono inizializzazione di Email Studio, menu Tracking, ricerca della cartella e caricamento dell’elenco. Dalla versione 1.1.9 l’avvio passa prima da Subscribers, lo stesso ingresso del collegamento DE, e poi seleziona automaticamente Tracking; viene gestito anche il caso in cui il menu nativo esiste ma non ha ancora una voce selezionata. Usa lo stack e la sessione SFMC correnti; non cambia la BU e non filtra automaticamente un singolo invio o una singola email.
 
-Se la cartella non è disponibile o non si carica, compare un messaggio: puoi aprirla manualmente dal menu Tracking e verificare l’accesso della BU. Il codice non usa un identificativo di cartella fisso per tutti i clienti.
+Se l’avvio o la cartella non completano il caricamento, il messaggio offre **Scarica diagnostica tracking**. Il file JSON contiene solo stati tecnici di inizializzazione, non record o credenziali; puoi allegarlo alla segnalazione. Se la cartella non è disponibile o non si carica, compare un messaggio: puoi aprirla manualmente dal menu Tracking e verificare l’accesso della BU. Il codice non usa un identificativo di cartella fisso per tutti i clienti.
 
 ## Aprire la stessa DE in Email Studio
 

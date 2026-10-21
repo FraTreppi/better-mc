@@ -1,6 +1,6 @@
 # SFMC UI Fixer - Guida rapida al test
 
-Versione 1.1.8 | Autore: Francesco Trepiccioni | 21 ottobre 2026
+Versione 1.1.9 | Autore: Francesco Trepiccioni | 21 ottobre 2026
 
 Obiettivo: verificare l'estensione sul nostro Marketing Cloud. Tempo indicativo: 20-30 minuti. Il pacchetto è una versione di sviluppo: i controlli automatici sono passati, il collaudo reale resta da fare.
 
@@ -32,7 +32,7 @@ Usa una DE di prova e una casella email controllata. CLONE e MULTI ROWS possono 
 - Ripeti con una seconda DE senza ricaricare Contact Builder; confronta nome e GUID. Tornando all'elenco, il comando deve scomparire.
 - Ripeti dopo aver selezionato un’altra BU e riaperto Contact Builder. Il link usa la sessione Email Studio corrente e non cambia BU automaticamente. Se apre una pagina errata, segna **FAIL** e riporta i passaggi e lo stack; la rotta è stata ricavata dal router nativo, ma resta da collaudare nel tenant.
 
-- In Preview and Test premi **Tracking test**, accanto a Send Test: deve aprire Email Studio → Tracking → **Test Send Emails**, anche con le due icone nascoste. Non deve inviare una nuova email. Attendi il caricamento dell’elenco, non soltanto la selezione della cartella. Se la pagina resta vuota o appare un avviso, segna FAIL e riporta il messaggio della fase di caricamento.
+- In Preview and Test premi **Tracking test**, accanto a Send Test: deve aprire Email Studio → Tracking → **Test Send Emails**, anche con le due icone nascoste. Non deve inviare una nuova email. Attendi il caricamento dell’elenco, non soltanto la selezione della cartella. Se la pagina resta vuota o appare un avviso, segna FAIL e premi **Scarica diagnostica tracking**: allega il file JSON e il messaggio. All’avvio può comparire Subscribers prima del passaggio automatico a Tracking.
 
 **C. Separazione tra due Business Unit**
 
