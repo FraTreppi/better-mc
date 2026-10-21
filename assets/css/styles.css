@@ -60,29 +60,4 @@ div#defixer_logs ul {
 }
 #sfmcfix-context { position: fixed; right: 12px; bottom: 8px; z-index: 1090; display: flex; gap: 4px; padding: 5px; background: #fff; border: 1px solid #b5c8da; border-radius: 5px; font: 12px/1.5 Arial, sans-serif; box-shadow: 0 2px 8px #0002; }
 #sfmcfix-context button { padding: 4px 7px; background: #fff; color: #145b92; border: 1px solid #b5c8da; border-radius: 3px; cursor: pointer; }
-#sfmcfix-context.sfmcfix-context--journey {
-    top: 12px;
-    bottom: auto;
-    display: block;
-    box-sizing: border-box;
-    max-width: calc(100% - 24px);
-    /* Keep the footer and canvas controls reachable even in short activity frames. */
-    max-height: max(32px, calc(100% - 112px));
-    overflow: auto;
-}
-#sfmcfix-context.sfmcfix-context--journey summary {
-    padding: 2px 5px;
-    color: #145b92;
-    cursor: pointer;
-}
-#sfmcfix-context.sfmcfix-context--journey .sfmcfix-context-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: 6px;
-}
-#sfmcfix-context.sfmcfix-context--journey button {
-    white-space: normal;
-    overflow-wrap: anywhere;
-}
 .sfmcfix-email-studio-link { display: inline-block; margin: 10px; cursor: pointer; }

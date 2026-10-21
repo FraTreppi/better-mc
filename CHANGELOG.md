@@ -1,3 +1,7 @@
+# 1.1.2 — 21 ottobre 2026
+
+- Rimossi barra e menu SFMC Fixer dal Journey Builder e dai documenti incorporati nel Journey, inclusi i frame con hostname differente. Resta disponibile il collegamento alle referenze dei Journey; la barra degli altri moduli resta disponibile quando aperti autonomamente.
+
 # 1.1.1 — 21 ottobre 2026
 
 - Diagnostica Email Studio v2: raccolta delle stringhe di navigazione nei tre bundle nativi già caricati, memoria delle richieste recenti anche dopo il riempimento del buffer del browser, attesa dei frame con analisi in corso e indicazione dei risultati incompleti. Nessuna lettura dei record o delle risposte API, nessun nuovo permesso.

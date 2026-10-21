@@ -1,8 +1,8 @@
-# SFMC UI Fixer — Multi BU 1.1.1
+# SFMC UI Fixer — Multi BU 1.1.2
 
 **Autore della versione Multi BU: Francesco Trepiccioni.**
 
-[Scarica il pacchetto aggiornato](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-ui-fixer-multi-bu-diagnostica.zip). Include il menu richiudibile nel Journey Builder e la diagnostica dei percorsi di Email Studio. L’apertura automatica della stessa DE senza configurazione resta da completare dopo la verifica del rapporto raccolto nel tenant.
+[Scarica il pacchetto aggiornato](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-ui-fixer-multi-bu-diagnostica.zip). La barra SFMC Fixer è disattivata nel Journey Builder e nei suoi frame. Include la diagnostica dei percorsi di Email Studio. L’apertura automatica della stessa DE senza configurazione resta da completare dopo la verifica della navigazione nativa.
 
 Per il collaudo da parte di un collega: [guida rapida](GUIDA_TEST_COLLEGA.md), disponibile anche in PDF nella stessa cartella.
 
@@ -29,7 +29,7 @@ Riferimenti ufficiali: [installazione locale](https://developer.chrome.com/docs/
 
 In basso a destra, nei moduli supportati, compare una barra SFMC Fixer.
 
-In **Journey Builder**, anche nei frame delle attività, i comandi sono invece raccolti nel menu **SFMC Fixer** in alto a destra, inizialmente chiuso: la zona di Done/Cancel e dello zoom rimane libera. Clicca sul menu per aprirlo; clicca fuori o premi Esc per richiuderlo.
+In **Journey Builder**, anche nei frame delle attività, la barra e il menu **SFMC Fixer** non vengono mostrati. Il collegamento aggiunto alle referenze dei Journey resta disponibile.
 
 - **BU … · s…**: controlla che MID e stack corrispondano alla BU selezionata in Marketing Cloud.
 - **Imposta MID**: quando la pagina non espone un identificativo riconoscibile, inserisci il MID della BU corrente. Se manca anche lo stack, viene richiesto separatamente, ad esempio `s10`.

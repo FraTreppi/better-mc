@@ -166,14 +166,19 @@
         bar.title = context.persistent ? 'Cronologie e preferenze separate per stack e MID.' : 'MID non rilevato. Cronologie temporanee finché non imposti il MID di questa pagina.';
     }
 
-    api.context.ready = (async () => {
-        settings = await api.storage.getItem(SETTINGS, {});
-        api.storage.onChange(changes => {
-            if (changes[SETTINGS]) {
-                settings = changes[SETTINGS].newValue || {};
-                window.dispatchEvent(new Event('sfmcfix:preferences'));
-            }
+    function isJourneyDocument() {
+        const urls = [location.href, ...Array.from(location.ancestorOrigins || [])];
+        // A Contact Builder or activity frame can have a different hostname.
+        // Only consider the referrer for embedded documents, not new tabs.
+        if (window !== window.top) urls.push(document.referrer);
+        return urls.some(value => {
+            try { return /^jbinteractions\./i.test(new URL(value).hostname); }
+            catch (_) { return false; }
         });
+    }
+
+    function mountContextBar() {
+        if (isJourneyDocument()) return;
         const bar = document.createElement('aside');
         bar.id = 'sfmcfix-context';
         bar.innerHTML = '<button type="button"></button><button type="button">Link Email Studio</button><button type="button">Tester BU</button>';
@@ -196,31 +201,19 @@
         };
         buttons[1].onclick = () => api.preferences.configureEmailStudio();
         buttons[2].onclick = () => api.preferences.configureTesters();
-        if (/^jbinteractions\./.test(location.hostname)) {
-            // Journey uses the bottom edge for Done/Cancel and canvas zoom,
-            // including inside activity frames. Keep settings out of that area.
-            bar.classList.add('sfmcfix-context--journey');
-            const panel = document.createElement('details');
-            const toggle = document.createElement('summary');
-            toggle.textContent = 'SFMC Fixer';
-            const controls = document.createElement('div');
-            controls.className = 'sfmcfix-context-controls';
-            controls.append(...buttons);
-            panel.append(toggle, controls);
-            bar.appendChild(panel);
-            document.addEventListener('pointerdown', event => {
-                if (!bar.contains(event.target)) panel.open = false;
-            });
-            bar.addEventListener('keydown', event => {
-                if (event.key === 'Escape' && panel.open) {
-                    panel.open = false;
-                    toggle.focus();
-                    event.stopPropagation();
-                }
-            });
-        }
         document.body.appendChild(bar);
         renderContext();
+    }
+
+    api.context.ready = (async () => {
+        settings = await api.storage.getItem(SETTINGS, {});
+        api.storage.onChange(changes => {
+            if (changes[SETTINGS]) {
+                settings = changes[SETTINGS].newValue || {};
+                window.dispatchEvent(new Event('sfmcfix:preferences'));
+            }
+        });
+        mountContextBar();
         let lastScope = current().scope;
         setInterval(() => {
             const scope = current().scope;
