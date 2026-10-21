@@ -1,3 +1,9 @@
+# 1.1.5 — 21 ottobre 2026
+
+- Sostituita la barra flottante MID/Tester BU con un’icona Impostazioni SFMC accanto a Test History, solo in Preview and Test. Menu con due opzioni, chiusura con clic esterno o Escape e uso da tastiera. Nelle Data Extension non compaiono i controlli; uscendo da Preview and Test si chiudono menu, rubrica e storico aperti.
+- Rubrica tester con campi Cognome/Nome/Email, aggiunta e rimozione di righe, validazione delle email e conferma del numero di contatti salvati. Nessun limite fisso al numero di tester; verificati dieci contatti, recupero dopo il ricaricamento e separazione tra BU. I tester già salvati restano compatibili.
+- Nessun nuovo permesso o invio automatico di email. Il collegamento Email Studio resta invariato.
+
 # 1.1.4 — 21 ottobre 2026
 
 - Corretto il caso in cui la shell Email Studio scarta il percorso della DE e apre il solo modulo Subscribers. Il GUID viene acquisito all’avvio della pagina e inviato al frame C12 dello stesso stack quando il router è pronto; conferma del percorso, attesa limitata e annullamento quando si cambia modulo.

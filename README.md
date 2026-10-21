@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.4
+# SFMC UI Fixer — Multi BU 1.1.5
 
 **Autore della versione Multi BU: Francesco Trepiccioni.**
 
@@ -27,21 +27,23 @@ Riferimenti ufficiali: [installazione locale](https://developer.chrome.com/docs/
 
 ## Prima configurazione della Business Unit
 
-In basso a destra, nei moduli supportati, compare una barra SFMC Fixer.
+Solo in **Content Builder → Preview and Test**, accanto all’icona **Test History**, compare l’icona **Impostazioni SFMC**. Cliccandola si aprono le due opzioni MID e Tester BU. Il menu si chiude con Escape o cliccando fuori; nelle Data Extension e negli altri moduli non compare la barra flottante. Anche Test History viene nascosta quando si esce da Preview and Test.
 
 In **Journey Builder**, anche nei frame delle attività, la barra e il menu **SFMC Fixer** non vengono mostrati. Il collegamento aggiunto alle referenze dei Journey resta disponibile.
 
 - **BU … · s…**: controlla che MID e stack corrispondano alla BU selezionata in Marketing Cloud.
 - **Imposta MID**: MID significa Member ID ed è il numero della Business Unit corrente. Lo stack, per esempio `s50`, identifica invece l’ambiente Salesforce. L’estensione usa stack e MID per tenere separate cronologie, versioni SQL e preferenze dei diversi clienti/BU. Se la pagina non espone il MID, inseriscilo qui; il pulsante diventa **BU <numero> · <stack>**. Questa impostazione identifica il contesto dell’estensione e non cambia la BU selezionata in Salesforce.
-- **Tester BU**: configura una rubrica di destinatari delle email di prova, condivisa dalle funzioni dell’estensione nella stessa BU e nello stesso profilo browser. Una riga per persona, per esempio `Rossi;Mario;mario.rossi@example.com`. In Content Builder → Preview and Test, il campo aggiunto **type a name...** suggerisce questi contatti digitando almeno tre caratteri di nome, cognome o email; selezionandone uno, l’indirizzo viene aggiunto ai destinatari del test. L’invio resta un’azione esplicita di Salesforce. Salvare la rubrica non invia email e non inserisce record nelle DE. Salvare il campo vuoto svuota la rubrica di quella BU.
+- **Tester BU**: apre una rubrica con le colonne **Cognome**, **Nome**, **Email**. Premi **+ Aggiungi tester** per ogni persona, compila la riga e infine premi **Salva tester**. Il messaggio **10 tester salvati…** conferma il salvataggio. Puoi aggiungere dieci persone e anche di più: l’estensione non impone un limite fisso; valgono le normali quote di spazio del browser. I contatti già salvati vengono caricati automaticamente nella tabella. Per eliminarne uno usa **×** sulla sua riga e salva; **Annulla** o Escape chiudono senza salvare le modifiche. Non servono punti e virgola o testo su più righe.
 
-Per salvare i tester occorre un MID riconosciuto o impostato manualmente. Se in Content Builder il MID non è riconosciuto, conferma lo stesso MID anche in quel modulo. I contatti rimangono nel profilo del browser e sono separati per stack/MID; non vengono inseriti nel pacchetto distribuito. Il comando **Apri in Email Studio** funziona senza configurare questi due pulsanti.
+In Preview and Test, il campo aggiunto **type a name...** suggerisce i contatti digitando almeno tre caratteri di nome, cognome o email. Mostra al massimo cinque suggerimenti alla volta: è un limite ai risultati visibili, non ai tester salvati. Selezionandone uno, l’indirizzo viene aggiunto ai destinatari del test. L’invio resta un’azione esplicita di Salesforce. Salvare la rubrica non invia email e non inserisce record nelle DE.
 
-Il contesto manuale va riconfermato dopo un ricaricamento: quando possibile il pulsante **Conferma MID <numero>** ricorda l’ultimo valore in quella scheda, senza attivarlo automaticamente. Cliccalo, verifica che sia la BU attuale e conferma: i tester salvati ricompaiono. Se hai cambiato BU, correggi il MID. Il suggerimento dura per la sessione della scheda e può non essere condiviso tra moduli su domini diversi; la rubrica rimane invece salvata in `chrome.storage.local`, nel profilo browser, per stack e MID, anche chiudendo la scheda. Non ricreare la rubrica a ogni ricaricamento. Non viene dedotto il MID dall'Enterprise ID né dal proprietario di una DE condivisa.
+Per salvare i tester occorre un MID riconosciuto o impostato manualmente. Se il MID non è riconosciuto, impostalo dalla prima opzione del menu prima di aprire la rubrica. I contatti rimangono nel profilo del browser e sono separati per stack/MID; non vengono inseriti nel pacchetto distribuito. Il comando **Apri in Email Studio** funziona senza configurare questi due pulsanti.
+
+Il contesto manuale va riconfermato dopo un ricaricamento: quando possibile il pulsante **Conferma MID <numero>** ricorda l’ultimo valore in quella scheda, senza attivarlo automaticamente. Apri il menu, scegli questa opzione, verifica che sia la BU attuale e conferma: i tester salvati ricompaiono. Se hai cambiato BU, correggi il MID. Il suggerimento dura per la sessione della scheda e può non essere condiviso tra moduli su domini diversi; la rubrica rimane invece salvata in `chrome.storage.local`, nel profilo browser, per stack e MID, anche chiudendo la scheda. Non ricreare la rubrica a ogni ricaricamento. Non viene dedotto il MID dall'Enterprise ID né dal proprietario di una DE condivisa.
 
 Senza MID e stack riconosciuti le cronologie restano temporanee in memoria e il versionamento SQL persistente resta sospeso. Le funzioni di interfaccia continuano a essere disponibili. Le cronologie della vecchia versione non vengono attribuite automaticamente a una BU.
 
-Se cambi BU senza ricaricare, controlla sempre la barra: un MID inserito manualmente non può aggiornarsi da solo. In Query Studio il testo dell'editor viene conservato, ma dopo un cambio di contesto occorre copiarlo se necessario e premere Clear prima di salvare nella nuova BU.
+Se cambi BU senza ricaricare, controlla sempre il MID nel menu: un MID inserito manualmente non può aggiornarsi da solo. In Query Studio il testo dell'editor viene conservato, ma dopo un cambio di contesto occorre copiarlo se necessario e premere Clear prima di salvare nella nuova BU.
 
 ## Aprire la stessa DE in Email Studio
 

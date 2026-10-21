@@ -330,6 +330,35 @@
         $('#testsendlog-viewer').trigger('updateview');
     });
     window.sfmcfix.addHtml('previewandtest/testsendlog-viewer', true, () => {
+        const toolbox = document.querySelector('.previewandtest-toolbox');
+        sfmcfix.context.mountControls(toolbox);
+        let queued = false;
+        const syncVisibility = () => {
+            queued = false;
+            // This native surface belongs to Preview and Test. Its own tab can
+            // be hidden while Preview is active, so check the containing panel.
+            const surfaces = Array.from(document.querySelectorAll('.test-send-recipients-tab-content'));
+            const active = surfaces.some(surface => {
+                const panel = surface.parentElement;
+                return panel && panel.getClientRects().length > 0 && getComputedStyle(panel).visibility !== 'hidden';
+            });
+            if (toolbox.hidden === active) toolbox.hidden = !active;
+            if (!active) {
+                const options = toolbox.querySelector('#sfmcfix-context-options');
+                if (options && !options.hidden) {
+                    options.hidden = true;
+                    toolbox.querySelector('[data-context-action="toggle"]').setAttribute('aria-expanded', 'false');
+                }
+                const history = document.getElementById('testsendlog-viewer');
+                if (history?.classList.contains('is-open')) history.classList.remove('is-open');
+                document.getElementById('sfmcfix-tester-editor')?.close();
+            }
+        };
+        syncVisibility();
+        const observer = new MutationObserver(() => {
+            if (!queued) { queued = true; requestAnimationFrame(syncVisibility); }
+        });
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
         setTimeout(() => {
             const $wrapper = $('#testsendlog-viewer');
             $wrapper.find('#log-body').html(loglist());

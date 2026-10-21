@@ -8,6 +8,7 @@
     let manualMid = null;
     let manualStack = null;
     let settings = {};
+    let lastScope;
 
     function asMid(value) {
         return /^\d{1,15}$/.test(String(value ?? '')) && Number(value) > 0 ? String(value) : null;
@@ -132,23 +133,14 @@
             settings = result[SETTINGS] || settings;
             window.dispatchEvent(new Event('sfmcfix:preferences'));
         },
-        async configureTesters() {
+        configureTesters() {
             const context = current();
             if (!context.persistent) {
-                alert('Per salvare i destinatari di test, imposta prima il MID della BU corrente con il pulsante Imposta MID o Conferma MID.');
+                alert('Per salvare i destinatari di test, apri Impostazioni SFMC e scegli Imposta MID o Conferma MID per la BU corrente.');
                 return;
             }
-            const previous = (this.get().testers || []).map(t => `${t[0]};${t[1]};${t[2]}`).join('\n');
-            const input = prompt(`Rubrica per le email di prova in Content Builder (BU ${context.mid} · ${context.stack}). Salvata solo in questo profilo browser, separata per stack e MID. Una riga per persona: Cognome;Nome;email. Il salvataggio non invia email. Lascia vuoto per rimuovere i destinatari.`, previous);
-            if (input === null) return;
-            try {
-                const testers = input.split(/\r?\n/).filter(line => line.trim()).map(line => {
-                    const fields = line.split(';').map(field => field.trim());
-                    if (fields.length !== 3 || !/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(fields[2])) throw new Error('Formato non valido: Cognome;Nome;email');
-                    return fields;
-                });
-                await this.save({ testers });
-            } catch (error) { alert(error.message); }
+            if (api.openTesterEditor) api.openTesterEditor();
+            else api.addJs('components/tester-editor', () => api.openTesterEditor());
         }
     };
 
@@ -157,9 +149,12 @@
         if (!bar) return;
         const context = current();
         const hint = rememberedContext();
-        bar.querySelector('button').textContent = context.mid ? `BU ${context.mid} · ${context.stack || '?'}` :
+        bar.querySelector('[data-context-action="configure"]').textContent = context.mid ? `BU ${context.mid} · ${context.stack || '?'}` :
             hint ? `Conferma MID ${hint.mid} · ${hint.stack}` : 'SFMC Fixer · Imposta MID';
-        bar.title = context.persistent ? 'Cronologie e preferenze separate per stack e MID.' :
+        bar.querySelector('[data-context-action="testers"]').textContent = `Tester BU (${api.preferences.get().testers?.length || 0})`;
+        bar.dataset.ready = String(context.persistent);
+        const trigger = bar.querySelector('[data-context-action="toggle"]');
+        trigger.title = context.persistent ? `Impostazioni SFMC · BU ${context.mid} · ${context.stack}` :
             hint ? 'Riconferma il MID della BU attuale per ritrovare i tester salvati nel browser. Puoi correggerlo se hai cambiato BU.' :
             'MID non rilevato. Imposta il MID per accedere alle preferenze salvate per questa BU. Cronologie temporanee finché il contesto non è completo.';
     }
@@ -175,36 +170,70 @@
         });
     }
 
-    function mountContextBar() {
-        if (isJourneyDocument()) return;
+    api.context.configure = function () {
+        const detected = detectMid();
+        if (detected) { alert(`MID rilevato dalla pagina: ${detected}`); return; }
+        const hint = rememberedContext();
+        const value = prompt('Conferma o inserisci il MID della BU attualmente selezionata in Marketing Cloud. Con lo stesso MID e stack ritrovi i tester già salvati nel browser. Verificalo dopo ogni ricaricamento o cambio BU.', manualMid || hint?.mid || '');
+        if (value === null) return;
+        if (!asMid(value.trim())) { alert('Inserisci un MID numerico valido.'); return; }
+        if (!stack()) {
+            const instance = prompt('Stack di questa BU (per esempio s10), come nel dominio Marketing Cloud.', hint?.stack || '');
+            if (instance === null) return;
+            if (!/^s\d+$/i.test(instance.trim())) { alert('Stack non valido. Esempio: s10'); return; }
+            manualStack = instance.trim().toLowerCase();
+        }
+        manualMid = value.trim();
+        rememberContext();
+        lastScope = current().scope;
+        renderContext();
+        window.dispatchEvent(new Event('sfmcfix:contextchange'));
+    };
+
+    api.context.mountControls = function (target) {
+        // Share the Test History toolbox: no floating controls on Data Extensions.
+        if (isJourneyDocument() || !target || document.getElementById('sfmcfix-context')) return;
         const bar = document.createElement('aside');
         bar.id = 'sfmcfix-context';
-        bar.innerHTML = '<button type="button"></button><button type="button">Tester BU</button>';
-        const buttons = bar.querySelectorAll('button');
-        buttons[0].title = 'Identifica la BU per separare cronologie e preferenze dell’estensione. Non cambia la BU in Marketing Cloud.';
-        buttons[1].title = 'Configura la rubrica dei destinatari di prova per Content Builder, separata per BU. Non invia email.';
-        buttons[0].onclick = () => {
-            const detected = detectMid();
-            if (detected) { alert(`MID rilevato dalla pagina: ${detected}`); return; }
-            const hint = rememberedContext();
-            const value = prompt('Conferma o inserisci il MID della BU attualmente selezionata in Marketing Cloud. Con lo stesso MID e stack ritrovi i tester già salvati nel browser. Verificalo dopo ogni ricaricamento o cambio BU.', manualMid || hint?.mid || '');
-            if (value === null) return;
-            if (!asMid(value.trim())) { alert('Inserisci un MID numerico valido.'); return; }
-            if (!stack()) {
-                const instance = prompt('Stack di questa BU (per esempio s10), come nel dominio Marketing Cloud.', hint?.stack || '');
-                if (instance === null) return;
-                if (!/^s\d+$/i.test(instance.trim())) { alert('Stack non valido. Esempio: s10'); return; }
-                manualStack = instance.trim().toLowerCase();
-            }
-            manualMid = value.trim();
-            rememberContext();
-            renderContext();
-            window.dispatchEvent(new Event('sfmcfix:contextchange'));
+        bar.innerHTML = `<button type="button" data-context-action="toggle" aria-label="Impostazioni SFMC" aria-expanded="false" aria-controls="sfmcfix-context-options">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h3m4 0h9M4 12h9m4 0h3M4 18h3m4 0h9"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/></svg>
+            </button>
+            <div id="sfmcfix-context-options" role="group" aria-label="Opzioni SFMC" hidden>
+                <button type="button" data-context-action="configure"></button>
+                <button type="button" data-context-action="testers">Tester BU</button>
+            </div>`;
+        const trigger = bar.querySelector('[data-context-action="toggle"]');
+        const options = bar.querySelector('#sfmcfix-context-options');
+        function close() { options.hidden = true; trigger.setAttribute('aria-expanded', 'false'); }
+        function open() { renderContext(); options.hidden = false; trigger.setAttribute('aria-expanded', 'true'); }
+        trigger.onclick = () => {
+            if (options.hidden) { open(); options.querySelector('button').focus(); }
+            else close();
         };
-        buttons[1].onclick = () => api.preferences.configureTesters();
-        document.body.appendChild(bar);
+        const configure = bar.querySelector('[data-context-action="configure"]');
+        const testers = bar.querySelector('[data-context-action="testers"]');
+        configure.title = 'Identifica la BU per le preferenze dell’estensione. Non cambia la BU in Marketing Cloud.';
+        testers.title = 'Gestisci i destinatari di prova per Content Builder. Non invia email.';
+        configure.onclick = () => { close(); trigger.focus(); api.context.configure(); };
+        testers.onclick = () => { close(); trigger.focus(); api.preferences.configureTesters(); };
+        document.addEventListener('click', event => { if (!bar.contains(event.target)) close(); });
+        bar.addEventListener('keydown', event => {
+            if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); trigger.focus(); }
+            if (['ArrowDown', 'ArrowUp'].includes(event.key)) {
+                event.preventDefault();
+                open();
+                const buttons = Array.from(options.querySelectorAll('button'));
+                const index = buttons.indexOf(document.activeElement);
+                const next = index < 0 ? (event.key === 'ArrowDown' ? 0 : buttons.length - 1) :
+                    (index + (event.key === 'ArrowDown' ? 1 : buttons.length - 1)) % buttons.length;
+                buttons[next].focus();
+            }
+        });
+        bar.addEventListener('focusout', event => { if (!bar.contains(event.relatedTarget)) close(); });
+        window.addEventListener('sfmcfix:contextchange', close);
+        target.appendChild(bar);
         renderContext();
-    }
+    };
 
     api.context.ready = (async () => {
         settings = await api.storage.getItem(SETTINGS, {});
@@ -214,8 +243,8 @@
                 window.dispatchEvent(new Event('sfmcfix:preferences'));
             }
         });
-        mountContextBar();
-        let lastScope = current().scope;
+        window.addEventListener('sfmcfix:preferences', renderContext);
+        lastScope = current().scope;
         setInterval(() => {
             const scope = current().scope;
             if (scope !== lastScope) {

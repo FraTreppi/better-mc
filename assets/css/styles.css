@@ -58,6 +58,38 @@ div#defixer_logs ul {
 .sfmcfix-hide {
     display: none !important;
 }
-#sfmcfix-context { position: fixed; right: 12px; bottom: 8px; z-index: 1090; display: flex; gap: 4px; padding: 5px; background: #fff; border: 1px solid #b5c8da; border-radius: 5px; font: 12px/1.5 Arial, sans-serif; box-shadow: 0 2px 8px #0002; }
-#sfmcfix-context button { padding: 4px 7px; background: #fff; color: #145b92; border: 1px solid #b5c8da; border-radius: 3px; cursor: pointer; }
+#sfmcfix-context { position: relative; color: #145b92; font: 13px/1.5 Arial, sans-serif; }
+#sfmcfix-context [data-context-action="toggle"] { color: #145b92; cursor: pointer; }
+#sfmcfix-context[data-ready="false"] [data-context-action="toggle"]::after { content: ''; position: absolute; right: 0; top: 0; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: #e7a327; }
+#sfmcfix-context-options { position: absolute; right: 48px; bottom: 0; width: 255px; max-width: calc(100vw - 80px); padding: 6px; border: 1px solid #b5c8da; border-radius: 6px; background: #fff; box-shadow: 0 3px 14px #0002; }
+#sfmcfix-context-options[hidden] { display: none !important; }
+#sfmcfix-context #sfmcfix-context-options button { display: block; box-sizing: border-box; width: 100%; height: auto; padding: 9px 10px; border: 0; border-radius: 3px; box-shadow: none; color: #145b92; background: #fff; text-align: left; font: inherit; cursor: pointer; }
+#sfmcfix-context #sfmcfix-context-options button:hover { background: #edf5fc; }
+#sfmcfix-context button:focus-visible { outline: 2px solid #145b92; outline-offset: 2px; }
 .sfmcfix-email-studio-link { display: inline-block; margin: 10px; cursor: pointer; }
+.sfmcfix-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#sfmcfix-tester-editor { box-sizing: border-box; width: 760px; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); margin: auto; padding: 24px; overflow: auto; border: 1px solid #b5c8da; border-radius: 8px; color: #243746; background: #fff; box-shadow: 0 8px 36px #0003; font: 14px/1.5 Arial, sans-serif; }
+#sfmcfix-tester-editor::backdrop { background: #12243566; }
+#sfmcfix-tester-editor h2 { margin: 0 0 4px; font-size: 21px; }
+#sfmcfix-tester-editor p { margin: 8px 0 14px; }
+#sfmcfix-tester-editor .sfmcfix-tester-context { color: #145b92; font-weight: bold; }
+#sfmcfix-tester-editor .sfmcfix-tester-table-wrap { max-height: 45vh; overflow: auto; margin-bottom: 12px; }
+#sfmcfix-tester-editor table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+#sfmcfix-tester-editor th { padding: 6px 4px; text-align: left; }
+#sfmcfix-tester-editor th:nth-child(1), #sfmcfix-tester-editor th:nth-child(2) { width: 22%; }
+#sfmcfix-tester-editor th:last-child { width: 36px; }
+#sfmcfix-tester-editor td { padding: 4px; }
+#sfmcfix-tester-editor input { box-sizing: border-box; width: 100%; min-width: 0; padding: 8px; border: 1px solid #9eafbe; border-radius: 4px; background: #fff; color: #243746; font: inherit; }
+#sfmcfix-tester-editor button { padding: 7px 12px; border: 1px solid #9eafbe; border-radius: 4px; color: #145b92; background: #fff; cursor: pointer; font: inherit; }
+#sfmcfix-tester-editor td button { width: 30px; padding: 5px 0; font-size: 18px; }
+#sfmcfix-tester-editor .sfmcfix-primary { border-color: #145b92; color: #fff; background: #145b92; }
+#sfmcfix-tester-editor button:disabled { opacity: .6; cursor: wait; }
+#sfmcfix-tester-editor :is(button, input):focus-visible { outline: 2px solid #145b92; outline-offset: 2px; }
+#sfmcfix-tester-editor .sfmcfix-tester-help { color: #536b7e; font-size: 12px; }
+#sfmcfix-tester-editor .sfmcfix-tester-status { min-height: 21px; color: #266334; }
+#sfmcfix-tester-editor .sfmcfix-tester-status[data-error] { color: #a51919; }
+#sfmcfix-tester-editor footer { display: flex; justify-content: flex-end; gap: 8px; }
+@media (max-width: 540px) {
+    #sfmcfix-tester-editor { padding: 12px; }
+    #sfmcfix-tester-editor input { padding: 6px 3px; font-size: 12px; }
+}

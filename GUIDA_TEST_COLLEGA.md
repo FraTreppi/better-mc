@@ -1,6 +1,6 @@
 # SFMC UI Fixer - Guida rapida al test
 
-Versione 1.1.4 | Autore: Francesco Trepiccioni | 21 ottobre 2026
+Versione 1.1.5 | Autore: Francesco Trepiccioni | 21 ottobre 2026
 
 Obiettivo: verificare l'estensione sul nostro Marketing Cloud. Tempo indicativo: 20-30 minuti. Il pacchetto è una versione di sviluppo: i controlli automatici sono passati, il collaudo reale resta da fare.
 
@@ -9,7 +9,7 @@ Obiettivo: verificare l'estensione sul nostro Marketing Cloud. Tempo indicativo:
 1. Estrai lo ZIP in una cartella permanente. Non aprirlo direttamente come estensione.
 2. In Chrome apri `chrome://extensions`, attiva **Modalità sviluppatore**, premi **Carica estensione non pacchettizzata** e scegli la cartella contenente `manifest.json`.
 3. Disabilita eventuali vecchie versioni di SFMC UI Fixer e ricarica Marketing Cloud.
-4. Apri Contact Builder dal menu Salesforce. Nella barra in basso a destra verifica **BU/MID e stack**. Se compare **Imposta MID**, inserisci il MID della BU attualmente selezionata; se richiesto, lo stack (es. `s10`). Ripeti la verifica nei diversi moduli e dopo ogni cambio BU.
+4. Apri Content Builder → Preview and Test. Accanto a **Test History** premi l’icona **Impostazioni SFMC** e verifica **BU/MID e stack** nella prima opzione. Se compare **Imposta MID**, inserisci il MID della BU attualmente selezionata; se richiesto, lo stack (es. `s10`). Il menu deve essere assente nelle Data Extension e negli altri moduli.
 
 Usa una DE di prova e una casella email controllata. CLONE e MULTI ROWS possono salvare dati reali; il test send invia email. Non utilizzare campagne o dati operativi per queste prove.
 
@@ -18,7 +18,7 @@ Usa una DE di prova e una casella email controllata. CLONE e MULTI ROWS possono 
 **A. Contact Builder**
 
 - Cerca una DE nota con Advanced: deve comparire il risultato corretto. La ricerca mostra fino a 25 risultati.
-- Apri le Proprietà, passa a Record e ritorna all'elenco: la DE deve comparire nelle viste recenti.
+- Apri le Proprietà, passa a Record e ritorna all'elenco: con MID riconosciuto la DE deve comparire nelle viste recenti. Senza contesto completo lo storico è temporaneo.
 - Se la DE di prova ha più pagine, prova prima/ultima pagina. Esporta CSV: deve contenere solo la pagina caricata, con campi leggibili.
 - Su una DE di prova modificabile, prova CLONE e MULTI ROWS con chiavi nuove e valori riconoscibili. Controlla i valori prima di confermare e verifica poi i record salvati. Rimuovi soltanto i record creati per la prova.
 
@@ -33,16 +33,16 @@ Usa una DE di prova e una casella email controllata. CLONE e MULTI ROWS possono 
 
 **C. Separazione tra due Business Unit**
 
-- Nella BU A visita una DE e, se utile, configura un tuo indirizzo da **Tester BU**.
-- Passa alla BU B e controlla il MID nella barra. Le cronologie e la rubrica della BU A non devono essere riutilizzate nella B.
+- Nella BU A apri Preview and Test → icona Impostazioni SFMC → **Tester BU**. Compila Nome, Cognome ed Email, aggiungi righe con **+ Aggiungi tester** e premi **Salva tester**: verifica la conferma del numero salvato. Prova con dieci indirizzi controllati.
+- Passa alla BU B e verifica o correggi il MID nel menu di Preview and Test. Le cronologie e la rubrica della BU A non devono essere riutilizzate nella B.
 - Torna alla BU A: con lo stesso modulo/dominio e un contesto riconosciuto, le voci salvate devono riapparire.
-- Ricarica la pagina: se il MID era manuale, usa **Conferma MID** e conferma la BU attuale. Riapri Tester BU: i contatti devono ricomparire senza reinserirli. Se cambi BU, correggi il MID; può essere necessario reinserirlo nei vari moduli. Senza contesto completo le cronologie sono temporanee e gli snapshot SQL non vengono salvati in modo persistente.
+- Ricarica la pagina: se il MID era manuale, usa **Conferma MID** e conferma la BU attuale. Riapri Tester BU: i contatti devono ricomparire senza reinserirli. Se cambi BU, correggi il MID; il suggerimento resta separato per scheda e dominio. Senza contesto completo le cronologie sono temporanee e gli snapshot SQL non vengono salvati in modo persistente.
 
 ## 3. Altre prove, se i moduli sono disponibili
 
 | Area | Cosa provare | Risultato atteso |
 |---|---|---|
-| Content Builder | Configura un tuo destinatario in Tester BU, cerca il nome e invia un test alla casella controllata | Suggerimento corretto, email ricevuta e tentativo nel log. Nessun contatto del team originale deve essere già presente |
+| Content Builder | Salva dieci tester, riapri la rubrica e cerca il decimo nel campo type a name...; invia un test solo alla tua casella controllata | Dieci contatti conservati, massimo cinque suggerimenti per ricerca; selezione corretta e email ricevuta. Uscendo da Preview and Test le icone scompaiono |
 | Anteprima | Apri Preview da un log con DE e riga disponibili | Anteprima caricata. Usa dati attuali: non è una copia storica dell'email |
 | Automation Studio | Apri una Query Activity di prova; usa Copy, Toggle Query e Download Version; entra in Edit e poi annulla | SQL copiato, testo alternativo disponibile se restituito da Salesforce, JSON scaricato e snapshot visibile cliccando l'icona dell'estensione |
 | Query Studio | Salva una query con un accento (es. `SELECT 'città' AS esempio`), cambia testo e recuperala dalla Lista query | Bozza ripristinata senza perdere gli accenti; non occorre eseguire SQL. Dopo un cambio BU conserva il testo utile e premi Clear prima di salvare nel nuovo contesto |
