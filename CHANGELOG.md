@@ -1,3 +1,9 @@
+# 1.1.3 — 21 ottobre 2026
+
+- Contact Builder → Email Studio: apertura automatica tramite la rotta nativa `Subscribers/Data_Extensions/<GUID>/edit`, ricavata dal router Email Studio fornito per l’analisi. Stack rilevato dal contesto, nessun URL o MID da configurare per usare il collegamento.
+- Rimossi la richiesta del modello URL e il pulsante Link Email Studio. I vecchi modelli salvati vengono ignorati. Il GUID viene ricalcolato al clic, anche con il pulsante centrale; la navigazione usa la sessione Email Studio corrente senza cambio BU automatico.
+- La barra SFMC Fixer resta rimossa dal Journey Builder e dai suoi frame. Collaudo reale dell’apertura sul tenant ancora necessario.
+
 # 1.1.2 — 21 ottobre 2026
 
 - Rimossi barra e menu SFMC Fixer dal Journey Builder e dai documenti incorporati nel Journey, inclusi i frame con hostname differente. Resta disponibile il collegamento alle referenze dei Journey; la barra degli altri moduli resta disponibile quando aperti autonomamente.

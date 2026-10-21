@@ -97,51 +97,24 @@
             return `${this.shell()}/cloud/#app/Journey%20Builder/%23${encodeURIComponent(id)}/${encodeURIComponent(version)}`;
         },
         emailStudio(id) {
-            const template = api.preferences.get().emailStudioTemplate;
-            if (!template) return null;
-            return validateTemplate(template).replaceAll('{id}', encodeURIComponent(id))
-                .replaceAll('{mid}', encodeURIComponent(current().mid || ''))
-                .replaceAll('{stack}', current().stack || '');
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) {
+                throw new Error('Identificativo della Data Extension non valido.');
+            }
+            // Native C12 router: Subscribers/Data_Extensions/<id>/edit invokes
+            // loadExistingDE(id, 'edit'), which opens the Properties view.
+            // The shell decodes %23 into the inner Email Studio fragment.
+            return `${this.shell()}/cloud/#app/Email/C12/Default.aspx?entityType=none&entityID=0&ks=ks%23Subscribers/Data_Extensions/${encodeURIComponent(id)}/edit`;
         }
     };
-
-    function validateTemplate(template) {
-        if (typeof template !== 'string' || !template.includes('{id}')) throw new Error('Il link deve contenere {id} al posto del GUID della Data Extension.');
-        const url = new URL(template.replaceAll('{id}', '00000000-0000-0000-0000-000000000001')
-            .replaceAll('{mid}', '123456').replaceAll('{stack}', current().stack || 's1'));
-        if (url.protocol !== 'https:' || url.username || url.password || url.port ||
-            !/\.(exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(url.hostname)) {
-            throw new Error('Usa un URL HTTPS di Marketing Cloud, senza credenziali o porte personalizzate.');
-        }
-        const targetStack = stackFrom(url.href);
-        if (current().stack && targetStack !== current().stack) throw new Error('Il link deve usare lo stack corrente oppure {stack}.');
-        if (/access_token|[?&](?:token|sessionid|sid|jwt|authorization)=/i.test(url.href)) throw new Error('Rimuovi i token di sessione dal link.');
-        if (template.includes('{mid}') && !current().mid) throw new Error('Imposta prima il MID della BU.');
-        return template;
-    }
 
     api.preferences = {
         get() { return settings[current().scope] || {}; },
         async save(patch) {
             const context = current();
             if (!context.persistent) throw new Error('Imposta il MID della BU prima di salvare le preferenze.');
-            if (patch.emailStudioTemplate) validateTemplate(patch.emailStudioTemplate);
             const result = await api.storage.mergeItem(SETTINGS, { [context.scope]: patch });
             settings = result[SETTINGS] || settings;
             window.dispatchEvent(new Event('sfmcfix:preferences'));
-        },
-        validateTemplate,
-        async configureEmailStudio() {
-            const sample = prompt('Incolla il link di una DE aperta in Email Studio. Il GUID verrà sostituito con {id}. Puoi anche incollare un modello con {id}, {stack} e {mid}. Non includere token di sessione.', this.get().emailStudioTemplate || '');
-            if (sample === null) return;
-            const guids = sample.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/ig) || [];
-            if (!sample.includes('{id}') && guids.length !== 1) {
-                alert('Il link deve identificare la DE tramite il suo GUID. Sostituisci manualmente quel GUID con {id}. Un link al solo elenco DE non basta.');
-                return;
-            }
-            const template = sample.trim().includes('{id}') ? sample.trim() : sample.trim().replace(guids[0], '{id}');
-            try { await this.save({ emailStudioTemplate: template }); }
-            catch (error) { alert(error.message); }
         },
         async configureTesters() {
             const previous = (this.get().testers || []).map(t => `${t[0]};${t[1]};${t[2]}`).join('\n');
@@ -181,7 +154,7 @@
         if (isJourneyDocument()) return;
         const bar = document.createElement('aside');
         bar.id = 'sfmcfix-context';
-        bar.innerHTML = '<button type="button"></button><button type="button">Link Email Studio</button><button type="button">Tester BU</button>';
+        bar.innerHTML = '<button type="button"></button><button type="button">Tester BU</button>';
         const buttons = bar.querySelectorAll('button');
         buttons[0].onclick = () => {
             const detected = detectMid();
@@ -199,8 +172,7 @@
             renderContext();
             window.dispatchEvent(new Event('sfmcfix:contextchange'));
         };
-        buttons[1].onclick = () => api.preferences.configureEmailStudio();
-        buttons[2].onclick = () => api.preferences.configureTesters();
+        buttons[1].onclick = () => api.preferences.configureTesters();
         document.body.appendChild(bar);
         renderContext();
     }

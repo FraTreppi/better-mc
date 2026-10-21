@@ -127,7 +127,7 @@ Altri limiti riscontrati: il modulo DE non veniva caricato entrando direttamente
 - Il MID è letto solo da campi espliciti riconosciuti nel contesto nativo o nell'URL. Poiché non tutte le UI lo espongono nello stesso modo, esiste l'inserimento manuale per documento. Non è stato verificato quali campi esponga il vostro tenant.
 - Le cache sono prefissate con versione, stack e MID. Esempio concettuale: `SFMCFIX:v2:s42:123456:...`. L'isolamento evita di riusare cronologie di un'altra BU riconosciuta; non è una barriera di sicurezza contro altri script che girano nella stessa pagina.
 - Se il contesto non è disponibile, le cronologie sono solo temporanee; niente archivio persistente in una BU "sconosciuta" condivisa. Il versionamento SQL chiede prima di impostare il MID.
-- Le preferenze, i tester e il modello Email Studio sono salvati nello storage Chrome per contesto. Il MID manuale non è un cambio BU Salesforce: devi aver selezionato la BU corretta nell'interfaccia.
+- Le preferenze e i tester sono salvati nello storage Chrome per contesto; il collegamento Email Studio non richiede più un modello di URL. Il MID manuale non è un cambio BU Salesforce: devi aver selezionato la BU corretta nell'interfaccia.
 - Gli endpoint di scrittura delle righe usano l'origine corrente e la DE aperta, con un controllo prima dell'inserimento multiplo.
 - I link esistenti verso attività, Journey e Contact Builder usano lo stack corrente. Continuano a dipendere dalla sessione e dalla BU attiva di Salesforce; non effettuano un cambio account automatico.
 - La ricerca gestisce caratteri speciali, cancellazione delle richieste superate ed errori HTTP. L'esportazione CSV gestisce virgolette, separatori e ritorni a capo.
@@ -140,13 +140,13 @@ Questi cambiamenti rendono il codice **configurabile e collaudabile su BU e stac
 
 Il comando compare dentro il contenitore del dettaglio DE, nelle schede Proprietà o Record. Legge il GUID dalla route Contact Builder `#admin/data-extension/<GUID>/...`. L'osservazione del DOM e il listener `hashchange` lo aggiornano quando Salesforce cambia pagina senza ricaricare il documento. Il GUID è riletto anche al clic, evitando un collegamento rimasto sulla DE precedente.
 
-Il modello di destinazione è per BU e richiede `{id}`, cioè l'ObjectID/GUID; può contenere anche `{stack}` e `{mid}`. Viene aperto tramite un normale link con destinazione `_blank` e `noopener noreferrer`. Chrome decide se mostrare una scheda o una finestra secondo le preferenze e il gesto dell'utente.
+Il collegamento è automatico: lo stack deriva dal contesto corrente e il GUID dalla route Contact Builder. Non richiede un modello URL o l’inserimento manuale del MID. La barra generale contiene ora solo il contesto BU e Tester BU; non compare nel Journey Builder e nei suoi frame.
 
-**Limite attuale da non saltare:** nei file non era presente un link Email Studio al dettaglio DE e non c'è stata una sessione autenticata su cui verificarne il formato. Per questo il pulsante iniziale apre la configurazione, non una destinazione ipotizzata. Serve un vero link del proprio ambiente che accetti il GUID. Un URL generico del modulo, una route che richieda soltanto External Key o un ID numerico differente non si può sostituire automaticamente con il GUID.
+La rotta nativa è `Subscribers/Data_Extensions/<GUID>/edit`. È stata individuata nel codice Email Studio fornito per l’analisi: `js/router` inoltra `data_extensions` a `loadDE`, quindi a `loadExistingDE`; il ramo della UI moderna apre `de-pages` con `job: properties` e lo stesso identificativo, mentre quello legacy apre `ObjectDetails.aspx` con quel GUID. Il modello nativo carica i metadati da `internal/v1/customobjects/<GUID>`, coerentemente con il dettaglio di Contact Builder.
 
-Non è stato verificato se il vostro Email Studio esponga un link diretto stabile con queste caratteristiche. Se non lo espone, la funzione richiederà un adattamento della navigazione nativa dopo aver osservato quel tenant. La configurazione disponibile non dimostra da sola che Salesforce aprirà il dettaglio corretto.
+Il frammento viene passato alla shell Email tramite `ks=ks%23Subscribers/Data_Extensions/<GUID>/edit`, mantenendo il formato del collegamento della sessione osservata. L’apertura usa un normale link HTTPS con destinazione `_blank` e `noopener noreferrer`; Chrome o Edge decidono scheda o finestra secondo il gesto dell’utente. Il GUID viene ricalcolato al clic e aggiornato prima della destinazione del pulsante centrale.
 
-Per DE condivise, sincronizzate o di altri tipi speciali, verifica disponibilità e permessi in Email Studio. La nuova versione non cambia BU né espande l'accesso dell'utente.
+Il collegamento usa la sessione Email Studio corrente e non cambia automaticamente cliente o BU. Seleziona la BU corretta e riapri Contact Builder dopo un cambio di contesto. Per DE condivise, sincronizzate o di altri tipi speciali occorre verificare disponibilità e permessi nel tenant. La verifica locale del router non equivale a un collaudo autenticato su ogni tenant.
 
 ## 8. Dove finiscono i dati
 
@@ -154,7 +154,7 @@ Per DE condivise, sincronizzate o di altri tipi speciali, verifica disponibilit�
 | --- | --- | --- |
 | DE recenti, automation, test send, query salvate | `localStorage` del modulo, separato per stack/MID | Non si sincronizzano automaticamente tra dispositivi o domini diversi |
 | Cache quando manca il contesto | Memoria del documento | Si perde al ricaricamento |
-| Preferenze, tester, link Email Studio | `chrome.storage.local`, per stack/MID | Condivisi tra i frame dell'estensione per lo stesso contesto |
+| Preferenze e tester | `chrome.storage.local`, per stack/MID | Condivisi tra i frame dell'estensione per lo stesso contesto |
 | Versioni Query Activity | `chrome.storage.local`, per stack/MID | Restano finché eliminate o rimossa l'estensione; esportabili JSON |
 | Dati reali DE e asset | Salesforce | Le funzioni di scrittura modificano il tenant con la sessione dell'utente |
 
@@ -164,7 +164,7 @@ Il `localStorage` non equivale a un archivio protetto o a un backup centralizzat
 
 ## 9. Installazione e distribuzione
 
-Per provarla ora: estrai `dist/sfmc-ui-fixer-multi-bu-1.1.0.zip`, apri `chrome://extensions`, attiva Modalità sviluppatore, scegli Carica estensione non pacchettizzata e seleziona la cartella estratta contenente `manifest.json`. Disabilita l'originale se era già installata, poi ricarica Marketing Cloud.
+Per provarla ora: estrai `dist/sfmc-ui-fixer-multi-bu-diagnostica.zip`, apri `chrome://extensions`, attiva Modalità sviluppatore, scegli Carica estensione non pacchettizzata e seleziona la cartella estratta contenente `manifest.json`. Disabilita l'originale se era già installata, poi ricarica Marketing Cloud.
 
 Per una distribuzione ordinaria con **Aggiungi a Chrome** serve il Chrome Web Store: account sviluppatore, scheda dell'estensione, descrizioni dei dati/permessi, materiali richiesti dallo store e revisione Google. Il pacchetto ZIP è il sorgente da caricare, non un'installazione automatica già pubblicata. In aziende con Chrome gestito l'amministratore può valutare le policy di distribuzione.
 
@@ -174,9 +174,9 @@ Non è stata effettuata una pubblicazione né modificata la configurazione di Ch
 
 ## 10. Verifiche eseguite e collaudo ancora necessario
 
-Eseguiti controlli di sintassi sui JavaScript e test Node con VM/DOM e storage simulati: rilevazione di stack differenti, isolamento BU sullo stesso dominio, assenza di cache persistente con MID ignoto, validazione modelli URL, aggiornamento del link tra due DE, uscita dal dettaglio, configurazione mancante/cambio BU, scritture concorrenti di versioni, cancellazioni selettive, rifiuto fetch improprie, riferimenti manifest e assenza dei contatti personali dal distribuibile.
+Le verifiche locali del collegamento coprono URL su stack differenti, MID differenti o assente, vecchi modelli URL ignorati, aggiornamento del GUID durante la navigazione senza ricaricamento, apertura del collegamento, scomparsa tornando all’elenco e assenza di una destinazione con stack ignoto. Sono stati verificati anche sintassi JavaScript e integrità del pacchetto.
 
-Questi test **non** eseguono le API reali Salesforce né provano che un particolare endpoint Email Studio esista. Lo script di packaging verifica anche integrità ZIP e presenza del manifest alla radice.
+I controlli del router utilizzano il modulo nativo `js/router` fornito per l’analisi, con dipendenze e stato applicativo simulati: verificano che il GUID generato raggiunga Properties nella UI moderna e ObjectDetails nella UI legacy. Le prove nel browser usano pagine simulate. Non eseguono le API Salesforce né certificano l’apertura in una sessione autenticata; il collaudo reale resta necessario.
 
 Prima di distribuire al team, il collaudo sul tenant deve coprire:
 
@@ -189,22 +189,12 @@ Prima di distribuire al team, il collaudo sul tenant deve coprire:
 7. Cartelle virtuali delle DE recenti nel vostro selettore Content Builder.
 8. Una Query Activity aperta e modificata, storico e download; due schede contemporanee.
 9. Query Studio con accenti/Unicode, recupero bozza e passaggio di contesto.
-10. Un URL reale Email Studio configurato: DE A e poi DE B senza ricaricare, confronto GUID, eventuali DE condivise e sessione scaduta.
+10. Apertura automatica in Email Studio senza configurazione: DE A e poi DE B senza ricaricare, confronto nome e GUID, altre BU e stack, eventuali DE condivise e sessione scaduta.
 
-La compatibilità universale e il collegamento Email Studio non possono essere dichiarati verificati prima di queste prove. L'implementazione preparata offre la base concreta per farle, con il punto di calibrazione visibile all'utente.
+La compatibilità universale e il collegamento Email Studio non possono essere dichiarati verificati prima di queste prove. Il collaudo deve confermare la destinazione della DE e il contesto della sessione.
 
-## 11. Manutenzione e riproduzione
+## 11. Manutenzione e distribuzione
 
-Non ci sono dipendenze npm richieste per i test. Con Node 18 o successivo:
+L’estensione non richiede una build o dipendenze npm. Modifica i sorgenti, ricarica l’estensione dalla pagina Estensioni e aggiorna le pagine Marketing Cloud aperte. Il distribuibile aggiornato si trova in `dist/sfmc-ui-fixer-multi-bu-diagnostica.zip`, con `manifest.json` alla radice.
 
-```sh
-node --test tests/extension.test.cjs
-```
-
-Con Python 3:
-
-```sh
-python3 scripts/package_extension.py
-```
-
-Il pacchetto viene ricreato con struttura deterministica e file SHA-256. `tests` e `scripts` sono esterni all'estensione: nel distribuibile entrano solo manifest, guide e asset.
+Il pacchetto caricato originariamente non includeva i file `tests/extension.test.cjs` e `scripts/package_extension.py` citati nella documentazione precedente: quei comandi non sono disponibili in questo checkout. I controlli descritti sopra sono stati eseguiti durante lo sviluppo. La guida di collaudo Markdown e PDF descrive le prove da eseguire sul tenant.

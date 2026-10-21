@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SFMC UI Fixer — Multi BU",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Strumenti per Contact Builder, Content Builder, Automation Studio, Journey Builder e Query Studio, configurabili per Business Unit.",
   "action": {
     "default_title": "SFMC UI Fixer — Activity Versioning"

@@ -1,6 +1,6 @@
 # SFMC UI Fixer - Guida rapida al test
 
-Versione 1.1.0 | Autore: Francesco Trepiccioni | 20 ottobre 2026
+Versione 1.1.3 | Autore: Francesco Trepiccioni | 21 ottobre 2026
 
 Obiettivo: verificare l'estensione sul nostro Marketing Cloud. Tempo indicativo: 20-30 minuti. Il pacchetto è una versione di sviluppo: i controlli automatici sono passati, il collaudo reale resta da fare.
 
@@ -25,10 +25,10 @@ Usa una DE di prova e una casella email controllata. CLONE e MULTI ROWS possono 
 **B. La stessa DE da Contact Builder a Email Studio**
 
 - Apri una DE in Contact Builder: deve comparire il comando per Email Studio, anche passando tra Proprietà e Record.
-- Alla prima prova configura un vero link Email Studio al dettaglio di una DE. Nel modello, il GUID della DE deve essere `{id}`; se nell'URL c'è un solo GUID, viene sostituito automaticamente. Un link al solo elenco DE non basta.
+- Il comando deve essere **Apri in Email Studio**, già disponibile senza incollare URL o impostare il MID per questa funzione.
 - Premi **Apri in Email Studio**: deve aprirsi un'altra scheda/finestra con la stessa DE e nella BU corretta, lasciando aperto Contact Builder.
 - Ripeti con una seconda DE senza ricaricare Contact Builder; confronta nome e GUID. Tornando all'elenco, il comando deve scomparire.
-- Se non è disponibile un URL Email Studio che accetta il GUID, segna **NON TESTABILE - manca il collegamento reale** e conserva un esempio di URL privo di token. Questa parte necessita ancora verifica sul tenant.
+- Ripeti dopo aver selezionato un’altra BU e riaperto Contact Builder. Il link usa la sessione Email Studio corrente e non cambia BU automaticamente. Se apre una pagina errata, segna **FAIL** e riporta i passaggi e lo stack; la rotta è stata ricavata dal router nativo, ma resta da collaudare nel tenant.
 
 **C. Separazione tra due Business Unit**
 

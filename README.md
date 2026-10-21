@@ -1,14 +1,14 @@
-# SFMC UI Fixer — Multi BU 1.1.2
+# SFMC UI Fixer — Multi BU 1.1.3
 
 **Autore della versione Multi BU: Francesco Trepiccioni.**
 
-[Scarica il pacchetto aggiornato](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-ui-fixer-multi-bu-diagnostica.zip). La barra SFMC Fixer è disattivata nel Journey Builder e nei suoi frame. Include la diagnostica dei percorsi di Email Studio. L’apertura automatica della stessa DE senza configurazione resta da completare dopo la verifica della navigazione nativa.
+[Scarica il pacchetto aggiornato](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-ui-fixer-multi-bu-diagnostica.zip). Include il collegamento automatico alla stessa DE in Email Studio, senza configurare URL per cliente. La barra SFMC Fixer è disattivata nel Journey Builder e nei suoi frame.
 
 Per il collaudo da parte di un collega: [guida rapida](GUIDA_TEST_COLLEGA.md), disponibile anche in PDF nella stessa cartella.
 
 Estensione Chrome Manifest V3 derivata dalla versione originale di Simone Luise, conservata nella cartella `stable`. Questa versione elimina i riferimenti operativi fissi allo stack s7 e aggiunge configurazione per Business Unit e il comando Contact Builder → Email Studio.
 
-**Stato:** pacchetto locale di sviluppo. Test automatici eseguiti su simulazioni; collaudo in una sessione Marketing Cloud ancora da eseguire. Non è pubblicata sul Chrome Web Store. Il link alla DE in Email Studio richiede un modello di URL verificato nel proprio ambiente.
+**Stato:** pacchetto di sviluppo, non pubblicato sul Chrome Web Store. Il collegamento Email Studio usa la rotta individuata nel router nativo fornito per l’analisi. Verifiche locali e collaudo reale sul tenant sono distinti: resta da provare l’apertura dalla sessione Marketing Cloud dell’utente.
 
 ## Installazione
 
@@ -34,7 +34,6 @@ In **Journey Builder**, anche nei frame delle attività, la barra e il menu **SF
 - **BU … · s…**: controlla che MID e stack corrispondano alla BU selezionata in Marketing Cloud.
 - **Imposta MID**: quando la pagina non espone un identificativo riconoscibile, inserisci il MID della BU corrente. Se manca anche lo stack, viene richiesto separatamente, ad esempio `s10`.
 - **Tester BU**: inserisci i tuoi destinatari, una riga per persona, nel formato `Cognome;Nome;email`. Il file con i contatti personali del team originale è escluso dal pacchetto. La rubrica iniziale è vuota: gli eventuali destinatari configurati restano nello storage locale del browser e non entrano nello ZIP.
-- **Link Email Studio**: configura il modello descritto sotto.
 
 L'impostazione manuale del contesto vale solo per il documento aperto: può dover essere ripetuta nei diversi moduli o dopo un ricaricamento. Le preferenze sono invece salvate per stack e MID. Non viene dedotto il MID dall'Enterprise ID né dal proprietario di una DE condivisa.
 
@@ -44,20 +43,15 @@ Se cambi BU senza ricaricare, controlla sempre la barra: un MID inserito manualm
 
 ## Aprire la stessa DE in Email Studio
 
-1. In Contact Builder apri una DE, nella scheda Proprietà oppure Record.
-2. Alla prima configurazione compare **Configura apertura in Email Studio ↗**.
-3. In Email Studio trova un link che identifichi una DE tramite il suo **ObjectID/GUID**. Il semplice link al modulo Email Studio o all'elenco delle DE non basta. Se la barra principale non cambia aprendo una DE, potrebbe essere necessario ottenere l'URL del frame o il link nativo del dettaglio.
-4. Incolla quel link nella configurazione. Un unico GUID nell'URL viene sostituito con `{id}`. Se ci sono più GUID, sostituisci manualmente solo quello della DE con `{id}`.
-5. È possibile usare anche `{stack}` e `{mid}` nei punti previsti dal link reale. Il fatto che un URL contenga il parametro MID non implica che Salesforce effettui un cambio BU: questo comportamento va verificato nel proprio ambiente.
-6. Il comando diventa **Apri in Email Studio ↗**. Apre una nuova scheda/finestra secondo le impostazioni di Chrome, mantenendo aperto Contact Builder.
+1. Seleziona la BU corretta in Marketing Cloud e apri una DE in Contact Builder, nella scheda Proprietà oppure Record.
+2. Premi **Apri in Email Studio ↗**.
+3. Si apre una nuova scheda/finestra con il collegamento al dettaglio della stessa DE; Contact Builder resta aperto.
 
-Il GUID viene letto dalla DE attualmente aperta e ricalcolato anche al clic. Il pulsante segue la navigazione senza ricaricamento e scompare tornando all'elenco. Supporta mouse, tastiera e il normale comportamento dei link di Chrome.
+Non devi incollare un URL o inserire manualmente il MID per questo collegamento. Lo stack viene rilevato dal contesto e il GUID viene letto dalla DE aperta, anche al momento del clic. Il pulsante segue la navigazione senza ricaricamento e scompare tornando all’elenco. I vecchi modelli di URL salvati non vengono più utilizzati.
 
-Sono accettati solo URL HTTPS dei domini Marketing Cloud previsti. Non incollare URL con token o credenziali. Modelli basati soltanto su nome, External Key o un ID numerico diverso dal GUID richiedono un adattamento e non sono supportati da questa versione.
+Il percorso nativo è `Subscribers/Data_Extensions/<GUID>/edit`: nel router Email Studio il suffisso `edit` apre la vista Properties. Il link usa la sessione Email Studio corrente; non effettua un cambio BU automatico. Dopo un cambio cliente o BU, riapri Contact Builder nel contesto corretto. Disponibilità delle DE condivise o sincronizzate e permessi vanno verificati nel tenant.
 
-**Non viene proposto un percorso Email Studio predefinito inventato:** l'URL effettivo non era presente nei sorgenti e non è stato possibile verificarlo in una sessione autenticata. Configurazione e prova sul tenant sono necessarie prima di considerare questa funzione operativa.
-
-Se l’indirizzo resta su `#app/Email/C12/Default.aspx?entityType=none&entityID=0` anche aprendo una DE, quel link non identifica il dettaglio. Per raccogliere i percorsi interni: ricarica Email Studio e apri la DE, clicca l’icona dell’estensione, scegli **Diagnostica Email Studio**, seleziona la scheda e premi **Raccogli diagnostica**. Nella diagnostica v2 attendi anche l’analisi delle stringhe di navigazione dei bundle JavaScript nativi già caricati. Controlla l’anteprima e usa **Scarica rapporto** per condividerlo con chi sviluppa il collegamento. Dopo un aggiornamento dell’estensione occorre ricaricare anche la pagina Email Studio prima della raccolta. Il rapporto non contiene i record o le risposte API e non viene inviato automaticamente; può contenere stack e identificativi tecnici. La diagnostica non implementa ancora la navigazione automatica tra le DE.
+La diagnostica resta disponibile dall’icona dell’estensione → **Diagnostica Email Studio** per eventuali problemi. Raccoglie percorsi tecnici e stringhe di navigazione dei bundle nativi, senza leggere record o risposte API e senza invio automatico del rapporto.
 
 ## Cosa include
 
