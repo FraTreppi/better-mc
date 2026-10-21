@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.3
+# SFMC UI Fixer — Multi BU 1.1.4
 
 **Autore della versione Multi BU: Francesco Trepiccioni.**
 
@@ -32,10 +32,12 @@ In basso a destra, nei moduli supportati, compare una barra SFMC Fixer.
 In **Journey Builder**, anche nei frame delle attività, la barra e il menu **SFMC Fixer** non vengono mostrati. Il collegamento aggiunto alle referenze dei Journey resta disponibile.
 
 - **BU … · s…**: controlla che MID e stack corrispondano alla BU selezionata in Marketing Cloud.
-- **Imposta MID**: quando la pagina non espone un identificativo riconoscibile, inserisci il MID della BU corrente. Se manca anche lo stack, viene richiesto separatamente, ad esempio `s10`.
-- **Tester BU**: inserisci i tuoi destinatari, una riga per persona, nel formato `Cognome;Nome;email`. Il file con i contatti personali del team originale è escluso dal pacchetto. La rubrica iniziale è vuota: gli eventuali destinatari configurati restano nello storage locale del browser e non entrano nello ZIP.
+- **Imposta MID**: MID significa Member ID ed è il numero della Business Unit corrente. Lo stack, per esempio `s50`, identifica invece l’ambiente Salesforce. L’estensione usa stack e MID per tenere separate cronologie, versioni SQL e preferenze dei diversi clienti/BU. Se la pagina non espone il MID, inseriscilo qui; il pulsante diventa **BU <numero> · <stack>**. Questa impostazione identifica il contesto dell’estensione e non cambia la BU selezionata in Salesforce.
+- **Tester BU**: configura una rubrica di destinatari delle email di prova, condivisa dalle funzioni dell’estensione nella stessa BU e nello stesso profilo browser. Una riga per persona, per esempio `Rossi;Mario;mario.rossi@example.com`. In Content Builder → Preview and Test, il campo aggiunto **type a name...** suggerisce questi contatti digitando almeno tre caratteri di nome, cognome o email; selezionandone uno, l’indirizzo viene aggiunto ai destinatari del test. L’invio resta un’azione esplicita di Salesforce. Salvare la rubrica non invia email e non inserisce record nelle DE. Salvare il campo vuoto svuota la rubrica di quella BU.
 
-L'impostazione manuale del contesto vale solo per il documento aperto: può dover essere ripetuta nei diversi moduli o dopo un ricaricamento. Le preferenze sono invece salvate per stack e MID. Non viene dedotto il MID dall'Enterprise ID né dal proprietario di una DE condivisa.
+Per salvare i tester occorre un MID riconosciuto o impostato manualmente. Se in Content Builder il MID non è riconosciuto, conferma lo stesso MID anche in quel modulo. I contatti rimangono nel profilo del browser e sono separati per stack/MID; non vengono inseriti nel pacchetto distribuito. Il comando **Apri in Email Studio** funziona senza configurare questi due pulsanti.
+
+Il contesto manuale va riconfermato dopo un ricaricamento: quando possibile il pulsante **Conferma MID <numero>** ricorda l’ultimo valore in quella scheda, senza attivarlo automaticamente. Cliccalo, verifica che sia la BU attuale e conferma: i tester salvati ricompaiono. Se hai cambiato BU, correggi il MID. Il suggerimento dura per la sessione della scheda e può non essere condiviso tra moduli su domini diversi; la rubrica rimane invece salvata in `chrome.storage.local`, nel profilo browser, per stack e MID, anche chiudendo la scheda. Non ricreare la rubrica a ogni ricaricamento. Non viene dedotto il MID dall'Enterprise ID né dal proprietario di una DE condivisa.
 
 Senza MID e stack riconosciuti le cronologie restano temporanee in memoria e il versionamento SQL persistente resta sospeso. Le funzioni di interfaccia continuano a essere disponibili. Le cronologie della vecchia versione non vengono attribuite automaticamente a una BU.
 
@@ -50,6 +52,8 @@ Se cambi BU senza ricaricare, controlla sempre la barra: un MID inserito manualm
 Non devi incollare un URL o inserire manualmente il MID per questo collegamento. Lo stack viene rilevato dal contesto e il GUID viene letto dalla DE aperta, anche al momento del clic. Il pulsante segue la navigazione senza ricaricamento e scompare tornando all’elenco. I vecchi modelli di URL salvati non vengono più utilizzati.
 
 Il percorso nativo è `Subscribers/Data_Extensions/<GUID>/edit`: nel router Email Studio il suffisso `edit` apre la vista Properties. Il link usa la sessione Email Studio corrente; non effettua un cambio BU automatico. Dopo un cambio cliente o BU, riapri Contact Builder nel contesto corretto. Disponibilità delle DE condivise o sincronizzate e permessi vanno verificati nel tenant.
+
+Dalla versione 1.1.4 l’estensione conserva il GUID prima dell’inizializzazione della pagina e lo consegna al frame Email Studio solo quando il router nativo è pronto. Questo gestisce il caso in cui Marketing Cloud riporti l’indirizzo esterno al solo modulo Subscribers. Durante il passaggio compare un breve messaggio di apertura; se il modulo non è disponibile compare un avviso, senza restare in attesa indefinitamente.
 
 La diagnostica resta disponibile dall’icona dell’estensione → **Diagnostica Email Studio** per eventuali problemi. Raccoglie percorsi tecnici e stringhe di navigazione dei bundle nativi, senza leggere record o risposte API e senza invio automatico del rapporto.
 

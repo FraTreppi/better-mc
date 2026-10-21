@@ -124,7 +124,7 @@ Altri limiti riscontrati: il modulo DE non veniva caricato entrando direttamente
 ## 6. Che cosa cambia nella versione preparata
 
 - Lo stack viene letto dal dominio corrente, dal referrer o dagli ancestor origin; non esiste un fallback silenzioso a s7.
-- Il MID è letto solo da campi espliciti riconosciuti nel contesto nativo o nell'URL. Poiché non tutte le UI lo espongono nello stesso modo, esiste l'inserimento manuale per documento. Non è stato verificato quali campi esponga il vostro tenant.
+- Il MID è letto solo da campi espliciti riconosciuti nel contesto nativo o nell'URL. Poiché non tutte le UI lo espongono nello stesso modo, esiste l'inserimento manuale per documento. Dopo un ricaricamento il MID manuale non viene riattivato automaticamente: un suggerimento validato in `sessionStorage` per scheda/origine permette di riconfermarlo. Il suggerimento non identifica la BU e non apre alcuna rubrica prima della conferma; un MID nativo riconosciuto ha sempre priorità. Non è stato verificato quali campi esponga il vostro tenant.
 - Le cache sono prefissate con versione, stack e MID. Esempio concettuale: `SFMCFIX:v2:s42:123456:...`. L'isolamento evita di riusare cronologie di un'altra BU riconosciuta; non è una barriera di sicurezza contro altri script che girano nella stessa pagina.
 - Se il contesto non è disponibile, le cronologie sono solo temporanee; niente archivio persistente in una BU "sconosciuta" condivisa. Il versionamento SQL chiede prima di impostare il MID.
 - Le preferenze e i tester sono salvati nello storage Chrome per contesto; il collegamento Email Studio non richiede più un modello di URL. Il MID manuale non è un cambio BU Salesforce: devi aver selezionato la BU corretta nell'interfaccia.
@@ -144,7 +144,9 @@ Il collegamento è automatico: lo stack deriva dal contesto corrente e il GUID d
 
 La rotta nativa è `Subscribers/Data_Extensions/<GUID>/edit`. È stata individuata nel codice Email Studio fornito per l’analisi: `js/router` inoltra `data_extensions` a `loadDE`, quindi a `loadExistingDE`; il ramo della UI moderna apre `de-pages` con `job: properties` e lo stesso identificativo, mentre quello legacy apre `ObjectDetails.aspx` con quel GUID. Il modello nativo carica i metadati da `internal/v1/customobjects/<GUID>`, coerentemente con il dettaglio di Contact Builder.
 
-Il frammento viene passato alla shell Email tramite `ks=ks%23Subscribers/Data_Extensions/<GUID>/edit`, mantenendo il formato del collegamento della sessione osservata. L’apertura usa un normale link HTTPS con destinazione `_blank` e `noopener noreferrer`; Chrome o Edge decidono scheda o finestra secondo il gesto dell’utente. Il GUID viene ricalcolato al clic e aggiornato prima della destinazione del pulsante centrale.
+La shell può riportare il percorso al solo Subscribers durante l’avvio, scartando il dettaglio. Dalla versione 1.1.4 il link passa il GUID come parametro `sfmcfix_de` nel frammento della pagina Email. Uno script isolato a `document_start` lo conserva prima della normalizzazione del percorso, poi lo invia soltanto al frame `members.<stack>.exacttarget.com/C12/Default.aspx` dello stesso stack. Uno script nel mondo principale del frame attende il router Backbone nativo e `_NavState`, quindi richiama la rotta del dettaglio e conferma che lo stato nativo contiene il GUID richiesto. Non esegue scritture sui dati della DE.
+
+La comunicazione verifica origine, finestra, GUID e identificativo della richiesta. Le richieste duplicate non provocano nuove navigazioni; l’attesa è limitata e si annulla se si lascia Email Studio. Le schede Email aperte senza il parametro dell’estensione mantengono il comportamento ordinario. Non servono nuovi permessi. L’apertura usa un normale link HTTPS con destinazione `_blank` e `noopener noreferrer`; il GUID viene ricalcolato al clic e prima della destinazione del pulsante centrale.
 
 Il collegamento usa la sessione Email Studio corrente e non cambia automaticamente cliente o BU. Seleziona la BU corretta e riapri Contact Builder dopo un cambio di contesto. Per DE condivise, sincronizzate o di altri tipi speciali occorre verificare disponibilità e permessi nel tenant. La verifica locale del router non equivale a un collaudo autenticato su ogni tenant.
 
@@ -154,7 +156,8 @@ Il collegamento usa la sessione Email Studio corrente e non cambia automaticamen
 | --- | --- | --- |
 | DE recenti, automation, test send, query salvate | `localStorage` del modulo, separato per stack/MID | Non si sincronizzano automaticamente tra dispositivi o domini diversi |
 | Cache quando manca il contesto | Memoria del documento | Si perde al ricaricamento |
-| Preferenze e tester | `chrome.storage.local`, per stack/MID | Condivisi tra i frame dell'estensione per lo stesso contesto |
+| Preferenze e tester | `chrome.storage.local`, per stack/MID | Persistono al ricaricamento; il MID manuale va riconfermato per accedere alla stessa rubrica |
+| Suggerimento del MID manuale | `sessionStorage` della pagina, per scheda/origine | Solo promemoria per la conferma; non attiva il contesto né assegna automaticamente i tester alla BU |
 | Versioni Query Activity | `chrome.storage.local`, per stack/MID | Restano finché eliminate o rimossa l'estensione; esportabili JSON |
 | Dati reali DE e asset | Salesforce | Le funzioni di scrittura modificano il tenant con la sessione dell'utente |
 
@@ -176,7 +179,9 @@ Non è stata effettuata una pubblicazione né modificata la configurazione di Ch
 
 Le verifiche locali del collegamento coprono URL su stack differenti, MID differenti o assente, vecchi modelli URL ignorati, aggiornamento del GUID durante la navigazione senza ricaricamento, apertura del collegamento, scomparsa tornando all’elenco e assenza di una destinazione con stack ignoto. Sono stati verificati anche sintassi JavaScript e integrità del pacchetto.
 
-I controlli del router utilizzano il modulo nativo `js/router` fornito per l’analisi, con dipendenze e stato applicativo simulati: verificano che il GUID generato raggiunga Properties nella UI moderna e ObjectDetails nella UI legacy. Le prove nel browser usano pagine simulate. Non eseguono le API Salesforce né certificano l’apertura in una sessione autenticata; il collaudo reale resta necessario.
+I controlli del router utilizzano il modulo nativo `js/router` fornito per l’analisi, con dipendenze e stato applicativo simulati: verificano che il GUID raggiunga Properties nella UI moderna e ObjectDetails nella UI legacy. Le prove con frame di origini diverse riproducono la normalizzazione del percorso esterno, il caricamento ritardato del modulo e del router, l’annullamento quando si cambia modulo, il rifiuto dei messaggi di conferma di origine errata e il timeout. Le prove nel browser usano pagine simulate. Non eseguono le API Salesforce né certificano l’apertura in una sessione autenticata; il collaudo reale resta necessario.
+
+I controlli della rubrica usano uno storage simulato persistente tra i documenti: verificano salvataggio e recupero dopo il ricaricamento, riconferma obbligatoria del MID manuale, annullamento, separazione di due BU, priorità del MID nativo, rifiuto di suggerimenti di stack diverso o malformati e funzionamento quando `sessionStorage` non è disponibile.
 
 Prima di distribuire al team, il collaudo sul tenant deve coprire:
 

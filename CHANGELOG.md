@@ -1,3 +1,10 @@
+# 1.1.4 — 21 ottobre 2026
+
+- Corretto il caso in cui la shell Email Studio scarta il percorso della DE e apre il solo modulo Subscribers. Il GUID viene acquisito all’avvio della pagina e inviato al frame C12 dello stesso stack quando il router è pronto; conferma del percorso, attesa limitata e annullamento quando si cambia modulo.
+- Aggiunti suggerimenti per Imposta MID e Tester BU. La rubrica spiega il suo uso in Content Builder e chiede prima di impostare il MID se manca il contesto necessario per salvarla.
+- Rubrica tester persistente nel browser: chiarito il salvataggio per stack/MID. Dopo un ricaricamento il pulsante ricorda il MID manuale come suggerimento da riconfermare, senza riusare automaticamente la BU di un altro cliente.
+- Nessun nuovo permesso richiesto; il collegamento non richiede il MID manuale. La barra resta rimossa dal Journey Builder e dai suoi frame. Prove locali con frame di origini diverse e router nativo; collaudo autenticato della correzione ancora necessario.
+
 # 1.1.3 — 21 ottobre 2026
 
 - Contact Builder → Email Studio: apertura automatica tramite la rotta nativa `Subscribers/Data_Extensions/<GUID>/edit`, ricavata dal router Email Studio fornito per l’analisi. Stack rilevato dal contesto, nessun URL o MID da configurare per usare il collegamento.
