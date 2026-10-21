@@ -1,3 +1,10 @@
+# 1.1.8 — 21 ottobre 2026
+
+- Corretto il passaggio a Tracking: usa lo stato del menu nativo e non richiama più la rotta generale con trigger, che in switchPage può rimuovere la vista corrente. Riconosce il menu da curNavItem anche quando sectionId è nullo, uno stato valido della UI nativa.
+- La selezione di Test Send Emails attende il caricamento del contenuto in fraContent prima di dichiarare aperta la destinazione. Gestite anche le etichette span con gestori di clic assegnati dal codice nativo.
+- Aggiunti messaggi distinti per inizializzazione, menu Tracking, cartella mancante ed elenco non caricato.
+- Riprodotta la pagina bianca della versione precedente usando il router nativo. Verificata la correzione con Backbone 0.9.10 e i moduli navView/uiView/legacyView forniti per l’analisi, su pagine simulate. Collaudo autenticato ancora necessario; nessun nuovo permesso.
+
 # 1.1.7 — 21 ottobre 2026
 
 - Corretto l’errore postMessage “target origin … members … does not match … mc” nelle aperture di DE e Tracking test. La shell non invia più richieste all’origine dedotta da iframe.src durante il caricamento o il passaggio SSO.

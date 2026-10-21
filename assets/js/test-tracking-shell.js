@@ -13,6 +13,7 @@
     let timer;
     let toast;
     let stopped = false;
+    let progress = 'Apertura di Tracking → Test Send Emails…';
     const connections = new Map();
     function frames() {
         return Array.from(document.querySelectorAll('iframe')).filter(frame => {
@@ -72,7 +73,15 @@
     }
     function completed(data) {
         if (data?.channel !== channel || data.requestId !== requestId) return;
-        if (data.status === 'opened') {
+        if (data.status === 'progress') {
+            const messages = {
+                email: 'Attendo il caricamento di Email Studio…',
+                tracking: 'Apertura del menu Tracking…',
+                folder: 'Ricerca della cartella Test Send Emails…',
+                content: 'Caricamento dell’elenco Test Send Emails…'
+            };
+            if (messages[data.stage]) { progress = messages[data.stage]; show(progress); }
+        } else if (data.status === 'opened') {
             stop();
             toast?.remove();
             const index = location.hash.indexOf('?');
@@ -83,7 +92,12 @@
             }
         } else if (data.status === 'error') {
             stop();
-            show('Non trovo la cartella Test Send Emails. Aprila dal menu Tracking di Email Studio e verifica i permessi della BU.', true);
+            const messages = {
+                email: 'Email Studio non ha completato l’inizializzazione. Ricarica la scheda e riprova Tracking test.',
+                tracking: 'Il menu Tracking non si è inizializzato. Aprilo dal menu Email Studio e riprova.',
+                content: 'La cartella dei test è stata selezionata, ma l’elenco non si è caricato. Ricarica Email Studio e apri Tracking → Test Send Emails.'
+            };
+            show(messages[data.stage] || 'Non trovo la cartella Test Send Emails. Aprila dal menu Tracking di Email Studio e verifica i permessi della BU.', true);
         }
     }
     function routeChanged() { if (!isEmail()) { stop(true); toast?.remove(); } }
@@ -95,7 +109,7 @@
             show('Il tracking non ha completato il caricamento. Riprova da Tracking test o apri Test Send Emails dal menu Tracking.', true);
             return;
         }
-        show('Apertura di Tracking → Test Send Emails…');
+        show(progress);
         send('open');
     }
     window.addEventListener('message', receive);

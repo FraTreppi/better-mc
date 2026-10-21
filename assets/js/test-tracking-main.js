@@ -11,16 +11,25 @@
     let timer;
     const transport = new MessageChannel();
     const port = transport.port1;
-    function backbone() {
-        for (const loader of [window.requirejs, window.require]) {
-            if (typeof loader === 'function' && typeof loader.defined === 'function' && loader.defined('backbone')) return loader('backbone');
-        }
-        return window.Backbone;
-    }
     function respond(status) {
         clearInterval(timer);
         active.status = status;
-        port.postMessage({ channel, requestId: active.requestId, status });
+        delete active.previousDocument;
+        port.postMessage({ channel, requestId: active.requestId, status, stage: active.stage });
+    }
+    function stage(value) {
+        if (active.stage === value) return;
+        active.stage = value;
+        port.postMessage({ channel, requestId: active.requestId, status: 'progress', stage: value });
+    }
+    function contentReady() {
+        const frame = document.querySelector('#fraContent');
+        const doc = frame?.contentDocument;
+        if (!doc || doc.readyState !== 'complete' || !doc.body?.childElementCount) return false;
+        const url = new URL(doc.URL);
+        if (url.protocol !== 'https:' || !['mc', 'members'].some(host => url.hostname === `${host}.${stack.toLowerCase()}.exacttarget.com`) ||
+            /\/(?:blank\.html|blank\.aspx)$/i.test(url.pathname)) return false;
+        return doc !== active.previousDocument || /^test\s*send\s*e-?mails$/i.test(doc.title.trim());
     }
     function testFolder() {
         // Native Email UI exposes fraLeftNav → fraTree (same-origin).
@@ -30,7 +39,7 @@
         if (String(tree?.strCurSect).toLowerCase() !== 'tracking') return null;
         const doc = tree?.document;
         if (!doc) return null;
-        return Array.from(doc.querySelectorAll('a, [role="treeitem"], [onclick]')).find(node => {
+        return Array.from(doc.querySelectorAll('a, [role="treeitem"], [onclick], span')).find(node => {
             const text = (node.getAttribute('aria-label') || node.textContent || '').trim().replace(/\s+/g, ' ').toLowerCase();
             return ['test send emails', 'test send e-mails', 'email di test', 'invii email di prova'].includes(text) &&
                 node.getClientRects().length > 0 && tree.getComputedStyle(node).visibility !== 'hidden';
@@ -40,18 +49,34 @@
         if (!active) return;
         if (Date.now() >= active.deadline) { respond('error'); return; }
         try {
-            const api = backbone();
+            if (active.folderClicked) {
+                if (contentReady()) respond('opened');
+                return;
+            }
             const state = window._NavState;
-            if (!api?.History?.started || typeof api.history?.navigate !== 'function' || !state?.get?.('sectionId')) return;
-            if (String(state.get('sectionId')).toLowerCase() !== 'tracking') {
+            const navItem = state?.get?.('curNavItem');
+            if (typeof state?.set !== 'function' || typeof navItem?.get !== 'function' || !navItem.get('sectionID')) { stage('email'); return; }
+            // Native menu clicks may leave sectionId null. curNavItem is the
+            // selected menu and remains authoritative during legacy loading.
+            if (String(navItem.get('sectionID')).toLowerCase() !== 'tracking') {
+                stage('tracking');
                 if (!active.applied) {
                     active.applied = true;
-                    api.history.navigate('Tracking', { trigger: true });
+                    // Native navView._selectItem selects the existing Tracking menu
+                    // and loads its legacy view. Triggering the root router instead
+                    // calls switchPage(), which removes the current base view.
+                    state.set({ sectionId: 'Tracking' });
                 }
                 return;
             }
+            stage('folder');
             const folder = testFolder();
-            if (folder) { folder.click(); respond('opened'); }
+            if (folder) {
+                active.previousDocument = document.querySelector('#fraContent')?.contentDocument;
+                active.folderClicked = true;
+                stage('content');
+                folder.click();
+            }
         } catch (_) { /* Left navigation may still be loading during SSO. */ }
     }
     port.onmessage = event => {
