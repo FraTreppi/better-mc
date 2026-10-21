@@ -1,12 +1,16 @@
 (function () {
     'use strict';
     if (window === window.top || !/^\/C12\/Default\.aspx$/i.test(location.pathname)) return;
-    const stack = location.hostname.match(/^members\.(s\d+)\.exacttarget\.com$/i)?.[1];
+    const stack = location.hostname.match(/^(?:members|mc)\.(s\d+)\.exacttarget\.com$/i)?.[1];
     if (!stack) return;
     const origin = `https://mc.${stack.toLowerCase()}.exacttarget.com`;
+    const ancestors = Array.from(location.ancestorOrigins || []);
+    if (ancestors.length && ancestors[ancestors.length - 1] !== origin) return;
     const channel = 'sfmcfix-test-tracking';
     let active;
     let timer;
+    const transport = new MessageChannel();
+    const port = transport.port1;
     function backbone() {
         for (const loader of [window.requirejs, window.require]) {
             if (typeof loader === 'function' && typeof loader.defined === 'function' && loader.defined('backbone')) return loader('backbone');
@@ -16,7 +20,7 @@
     function respond(status) {
         clearInterval(timer);
         active.status = status;
-        window.top.postMessage({ channel, requestId: active.requestId, status }, origin);
+        port.postMessage({ channel, requestId: active.requestId, status });
     }
     function testFolder() {
         // Native Email UI exposes fraLeftNav → fraTree (same-origin).
@@ -50,9 +54,9 @@
             if (folder) { folder.click(); respond('opened'); }
         } catch (_) { /* Left navigation may still be loading during SSO. */ }
     }
-    window.addEventListener('message', event => {
+    port.onmessage = event => {
         const data = event.data;
-        if (event.source !== window.top || event.origin !== origin || data?.channel !== channel ||
+        if (data?.channel !== channel ||
             !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.requestId || '')) return;
         if (data.status === 'cancel') {
             if (active?.requestId === data.requestId) { clearInterval(timer); active = null; }
@@ -67,6 +71,8 @@
         active = { requestId: data.requestId, deadline: Date.now() + 20000, applied: false };
         timer = setInterval(tick, 150);
         tick();
-    });
-    window.addEventListener('pagehide', () => clearInterval(timer), { once: true });
+    };
+    port.start();
+    window.top.postMessage({ channel, status: 'ready', path: location.pathname }, origin, [transport.port2]);
+    window.addEventListener('pagehide', () => { clearInterval(timer); port.close(); }, { once: true });
 })();

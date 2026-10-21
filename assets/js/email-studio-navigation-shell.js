@@ -8,13 +8,14 @@
     const isEmail = () => /^#app\/Email(?:\/|$)/i.test(location.hash);
     if (!stack || !GUID.test(id || '') || !isEmail()) return;
 
-    const origin = `https://members.${stack.toLowerCase()}.exacttarget.com`;
+    const origins = new Set([`https://members.${stack.toLowerCase()}.exacttarget.com`, `https://mc.${stack.toLowerCase()}.exacttarget.com`]);
     const channel = 'sfmcfix-email-navigation';
     const requestId = crypto.randomUUID();
     const deadline = Date.now() + 30000;
     let toast;
     let timer;
     let stopped = false;
+    const connections = new Map();
 
     function showStatus(text, error = false) {
         if (!document.body) return;
@@ -32,6 +33,8 @@
         stopped = true;
         clearInterval(timer);
         if (cancel) send('cancel');
+        connections.forEach(connection => connection.port.close());
+        connections.clear();
         window.removeEventListener('message', receive);
         window.removeEventListener('hashchange', onRouteChange);
         if (clearMarker) {
@@ -50,21 +53,42 @@
     function isTargetFrame(frame) {
         try {
             const url = new URL(frame.src, location.href);
-            return url.origin === origin && /^\/C12\/Default\.aspx$/i.test(url.pathname);
+            return origins.has(url.origin) && /^\/(?:C12\/Default\.aspx|cloud\/tools\/SSO\.aspx)$/i.test(url.pathname);
         } catch (_) { return false; }
     }
 
     function send(status) {
-        for (const frame of document.querySelectorAll('iframe')) {
-            if (isTargetFrame(frame)) frame.contentWindow.postMessage({ channel, requestId, id, status }, origin);
+        for (const [source, connection] of connections) {
+            if (connection.frame.isConnected && connection.frame.contentWindow === source && isTargetFrame(connection.frame)) {
+                connection.port.postMessage({ channel, requestId, id, status });
+            } else {
+                connection.port.close();
+                connections.delete(source);
+            }
         }
     }
 
     function receive(event) {
         const data = event.data;
-        if (stopped || event.origin !== origin || data?.channel !== channel ||
-            data.requestId !== requestId || data.id !== id ||
-            !Array.from(document.querySelectorAll('iframe')).some(frame => isTargetFrame(frame) && frame.contentWindow === event.source)) return;
+        if (stopped || data?.channel !== channel || data.status !== 'ready') return;
+        if (!isEmail()) { onRouteChange(); return; }
+        const frame = Array.from(document.querySelectorAll('iframe')).find(frame => isTargetFrame(frame) && frame.contentWindow === event.source);
+        if (!origins.has(event.origin) || data.path !== '/C12/Default.aspx' || event.ports.length !== 1 || !frame) {
+            event.ports.forEach(port => port.close());
+            return;
+        }
+        connections.get(event.source)?.port.close();
+        const connection = { frame, port: event.ports[0] };
+        connections.set(event.source, connection);
+        connection.port.onmessage = event => {
+            if (!stopped && connections.get(frame.contentWindow) === connection && frame.isConnected) completed(event.data);
+        };
+        connection.port.start();
+        send('open');
+    }
+
+    function completed(data) {
+        if (data?.channel !== channel || data.requestId !== requestId || data.id !== id) return;
         if (data.status === 'opened') {
             stop(true);
             toast?.remove();

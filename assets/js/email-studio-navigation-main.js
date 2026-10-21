@@ -2,13 +2,17 @@
     'use strict';
     // Runs in the native Email Studio frame, without extension APIs or storage.
     if (window === window.top || !/^\/C12\/Default\.aspx$/i.test(location.pathname)) return;
-    const stack = location.hostname.match(/^members\.(s\d+)\.exacttarget\.com$/i)?.[1];
+    const stack = location.hostname.match(/^(?:members|mc)\.(s\d+)\.exacttarget\.com$/i)?.[1];
     if (!stack) return;
     const origin = `https://mc.${stack.toLowerCase()}.exacttarget.com`;
+    const ancestors = Array.from(location.ancestorOrigins || []);
+    if (ancestors.length && ancestors[ancestors.length - 1] !== origin) return;
     const channel = 'sfmcfix-email-navigation';
     const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     let active;
     let timer;
+    const transport = new MessageChannel();
+    const port = transport.port1;
 
     function backbone() {
         for (const loader of [window.requirejs, window.require]) {
@@ -22,7 +26,7 @@
 
     function respond(status) {
         active.status = status;
-        window.top.postMessage({ channel, requestId: active.requestId, id: active.id, status }, origin);
+        port.postMessage({ channel, requestId: active.requestId, id: active.id, status });
     }
 
     function requestedView(state, id) {
@@ -54,9 +58,9 @@
         } catch (_) { clearInterval(timer); respond('error'); }
     }
 
-    window.addEventListener('message', event => {
+    port.onmessage = event => {
         const data = event.data;
-        if (event.source !== window.top || event.origin !== origin || data?.channel !== channel ||
+        if (data?.channel !== channel ||
             !GUID.test(data.id || '') || !GUID.test(data.requestId || '')) return;
         if (data.status === 'cancel') {
             if (active?.requestId === data.requestId) { clearInterval(timer); active = null; }
@@ -71,6 +75,10 @@
         active = { id: data.id, requestId: data.requestId, applied: false, deadline: Date.now() + 20000 };
         timer = setInterval(tick, 150);
         tick();
-    });
-    window.addEventListener('pagehide', () => clearInterval(timer), { once: true });
+    };
+    port.start();
+    // Announce from the loaded C12 document. The private port stays bound to this
+    // document even when iframe.src still describes an SSO redirect or placeholder.
+    window.top.postMessage({ channel, status: 'ready', path: location.pathname }, origin, [transport.port2]);
+    window.addEventListener('pagehide', () => { clearInterval(timer); port.close(); }, { once: true });
 })();

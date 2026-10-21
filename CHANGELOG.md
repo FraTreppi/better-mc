@@ -1,3 +1,9 @@
+# 1.1.7 — 21 ottobre 2026
+
+- Corretto l’errore postMessage “target origin … members … does not match … mc” nelle aperture di DE e Tracking test. La shell non invia più richieste all’origine dedotta da iframe.src durante il caricamento o il passaggio SSO.
+- Il documento C12 caricato annuncia un MessageChannel dedicato; la shell verifica origine reale, stack e finestra mittente prima di utilizzarlo. Supportati C12 su members e mc dello stesso stack, senza destinazioni wildcard. I canali vengono chiusi al completamento o all’annullamento.
+- Riprodotto l’errore originale nel browser e verificati caricamento ritardato, reindirizzamento members → mc, passaggio da SSO, UI moderna/legacy, stack diversi e cancellazione. Prove su pagine simulate; verifica nella sessione Salesforce ancora necessaria. Nessun nuovo permesso.
+
 # 1.1.6 — 21 ottobre 2026
 
 - Aggiunta nelle impostazioni dell’estensione una scelta persistente per nascondere completamente entrambe le icone di Preview and Test e riattivarle dalla barra del browser. Preferenza generale del profilo, indipendente dal MID; tester e storico non vengono eliminati.

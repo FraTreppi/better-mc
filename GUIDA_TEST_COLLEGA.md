@@ -1,6 +1,6 @@
 # SFMC UI Fixer - Guida rapida al test
 
-Versione 1.1.6 | Autore: Francesco Trepiccioni | 21 ottobre 2026
+Versione 1.1.7 | Autore: Francesco Trepiccioni | 21 ottobre 2026
 
 Obiettivo: verificare l'estensione sul nostro Marketing Cloud. Tempo indicativo: 20-30 minuti. Il pacchetto è una versione di sviluppo: i controlli automatici sono passati, il collaudo reale resta da fare.
 
@@ -28,6 +28,7 @@ Usa una DE di prova e una casella email controllata. CLONE e MULTI ROWS possono 
 - Il comando deve essere **Apri in Email Studio**, già disponibile senza incollare URL o impostare il MID per questa funzione.
 - Premi **Apri in Email Studio**: deve aprirsi un'altra scheda/finestra con la stessa DE e nella BU corretta, lasciando aperto Contact Builder.
 - Attendi il messaggio di apertura mentre il modulo si inizializza: il dettaglio deve aprirsi anche se l’indirizzo esterno resta sul solo Subscribers. Se compare un avviso di mancata apertura, riporta l’esito come **FAIL**.
+- Dopo l’aggiornamento cancella gli errori precedenti in chrome://extensions → Errori e riprova: non devono comparire nuovi errori postMessage di origine non corrispondente.
 - Ripeti con una seconda DE senza ricaricare Contact Builder; confronta nome e GUID. Tornando all'elenco, il comando deve scomparire.
 - Ripeti dopo aver selezionato un’altra BU e riaperto Contact Builder. Il link usa la sessione Email Studio corrente e non cambia BU automaticamente. Se apre una pagina errata, segna **FAIL** e riporta i passaggi e lo stack; la rotta è stata ricavata dal router nativo, ma resta da collaudare nel tenant.
 

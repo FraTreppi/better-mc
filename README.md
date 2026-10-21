@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.6
+# SFMC UI Fixer — Multi BU 1.1.7
 
 **Autore della versione Multi BU: Francesco Trepiccioni.**
 
@@ -65,7 +65,7 @@ Non devi incollare un URL o inserire manualmente il MID per questo collegamento.
 
 Il percorso nativo è `Subscribers/Data_Extensions/<GUID>/edit`: nel router Email Studio il suffisso `edit` apre la vista Properties. Il link usa la sessione Email Studio corrente; non effettua un cambio BU automatico. Dopo un cambio cliente o BU, riapri Contact Builder nel contesto corretto. Disponibilità delle DE condivise o sincronizzate e permessi vanno verificati nel tenant.
 
-Dalla versione 1.1.4 l’estensione conserva il GUID prima dell’inizializzazione della pagina e lo consegna al frame Email Studio solo quando il router nativo è pronto. Questo gestisce il caso in cui Marketing Cloud riporti l’indirizzo esterno al solo modulo Subscribers. Durante il passaggio compare un breve messaggio di apertura; se il modulo non è disponibile compare un avviso, senza restare in attesa indefinitamente.
+Dalla versione 1.1.4 l’estensione conserva il GUID prima dell’inizializzazione della pagina e lo consegna al frame Email Studio solo quando il router nativo è pronto. Questo gestisce il caso in cui Marketing Cloud riporti l’indirizzo esterno al solo modulo Subscribers. Dalla versione 1.1.7 attende un annuncio dal documento Email Studio realmente caricato e comunica attraverso un canale dedicato: non deduce più l’origine del documento da `iframe.src`. Gestisce sia `members.<stack>` sia `mc.<stack>` dopo il passaggio SSO, evitando l’errore postMessage di origine non corrispondente. La stessa correzione vale per Tracking test. Durante il passaggio compare un breve messaggio di apertura; se il modulo non è disponibile compare un avviso, senza restare in attesa indefinitamente.
 
 La diagnostica resta disponibile dall’icona dell’estensione → **Diagnostica Email Studio** per eventuali problemi. Raccoglie percorsi tecnici e stringhe di navigazione dei bundle nativi, senza leggere record o risposte API e senza invio automatico del rapporto.
 
