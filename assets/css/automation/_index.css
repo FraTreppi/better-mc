@@ -1,0 +1,127 @@
+.sfmcfix-activity-info {
+    padding: .5rem;
+    background: #f1f1f1;
+    margin: .5rem -0.5rem -.5rem -.5rem;
+    border: solid 2px white;
+    border-radius: 4px;
+    font-size: .5rem;
+}
+
+/* overrides */
+
+body #workflowPane .codeBlock .codeBlock-wrapper .activityInfoContainer .activityNameIcon .activityIcon {
+    display: none;
+}
+
+body #workflowPane .codeBlock .codeBlock-wrapper .activityInfoContainer {
+    margin: .5rem;
+}
+
+body #workflowPane .codeBlock .codeBlock-wrapper .activityInfoContainer .activityHeader .numberNameContainer {
+    max-width: 100%;
+}
+
+body #workflowPane .codeBlock .codeBlock-wrapper .activityInfoContainer .activityNameIcon .info {
+    font-size: .75rem;
+    width:100%;
+}
+body #workflowPane .codeBlock .codeBlock-wrapper {
+    border-width: 4px;
+    transition: .5s 0s border-color;
+}
+
+body #workflowPane .codeBlock .codeBlock-wrapper.activityInProgress, body #workflowPane .codeBlock .codeBlock-wrapper:hover {
+    border-width: 4px!important;
+    border-color: rgba(63, 63, 255, .5) !important;
+}
+
+body #workflowPane .codeBlock .codeBlock-wrapper .activityInfoContainer .activityHeader {
+    margin: -.5rem;
+    padding: .25rem .5rem;
+    margin-bottom: .25rem;
+    color: black;
+}
+
+body .folderPanel .automation-view-history {
+    padding: 0 10px;
+    border-bottom: 1px solid #e1e1e1;
+    margin-bottom: 10px;;
+}
+
+body .folderPanel .automation-view-history header {
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+body .folderPanel .automation-view-history ul {
+    list-style: none;
+    padding: 0px;
+    padding-left: 8px;
+}
+
+body .folderPanel .automation-view-history ul a:hover {
+    color: #761c47;
+    text-decoration:none;
+}
+
+.mcefix-activity-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 5px;
+    padding: 10px 0 0 10px;
+}
+
+.modal-body #summaryQueryEditor.is-validated::before {
+    content: "Validated query";
+    /* transform: translate(0px); */
+    display: block;
+    position: absolute;
+    z-index: 2223;
+    right: -1px;
+    top: -1px;
+    border: solid 1px #ccc;
+    padding: 4px 10px;
+    background-color: #eee;
+    border-radius: 0 0 0 4px;
+}
+
+body #workflowPane .codeBlock .codeBlock-wrapper.type__journey-entry--audience {border-color: #ea001e;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__journey-entry--audience .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__journey-entry--audience { background: #ea001e;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__data-copy-or-import { border-color: #48a3c1;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__data-copy-or-import .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__data-copy-or-import { background: #48a3c1;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__data-extract { border-color: #3bb377;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__data-extract .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__data-extract { background: #3bb377;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__data-factory-utility { border-color: #c45cc4;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__data-factory-utility .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__data-factory-utility { background: #c45cc4;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__file-transfer { border-color: #d17353;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__file-transfer .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__file-transfer { background: #d17353;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__filter { border-color: #6c27b0;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__filter .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__filter { background: #6c27b0;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__fire-event { border-color: #286e6e;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__fire-event .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__fire-event { background: #286e6e;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__import-mobile-contacts { border-color: #389438;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__import-mobile-contacts .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__import-mobile-contacts { background: #389438;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__refresh-group { border-color: #9b729b;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__refresh-group .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__refresh-group { background: #9b729b;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__refresh-mobile-filtered-list { border-color: #448da5;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__refresh-mobile-filtered-list .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__refresh-mobile-filtered-list { background: #448da5;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__report-definition { border-color: #b51313;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__report-definition .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__report-definition { background: #b51313;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__sql-query { border-color: #e766a6;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__sql-query .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__sql-query { background: #e766a6;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__script { border-color: #cdcd7b;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__script .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__script { background: #cdcd7b;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__send-email { border-color: #95f095;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__send-email .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__send-email { background: #95f095;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__send-groupconnect { border-color: #666633;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__send-groupconnect .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__send-groupconnect { background: #666633;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__send-push { border-color: #993366;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__send-push .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__send-push { background: #993366;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__send-sms { border-color: #4a4ac7;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__send-sms .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__send-sms { background: #4a4ac7;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__verification { border-color: #fab856;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__verification .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__verification { background: #fab856;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__wait { border-color: #666699;}
+body #workflowPane .codeBlock .codeBlock-wrapper.type__wait .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__wait { background: #666699;}

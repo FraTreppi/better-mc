@@ -1,0 +1,22 @@
+<div class="slds-col slds-size_2-of-12 left-panel-hide" id="stage__left-panel">
+    <div>
+        <header>
+            <strong>QUERY SALVATE</strong>
+            <p>Le query vengono salvate sul brower e sono utilizzabili solo su questo browser usando il <code>LocalStorage</code>, eventuali query salvate in incognito saranno valde solo per la sessione.</p>
+        </header>
+        <section>
+            <ul class="stage-query-list"></ul>
+        </section>
+        <div id="query-preview" class="query-preview-panel">
+            <fieldset disabled>
+                <div><input name="name" class="query-preview-name" placeholder="Add a name..." /><input name="id" readonly disabled class="query-preview-id" /></div>
+                <textarea name="query" class="query-preview-query"></textarea>
+                <input type="hidden" name="key" />
+            </fieldset>
+            <div>
+                <button class="slds-button slds-button_neutral" data-action="edit-stash">EDIT</button>
+                <button class="slds-button slds-button_neutral" disabled data-action="update-stash">SAVE</button>
+            </div>
+        </div>
+    </div>
+</div>

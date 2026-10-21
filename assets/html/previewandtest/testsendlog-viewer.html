@@ -1,0 +1,114 @@
+<div class="log-container" id="testsendlog-viewer">
+    <div class="log-header bg-primary">
+        <button data-action="close-log-container" class="btn btn-secondary"><i class="glyphicon glyphicon-close"></i></button>
+        <span>TEST HISTORY</span>
+    </div>
+    <div id="log-body" class="log-body"></div>
+</div>
+<div class="previewandtest-toolbox">
+    <button data-action="open-log-container"><i class="glyphicon glyphicon-inbox"></i></button>
+</div>
+
+<style>
+    
+    .previewandtest-toolbox {
+        position: fixed;
+        right: -6px;
+        bottom: 115px;
+        z-index: 998;
+    }
+
+    .previewandtest-toolbox button {
+        border-radius: 50%;
+        height:40px;
+        width:40px;
+        border:solid 2px #fff;
+        box-shadow: 3px 1px 3px #ccc;
+        display:flex;
+        justify-content:center;
+        align-items: center;
+        background-color: #b9dfff;
+    }
+
+    .previewandtest-toolbox button:hover {
+        border-color: #648dd5;
+    }
+
+    .log-container {
+        width: 600px;
+        margin: 0 auto;
+        border: 1px solid #373a3e;
+        overflow: hidden;
+        position: fixed;
+        right:0;
+        top:0;
+        bottom:0;
+        transform: translateX(100%);
+        transition: transform .5s;
+        background-color: white;
+        z-index: 999;
+        color: #373a3e;
+        
+    }
+
+    .log-container.is-open {
+        transform: translateX(0);
+    }
+
+    .log-container .log-header {
+        padding: 8px 12px;
+        border-bottom: 1px solid #373a3e;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .log-container .log-row {
+        border-bottom: 1px solid #373a3e;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .log-container .log-row header {
+        display: flex;
+        padding: 4px 8px;
+        flex-grow: 0;
+    }
+
+    .log-container .log-row article {
+        display: none;
+    }
+
+    .log-container .log-row:hover article {
+        display: block;
+    }
+
+    .log-container .log-row article > * {
+        padding: 8px;
+    }
+
+    .log-container .log-row article ul {
+        list-style-type: none;
+    }
+
+    .log-container .log-row:hover article footer,.log-container .log-row:hover header {
+        background-color: #f1f1f1;
+        border-top: #CCC;
+        cursor: pointer;
+    }
+
+    .log-container .timestamp { margin-right: 12px; flex-shrink: 0; }
+    .log-container .level { font-weight: bold; width: 60px; flex-shrink: 0; }
+    .log-container .message { overflow: hidden; text-overflow: ellipsis; }
+
+    .log-container .log-body {
+        height: 100%;
+        overflow: auto;
+    }
+
+    .log-container li {
+        display: flex;
+        gap: 3px;
+    }
+
+</style>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diagnostica Email Studio — SFMC Fixer</title>
+  <style>
+    body { max-width: 820px; margin: 40px auto; padding: 0 20px; font: 16px/1.5 system-ui, sans-serif; color: #181818; }
+    h1 { font-size: 24px; }
+    label { display: block; margin-top: 24px; }
+    select, button { font: inherit; padding: 8px 12px; margin: 8px 4px 8px 0; max-width: 100%; }
+    button { cursor: pointer; }
+    button:disabled { cursor: default; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f3f5f7; padding: 16px; max-height: 420px; overflow: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <a href="activity-versioning.html">← Activity Versioning</a>
+  <h1>Diagnostica Email Studio</h1>
+  <p>Apri una Data Extension in Email Studio e lasciala sul dettaglio <strong>Properties</strong>. Torna qui, seleziona la sua scheda e premi <strong>Raccogli diagnostica</strong>.</p>
+  <p>Il rapporto contiene i percorsi tecnici di pagine, frame e richieste già caricate. I valori dei parametri vengono omessi, salvo identificativi e parametri di navigazione riconosciuti. Non vengono letti record, contenuti delle risposte, cookie o dati salvati dell’estensione. Nessun rapporto viene inviato automaticamente.</p>
+  <label for="source-tab">Scheda Email Studio</label>
+  <select id="source-tab" disabled></select>
+  <button id="refresh" type="button">Aggiorna elenco</button>
+  <div>
+    <button id="collect" type="button" disabled>Raccogli diagnostica</button>
+    <button id="download" type="button" disabled>Scarica rapporto</button>
+  </div>
+  <p id="status" role="status" aria-live="polite"></p>
+  <details id="preview" hidden>
+    <summary>Controlla il contenuto del rapporto</summary>
+    <pre id="report"></pre>
+  </details>
+  <p>Questa diagnostica serve a sviluppare l’apertura automatica della stessa DE; non modifica Salesforce e non configura ancora il collegamento.</p>
+  <script src="../js/email-studio-diagnostics.js"></script>
+</body>
+</html>

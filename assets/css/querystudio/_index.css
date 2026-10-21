@@ -1,0 +1,206 @@
+/* query studio */
+
+body .oe-field {
+    padding: 2px 4px;
+}
+
+body .oe-field.is-required {
+    color: red;
+    font-weight: bold;
+    order: -1;
+    background-color: #f1f1f1;
+}
+
+body .slds-card__body.slds-card__body_inner > ul {
+    display: flex;
+    flex-direction: column;
+}
+
+body .slds-media__figure.slds-listbox__option-icon {
+    display: none;
+}
+
+body .slds-dropdown.slds-dropdown_length-15.slds-dropdown_fluid {
+    width: auto;
+    float: none;
+    max-width: none;
+    min-width: 100%;
+    left: auto;
+    text-align: right;
+    max-height: 300px;
+    overflow: scroll;
+    right: 0;
+    transform: none;
+}
+
+body .slds-combobox.slds-dropdown-trigger.slds-dropdown-trigger_click.slds-is-open {
+    position: relative;
+}
+
+body {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1.3fr;
+    grid-template-rows: repeat(5, 1fr);
+    grid-column-gap: 10px;
+    grid-row-gap: 10px;
+    padding: 20px;
+}
+
+body > div {
+    display: none;
+}
+
+body .main-page {
+    grid-area: 1 / 1 / 4 / 5;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin: 0;
+}
+body .object-explorer {
+    grid-area: 1 / 5 / 6 / 6;
+    display: flex;
+    width: 100%;
+    margin: 0;
+    height: 100%;
+    max-height: none;
+    padding-top: 0;
+    position: relative;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: auto;
+    padding-top: 100px;
+    gap: 4px;
+    overflow: scroll;
+    flex-wrap: wrap;
+}
+
+body #results {
+    grid-area: 4 / 1 / 6 / 5;
+    display: block;
+    width: 100%;
+    margin: 0;
+}
+
+body.hide-aside .object-explorer {
+    display: none;
+}
+
+body.hide-aside .main-page {
+    grid-area: 1 / 1 / 4 / 6;
+}
+
+body.hide-aside #results {
+    grid-area: 4 / 1 / 6 / 6;
+}
+
+body .object-explorer .slds-panel__body {
+    position: absolute;
+    top: 0;
+    z-index: 1;
+    background-color: #ebebeb;
+    width: 100%;
+    left: 0;
+}
+
+body .slds-form-element.toolbar-combobox {
+    width: 100%;
+    margin:0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 4px;
+    align-items: center;
+    grid-area: 1 / 2;
+}
+
+.toolbar-combobox button {
+    grid-area: 1 / 1;
+}
+
+body  .slds-panel__body {grid-area: 1 / 1 / 1 / 1;}
+body  .slds-card.oe-table-card {
+    flex-grow: 1;
+    margin: 0;
+    width: 49%;
+}
+body  .slds-panel__header {display: none;}
+
+body #editor, body .slds-grid.options-panel {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 5px;
+    position: relative;
+}
+
+body .left-panel-show {
+    display: block;
+    position: absolute;
+    left: 0;
+    z-index: 61;
+    width: 300px;
+    background: #f1f1f1;
+    top: 0;
+    bottom: 0;
+    padding: 10px;
+    box-shadow: #ccc 1px 1px 0px;
+}
+
+body #left-panel .slds-dropdown.slds-dropdown_length-15.slds-dropdown_fluid {
+    left: 0;
+    right: auto;
+    text-align: left;
+}
+
+body .main-page .slds-size_10-of-12 {
+    width: 100%;
+}
+
+body .object-explorer .btn-copy {
+    float:right;
+    margin-right: 4px;
+}
+body .object-explorer .remove-card {
+    box-sizing: content-box;
+    padding: 9px;
+    border: solid 1px #ccc;
+    border-radius: 4px;
+}
+
+body .object-explorer .remove-card:active {
+    background-color: #f1f1f1;
+}
+
+body .object-explorer .slds-card__header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+body .object-explorer .slds-card__header h3 {
+    width: 100%;
+    padding: 10px 0;
+}
+
+body .object-explorer .slds-form-element__control {
+    grid-area: 2 / 1 / 2 / 3;
+}
+
+#show-sidebar {
+    position: fixed;
+    top: 20%;
+    right: 0;
+    padding: 10px;
+    transform: scaleX(0);
+    transition: transform .5s .1s;
+    transform-origin: right;
+}
+
+.hide-aside #show-sidebar {
+    transform: scaleX(1);
+}
+
+.slds-builder-toolbar__actions .sep {
+    margin: 0 10px;
+    border-left: solid 1px #ccc;
+}

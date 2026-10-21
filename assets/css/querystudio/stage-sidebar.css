@@ -1,0 +1,137 @@
+#stage__left-panel header {
+    padding-bottom: 10px;
+}
+
+#stage__left-panel header p {
+    font-size: 10px;
+}
+
+div#stage__left-panel > div {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#stage__left-panel section {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+#stage__left-panel section ul {
+   display:flex;
+    flex-direction:column;
+    gap:6px;
+    overflow: auto;
+}
+
+#stage__left-panel section li {
+    cursor: pointer;
+    border-bottom: dashed 1px #ccc;
+    position: relative;
+    padding-bottom: 6px;
+}
+
+li.item--lastunloaded {
+    order: -1;
+}
+
+li.item--last {
+    order: -2;
+}
+
+li.item--lastruntry {
+    order: -3;
+}
+
+li[class^='item--last']{
+    background-color: rgba(0,0,0,.1);
+    padding: 4px;
+}
+
+#stage__left-panel section li .on-hover {
+    z-index: -1;
+    opacity: 0;
+    transition: opacity .5s 0;
+    position: absolute;
+    top:0;
+    left:0;
+    bottom:0;
+    right:0;
+    background-color: rgba(0,0,0,.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#stage__left-panel section li:hover .on-hover {
+    z-index: 999;
+    opacity: 1;
+}
+
+#stage__left-panel section li p {
+    margin-bottom: 5px;
+}
+
+#stage__left-panel section ul pre {
+    color: #666;
+    background-color: white;
+    padding: 2px 4px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin: 0;
+    font-size:10px;
+}
+
+#stage__left-panel .query-preview-panel {
+    position: absolute;
+    top:0;
+    left: 100%;
+    width: 700px;
+    height: 100%;
+    background-color: #f1f1f1;
+    top: 0;
+    border-left: solid 1px #ccc;
+    margin-left: -1px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity .5s 0s;
+    gap:5px;
+    padding: 10px;
+    box-shadow: #ccc 23px 0px 41px;
+}
+
+#stage__left-panel .query-preview-panel.is-show {
+    z-index: 9;
+    opacity: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+#stage__left-panel .query-preview-panel > fieldset {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 5px;
+    flex-grow: 1;
+}
+
+#stage__left-panel .query-preview-panel > fieldset > div {
+    display: flex;
+    gap: 5px;
+}
+
+#stage__left-panel .query-preview-panel > fieldset > div input {
+    flex-grow: 1;
+}
+
+#stage__left-panel .query-preview-panel .query-preview-query {
+    margin: 0;
+    padding: 4px;
+    background-color: white;
+    flex-grow: 1;
+}
+
+#stage__left-panel .query-preview-panel > div {
+    padding: 4px 0;
+}

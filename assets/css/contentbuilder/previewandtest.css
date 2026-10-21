@@ -1,0 +1,53 @@
+.suggestion-list-wrapper {
+    width: 100%;
+    background-color: white;
+    z-index: 1;
+    position: absolute;
+}
+
+.input-suggestion {
+    position: relative;
+}
+
+#suggestion-items {
+    list-style: none;
+    margin:0;
+    padding:0;
+}
+
+#suggestion-items li {
+    cursor: pointer;
+    padding: 4px;
+}
+
+#suggestion-items li:hover {
+    background-color: #f1f1f1;
+}
+
+li.tree-branch[data-id="999999999"] .tree-branch-header .tree-label {
+    color: red;
+    font-weight: bold;
+}
+
+li.tree-branch[data-id="999999999"] .tree-branch-header:hover .tree-label {
+    color:#9f1313 !important;
+}
+
+li.tree-branch[data-id="999999990"] .tree-branch-header .tree-label {
+    color: rgb(236, 130, 0);
+    font-weight: bold;
+}
+
+li.tree-branch[data-id="999999990"] .tree-branch-header:hover .tree-label {
+    color:rgb(199, 110, 2) !important;
+}
+
+#dempreview-iframe-modal .modal-body {
+    padding: 0;
+}
+
+#dempreview-iframe-modal iframe {
+    border: 0;
+    padding: 0;
+    margin: 0;
+}

@@ -1,0 +1,79 @@
+/* DE HISTORY */
+
+.de-history {
+    padding: 0;
+    margin: 0;
+    border-bottom: solid 3px #f0f0f0;
+}
+
+.de-history header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 12px;
+    border: solid 1px #EEE;
+    margin-bottom: 10px;
+}
+
+.de-history ul {
+    padding-left: 10px;
+    list-style: none;
+}
+
+.de-history ul button {
+    transform: translateY(-2px);
+}
+
+transform: translateY(-2px);
+
+.de-history ul a:hover {
+    color: #761c47;
+    text-decoration:none;
+}
+
+.de-history ul li + li {
+    margin-top: 2px;
+    padding-top: 2px;
+    border-top: dashed 1px #eee;
+}
+
+/* .de-history li:hover .remove-de-history-item {
+    display: inline-block;
+} */
+
+.remove-de-history-item {
+    margin-left:-19px;
+    display: none;
+    line-height: 16px;
+}
+
+/* .remove-de-history-item i {
+    background: url(https://mc.s7.marketingcloudapps.com/contactsmeta/images/action-icons.png) no-repeat 0 -63px;
+    display: block;
+    width: 16px;
+    height: 16px;
+    opacity: .8;
+}
+
+.remove-de-history-item:hover i {
+    opacity: 1;
+} */
+
+div#overviewItemsFilter + .repeater-container td > a:hover {
+    position: relative;
+    z-index: 1111;
+    background-color: #FFF;
+    width:fit-content;
+}
+
+.w-100 {
+    width: 100% !important;;
+}
+
+.m-0 {
+    margin: 0 !important;
+}
+
+.p-0 {
+    padding: 0 !important;
+}

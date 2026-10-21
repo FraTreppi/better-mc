@@ -1,0 +1,29 @@
+<div class="sms_config_wrapper">
+    <form id="sms_config">
+        <fieldset>
+            <div class="field-wrap">
+                <label for="config-COMUNICATION_CODE">Codice SMS</label>
+                <div><input maxlength="50" id="config-COMUNICATION_CODE" name="COMUNICATION_CODE" required /></div>
+            </div>
+            <div class="field-wrap">
+                <label for="config-SMS_TEXT">Testo SMS</label>
+                <div class="w-100">
+                    <textarea class="w-100" id="config-SMS_TEXT" name="SMS_TEXT" required maxlength="4000"></textarea>
+                    <div class="text-sms-info">
+                        <ul id="config-SMS_TEXT-counters" class="list-inline m-0"><li class="sms-charCount">Caratteri: <strong></strong></li><li class="sms-notGsm">Non Gsm: <strong></strong></li><li class="sms-segmentCount">Messaggi: <strong></strong></li></ul>
+                        <div><a target="_blank" href="#" class="btn btn-default sms-check-message">Check message</a></div>
+                    </div>
+                </div>
+            </div>
+            <div class="field-wrap">
+                <label for="config-SENDER">SENDER</label>
+                <div><input maxlength="50" id="config-SENDER" name="SENDER" value="sky" /></div>
+            </div>
+            <div class="field-wrap">
+                <label for="config-KEYWORD">KEYWORD</label>
+                <div><input maxlength="50" id="config-KEYWORD" name="KEYWORD" /></div>
+            </div>
+        </fieldset>
+    </form>
+</div>
+<script data-filename="components/sms_config"></script>

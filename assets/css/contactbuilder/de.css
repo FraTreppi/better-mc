@@ -1,0 +1,345 @@
+/* make INPUTS resizable */
+
+input.editableInput.form-control:focus {
+    transition: all .5s .5s;
+}
+
+.resizable-wrapper {
+    overflow-x: hidden;
+    resize: horizontal;
+    display: inline-block;
+    min-width: 100%;
+}
+
+/* TEXT_SMS FIELD */
+
+.gsm-ready {
+    position: relative;
+}
+
+button.btn.btn-primary.testgsm {
+    /* position: absolute;
+    top:50%;
+    left:50%;
+    transform: translate(-50%,-50%); */
+    display: block;
+}
+
+button.btn.btn-primary.testgsm::after {
+    content:'CHECK GSM CHARACTER'
+}
+
+.has-nogsm, td.is-invalid {
+    color: red;
+}
+
+/* TOOLBOX */
+.mcefix-de-record-toolbox {
+    display: flex;
+    gap: 5px;
+    margin: 0 auto;
+    justify-content: center;
+    align-items: center;
+    width: fit-content;
+    padding: 4px;
+    background: #fff;
+    border-radius: 4px;
+    border: solid 1px #ccc;
+}
+
+.mcefix-de-record-toolbox .inner-toolbox {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    align-items: center;
+}
+
+/* CLONE ROW */
+
+.in-cloning tr:not(.new-record) {
+    position: relative;
+}
+
+.in-cloning tr:not(.new-record):hover td {
+    background-color: #fff1fd;
+    cursor: pointer;
+}
+
+.in-cloning tr:not(.new-record)::after {
+    content: "CLICK TO CLONE";
+    position: absolute;
+    left: 10px;
+    padding: 3px 4px;
+    border-radius: 4px;
+    background-color:#e276d2;
+    font-size: 10px;
+    opacity: 0;
+    top: 6px;
+    color:white;
+    font-weight:700
+}
+
+.in-cloning tr:not(.new-record):hover::after {
+    opacity:1;
+}
+
+.clone-info-message {
+    background-color:#f6b5ec;
+    color: #51204a;
+    padding:10px;
+    display: none;
+}
+
+.clone-info-messags.show {
+    display: flex;
+}
+
+/* SMS MODAL */
+
+#sms_config fieldset  {
+    display:flex;
+    flex-direction: column;
+    gap: 10px
+}
+
+#sms_config fieldset .field-wrap { display: flex; align-items:center; gap: 10px}
+
+#sms_config fieldset .field-wrap > {flex-grow: 1;}
+
+#sms_config label {min-width: 100px;text-align: right;margin: 0;}
+
+#sms_config input, #sms_config textarea {padding: 4px; font-size: 14px; width: 100%;}
+
+#sms_config textarea {
+    min-height: 120px;
+}
+
+#sms_config .text-sms-info {
+    display: flex;
+    justify-content: space-between;
+}
+
+#smsconfigmodal {
+    margin-right: 10px;
+    float: right;
+}
+
+.sfmcfix-custommodal[style*=block] + .modal-backdrop {
+    display: block !important;
+}
+
+/* navigator */
+
+.btn-navigate-fast .glyphicon {
+    width: 11px !important;
+    height: 11px !important;
+}
+
+button[disabled=disabled] + .btn-navigate-fast {
+    display: none;
+}
+
+/* MULTIROWS */
+
+.de_multirow_wrapper > div {
+    overflow: auto;
+}
+
+.de_multirow_wrapper th {
+    text-align: left;
+}
+
+.de_multirow_wrapper .multirow-row-toolbox {
+    display: flex;
+    gap: 5px;
+}
+
+.de_multirow_wrapper .multirow-removerow {
+    display: none;
+}
+
+.de_multirow_wrapper .is-cloned .multirow-removerow {
+    display: inline;
+}
+
+.de_multirow_wrapper .is-cloned .multirow-addrow {
+    display: none;
+}
+
+.de_multirow_wrapper .multirow-row-toolbox .btn {
+    box-shadow: none;
+}
+
+.de_multirow_wrapper .multirow-row-toolbox .checkbox-custom, .de_multirow_wrapper th>div,.de_multirow_wrapper th>span {
+    display: none;
+}
+
+.de_multirow_wrapper .table {
+    margin: 0;
+}
+
+.de_multirow_wrapper .multiple-rows-actions {
+    display: flex;
+    padding: 10px;
+    justify-content: center;
+    gap: 15px;
+    background-color: #f1f1f1;
+    border-bottom: solid 1px #ccc;
+}
+
+.de_multirow_wrapper .multiple-rows-actions > .centered {
+    flex-grow: 0;
+    display: flex;
+    gap: 15px;
+}
+
+.de_multirow_wrapper .multiple-rows-actions > div {
+    flex-grow: 1;
+    display: flex;
+    gap: 15px;
+}
+
+.de_multirow_wrapper .multiple-rows-actions .btn {
+    min-width: 120px;
+}
+
+.de_multirow_wrapper tfoot {
+    background-color: #f1f1f1;
+}
+
+.de_multirow_wrapper table:not(.is-multiple) tfoot {
+    display: none;
+}
+
+.de_multirow_wrapper tfoot .multirow-row-toolbox button {
+    display: none;
+}
+
+
+#multiple-rows-content ul.dropdown-menu {
+    display: flex;
+    width: auto !important;
+    background-color: transparent;
+    border-width: 0;
+    gap: 10px;
+    box-shadow: none;
+}
+
+#multiple-rows-content button.btn.btn-default.dropdown-toggle {
+    display: none;
+}
+
+#multiple-rows-content  .selectlist {
+    width: 100%;
+    display: block;
+}
+
+#multiple-rows-content li.blank-value a:after {
+    content: "NULL";
+}
+
+#multiple-rows-content ul.dropdown-menu a {
+    margin: 0;
+    padding: 0 4px !important;
+}
+
+#multiple-rows-content ul.dropdown-menu li {
+    border-radius: 4px;
+    background-color: #f1f1f1;
+    border: solid 1px #ccc;
+}
+#multiple-rows-content ul.dropdown-menu li[data-selected] {
+    background-color: #c7f6ca;
+}
+
+#multiple-rows-content input.is-primarykey {
+    background-color:rgb(199, 228, 252)
+}
+
+#multiple-rows-content input.is-primarykey::placeholder {
+    color:rgb(93, 113, 130)
+}
+
+#multiple-rows-content input.is-nonullable {
+    background-color:rgb(238, 218, 167)
+}
+
+#multiple-rows-content input.is-nonullable::placeholder {
+    color:rgb(140, 119, 65)
+}
+
+/* ADVANCED SEARCH DE */
+
+.advanced-de-button {
+    margin: 2px 10px;
+}
+
+.advanced-de-serach_form .input-lg {
+    height: auto;
+}
+.advanced-de-serach_form .radio-inline {
+    white-space: nowrap;
+}
+.advanced-de-search_listwrap li {
+    font-size: 16px;
+    padding: 4px 0;
+}
+.advanced-de-search_listwrap li > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+}
+.advanced-de-search_listwrap li + li {
+    border-top: solid 1px #eee;
+}
+
+.advanced-de-term_wrap .glyphicon {
+    display: none;
+    position: absolute;
+    right: 25px;
+    top: 17%;
+}
+
+@-webkit-keyframes rotating /* Safari and Chrome */ {
+  from {
+    -webkit-transform: rotate(0deg);
+    -o-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(360deg);
+    -o-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes rotating {
+  from {
+    -ms-transform: rotate(0deg);
+    -moz-transform: rotate(0deg);
+    -webkit-transform: rotate(0deg);
+    -o-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  to {
+    -ms-transform: rotate(360deg);
+    -moz-transform: rotate(360deg);
+    -webkit-transform: rotate(360deg);
+    -o-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+.is-loading .advanced-de-term_wrap .glyphicon {
+    display: block;
+    -webkit-animation: rotating 2s linear infinite;
+    -moz-animation: rotating 2s linear infinite;
+    -ms-animation: rotating 2s linear infinite;
+    -o-animation: rotating 2s linear infinite;
+    animation: rotating 2s linear infinite;
+}
+
+.tree-branch-header.is-highlighted {
+    background: #FFF7C2;
+    background: linear-gradient(90deg,rgba(255, 247, 194, 0) 0%, rgba(255, 247, 194, 1) 10%);
+
+}
