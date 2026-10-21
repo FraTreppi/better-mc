@@ -1,3 +1,11 @@
+# 1.1.10 — 21 ottobre 2026
+
+- Il pulsante accanto a Send Test ora si chiama **Tracking Test**.
+- La ricerca della cartella usa le etichette native nei frame sotto fraLeftNav, senza imporre un valore a strCurSect o un nome al frame dell’albero.
+- Menu, caricamenti e modifiche del DOM attivano subito i controlli; resta un polling di riserva a 100 ms. L’elenco dei test già aperto viene riconosciuto dal titolo o dall’intestazione/breadcrumb del contenuto, evitando un clic e un caricamento aggiuntivi.
+- Le fasi che avanzano ricevono ciascuna fino a 20 secondi, entro un limite totale di 60 secondi. Dopo un errore, il controllo prosegue per due minuti in sola osservazione: se l’elenco si apre, anche manualmente, l’avviso e il pulsante diagnostica spariscono. Nessuna ulteriore navigazione o clic automatico dopo l’errore.
+- Gli avvisi hanno il pulsante **Chiudi** e scompaiono comunque dopo 30 secondi. Le prove con i moduli nativi e server simulati coprono anche elenco ripristinato, breadcrumb legacy, frame rinominato, contenuto aggiornato sul posto e apertura tardiva. Nessun nuovo permesso.
+
 # 1.1.9 — 21 ottobre 2026
 
 - Tracking test avvia Email Studio tramite Subscribers, l’ingresso usato dal collegamento DE funzionante, conservando l’intento Tracking nel marcatore dedicato e selezionando il menu dopo l’avvio.

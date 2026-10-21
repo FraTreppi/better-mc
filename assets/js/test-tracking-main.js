@@ -9,8 +9,59 @@
     const channel = 'sfmcfix-test-tracking';
     let active;
     let timer;
+    let queued = false;
+    let watchedState;
+    const watchedDocuments = new Map();
     const transport = new MessageChannel();
     const port = transport.port1;
+    const folderNames = new Set(['test send emails', 'test send e-mails', 'email di test', 'invii email di prova']);
+    const normalize = text => String(text || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    function documents(frame, depth = 0) {
+        if (!frame || depth > 3) return [];
+        try {
+            const doc = frame.contentDocument;
+            if (!doc) return [];
+            return [doc, ...Array.from(doc.querySelectorAll('iframe, frame')).flatMap(child => documents(child, depth + 1))];
+        } catch (_) { return []; }
+    }
+    function scheduleTick() {
+        if (queued || !active || active.status === 'opened') return;
+        queued = true;
+        queueMicrotask(() => { queued = false; tick(); });
+    }
+    function watch() {
+        const state = window._NavState;
+        if (watchedState !== state && typeof state?.on === 'function') {
+            watchedState?.off?.('change:curNavItem change:sectionId change:modifiedDate', scheduleTick);
+            watchedState = state;
+            state.on('change:curNavItem change:sectionId change:modifiedDate', scheduleTick);
+        }
+        const current = new Set([document, ...documents(document.querySelector('#fraLeftNav')), ...documents(document.querySelector('#fraContent'))]);
+        for (const [doc, observer] of watchedDocuments) {
+            if (current.has(doc)) continue;
+            observer.disconnect();
+            doc.removeEventListener('load', scheduleTick, true);
+            watchedDocuments.delete(doc);
+        }
+        for (const doc of current) {
+            if (watchedDocuments.has(doc)) continue;
+            const observer = new MutationObserver(scheduleTick);
+            observer.observe(doc, { childList: true, subtree: true });
+            doc.addEventListener('load', scheduleTick, true);
+            watchedDocuments.set(doc, observer);
+        }
+    }
+    function clean() {
+        clearInterval(timer);
+        watchedState?.off?.('change:curNavItem change:sectionId change:modifiedDate', scheduleTick);
+        watchedState = null;
+        for (const [doc, observer] of watchedDocuments) {
+            observer.disconnect();
+            doc.removeEventListener('load', scheduleTick, true);
+        }
+        watchedDocuments.clear();
+        if (active) delete active.previousDocument;
+    }
     function navDataReady() {
         const entries = window.ET?.Config?.navData?.entry;
         return Array.isArray(entries) && entries.some(item => item.sectionID === 'Tracking');
@@ -37,48 +88,67 @@
         return report;
     }
     function respond(status) {
-        clearInterval(timer);
+        if (active.status === status) return;
         active.status = status;
-        delete active.previousDocument;
+        if (status === 'opened') clean();
+        else {
+            // A slow native page may finish after the error. Keep observing it
+            // without making any more navigation requests or folder clicks.
+            active.observeUntil = Date.now() + 120000;
+            clearInterval(timer);
+            timer = setInterval(tick, 500);
+        }
         port.postMessage({ channel, requestId: active.requestId, status, stage: active.stage,
             ...(status === 'error' ? { diagnostics: diagnostics() } : {}) });
     }
     function stage(value) {
         if (active.stage === value) return;
         active.stage = value;
+        active.deadline = Math.min(active.started + 60000, Date.now() + 20000);
         port.postMessage({ channel, requestId: active.requestId, status: 'progress', stage: value });
     }
-    function contentReady() {
-        const frame = document.querySelector('#fraContent');
-        const doc = frame?.contentDocument;
+    function loaded(doc) {
         if (!doc || doc.readyState !== 'complete' || !doc.body?.childElementCount) return false;
         const url = new URL(doc.URL);
-        if (url.protocol !== 'https:' || !['mc', 'members'].some(host => url.hostname === `${host}.${stack.toLowerCase()}.exacttarget.com`) ||
-            /\/(?:blank\.html|blank\.aspx)$/i.test(url.pathname)) return false;
-        return doc !== active.previousDocument || /^test\s*send\s*e-?mails$/i.test(doc.title.trim());
+        return url.protocol === 'https:' && ['mc', 'members'].some(host => url.hostname === `${host}.${stack.toLowerCase()}.exacttarget.com`) &&
+            !/\/(?:blank\.html|blank\.aspx)$/i.test(url.pathname);
     }
-    function testFolder() {
-        // Native Email UI exposes fraLeftNav → fraTree (same-origin).
-        // Select the actual folder; never guess a customer-specific category ID.
-        const left = document.querySelector('#fraLeftNav')?.contentWindow;
-        const tree = left?.frames?.fraTree;
-        if (String(tree?.strCurSect).toLowerCase() !== 'tracking') return null;
-        const doc = tree?.document;
-        if (!doc) return null;
-        return Array.from(doc.querySelectorAll('a, [role="treeitem"], [onclick], span')).find(node => {
-            const text = (node.getAttribute('aria-label') || node.textContent || '').trim().replace(/\s+/g, ' ').toLowerCase();
-            return ['test send emails', 'test send e-mails', 'email di test', 'invii email di prova'].includes(text) &&
-                node.getClientRects().length > 0 && tree.getComputedStyle(node).visibility !== 'hidden';
+    function testListingReady() {
+        return documents(document.querySelector('#fraContent')).some(doc => {
+            if (!loaded(doc)) return false;
+            if (folderNames.has(normalize(doc.title))) return true;
+            // Legacy breadcrumb labels are often bold, rather than headings.
+            // Restrict this check to the content frame, never the folder tree.
+            return Array.from(doc.querySelectorAll('h1, h2, h3, [role="heading"], .breadcrumb, [class*="breadcrumb" i], [id*="breadcrumb" i], b, strong')).some(node =>
+                folderNames.has(normalize(node.textContent)) && node.getClientRects().length > 0 && doc.defaultView.getComputedStyle(node).visibility !== 'hidden');
         });
     }
+    function contentReady() {
+        const doc = document.querySelector('#fraContent')?.contentDocument;
+        return loaded(doc) && (doc !== active.previousDocument || testListingReady());
+    }
+    function testFolder() {
+        // Use the native folder label under fraLeftNav. strCurSect and frame
+        // names vary across legacy pages and are not needed to select it.
+        for (const doc of documents(document.querySelector('#fraLeftNav'))) {
+            const folder = Array.from(doc.querySelectorAll('a, [role="treeitem"], [onclick], span, font')).find(node =>
+                folderNames.has(normalize(node.getAttribute('aria-label') || node.textContent)) &&
+                node.getClientRects().length > 0 && doc.defaultView.getComputedStyle(node).visibility !== 'hidden');
+            if (folder) return folder;
+        }
+        return null;
+    }
     function tick() {
-        if (!active) return;
-        if (Date.now() >= active.deadline) { respond('error'); return; }
+        if (!active || active.status === 'opened') return;
         try {
-            if (active.folderClicked) {
-                if (contentReady()) respond('opened');
+            watch();
+            if (testListingReady() || (active.folderClicked && contentReady())) { respond('opened'); return; }
+            if (active.status === 'error') {
+                if (Date.now() >= active.observeUntil) clean();
                 return;
             }
+            if (Date.now() >= active.deadline) { respond('error'); return; }
+            if (active.folderClicked) return;
             const state = window._NavState;
             const navItem = state?.get?.('curNavItem');
             if (typeof state?.set !== 'function') { stage('email'); return; }
@@ -124,20 +194,20 @@
         if (data?.channel !== channel ||
             !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.requestId || '')) return;
         if (data.status === 'cancel') {
-            if (active?.requestId === data.requestId) { clearInterval(timer); active = null; }
+            if (active?.requestId === data.requestId) { clean(); active = null; }
             return;
         }
         if (data.status !== 'open') return;
         if (active?.requestId === data.requestId) {
-            if (active.status) respond(active.status);
             return;
         }
-        clearInterval(timer);
-        active = { requestId: data.requestId, deadline: Date.now() + 20000, applied: false };
-        timer = setInterval(tick, 150);
+        clean();
+        const started = Date.now();
+        active = { requestId: data.requestId, started, deadline: started + 20000, applied: false };
+        timer = setInterval(tick, 100);
         tick();
     };
     port.start();
     window.top.postMessage({ channel, status: 'ready', path: location.pathname }, origin, [transport.port2]);
-    window.addEventListener('pagehide', () => { clearInterval(timer); port.close(); }, { once: true });
+    window.addEventListener('pagehide', () => { clean(); active = null; port.close(); }, { once: true });
 })();

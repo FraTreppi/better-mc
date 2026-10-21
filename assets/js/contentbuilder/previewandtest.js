@@ -345,7 +345,7 @@
             if (!existing) {
                 link.id = 'sfmcfix-test-tracking';
                 link.className = 'btn btn-default sfmcfix-test-tracking';
-                link.textContent = 'Tracking test';
+                link.textContent = 'Tracking Test';
                 link.title = 'Apri Email Studio → Tracking → Test Send Emails';
                 link.target = '_blank';
                 link.rel = 'noopener noreferrer';

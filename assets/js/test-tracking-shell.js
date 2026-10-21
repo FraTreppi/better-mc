@@ -9,10 +9,13 @@
     const origins = new Set([`https://members.${stack.toLowerCase()}.exacttarget.com`, `https://mc.${stack.toLowerCase()}.exacttarget.com`]);
     const channel = 'sfmcfix-test-tracking';
     const requestId = crypto.randomUUID();
-    const deadline = Date.now() + 30000;
+    const deadline = Date.now() + 75000;
     let timer;
+    let dismissTimer;
+    let recoveryTimer;
     let toast;
     let stopped = false;
+    let failed = false;
     let progress = 'Apertura di Tracking → Test Send Emails…';
     let latestDiagnostics = null;
     let nativeHandshakeReceived = false;
@@ -52,7 +55,7 @@
             download.textContent = 'Scarica diagnostica tracking';
             download.style.cssText = 'display:block;margin-top:8px;padding:6px 10px;border:1px solid #b5c8da;border-radius:4px;background:#fff;color:#145b92;cursor:pointer';
             download.onclick = () => {
-                const report = { format: 'sfmcfix-test-tracking-v1', extensionVersion: '1.1.9', capturedAt: new Date().toISOString(),
+                const report = { format: 'sfmcfix-test-tracking-v1', extensionVersion: '1.1.10', capturedAt: new Date().toISOString(),
                     shellHost: location.hostname, stage: progress, nativeHandshakeReceived,
                     native: latestDiagnostics };
                 const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
@@ -63,11 +66,22 @@
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
             };
             toast.appendChild(download);
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = 'Chiudi';
+            close.setAttribute('aria-label', 'Chiudi avviso tracking');
+            close.style.cssText = 'margin-top:8px;padding:6px 10px;border:1px solid #b5c8da;border-radius:4px;background:#fff;color:#145b92;cursor:pointer';
+            close.onclick = () => { stop(true); toast.remove(); };
+            toast.appendChild(close);
+            clearTimeout(dismissTimer);
+            dismissTimer = setTimeout(() => toast?.remove(), 30000);
         }
     }
     function stop(cancel = false) {
         stopped = true;
         clearInterval(timer);
+        clearTimeout(dismissTimer);
+        clearTimeout(recoveryTimer);
         if (cancel) send('cancel');
         connections.forEach(connection => connection.port.close());
         connections.clear();
@@ -83,6 +97,7 @@
             event.ports.forEach(port => port.close());
             return;
         }
+        if (failed) { event.ports[0].close(); return; }
         connections.get(event.source)?.port.close();
         const connection = { frame, port: event.ports[0] };
         connections.set(event.source, connection);
@@ -96,6 +111,7 @@
     function completed(data) {
         if (data?.channel !== channel || data.requestId !== requestId) return;
         if (data.status === 'progress') {
+            if (failed) return;
             const messages = {
                 email: 'Attendo il caricamento di Email Studio…',
                 tracking: 'Apertura del menu Tracking…',
@@ -113,23 +129,28 @@
                 history.replaceState(history.state, '', location.pathname + location.search + location.hash.slice(0, index) + '?' + query.toString());
             }
         } else if (data.status === 'error') {
+            if (failed) return;
+            failed = true;
             latestDiagnostics = data.diagnostics || null;
-            stop();
+            clearInterval(timer);
+            // Keep the document-bound port for late success notifications.
+            // The native side only observes after reporting an error.
+            recoveryTimer = setTimeout(() => { stop(true); toast?.remove(); }, 120000);
             const messages = {
-                email: 'Email Studio non ha completato l’inizializzazione. Ricarica la scheda e riprova Tracking test.',
+                email: 'Email Studio sta impiegando più tempo del previsto per inizializzarsi.',
                 tracking: 'Il menu Tracking non si è inizializzato. Aprilo dal menu Email Studio e riprova.',
                 content: 'La cartella dei test è stata selezionata, ma l’elenco non si è caricato. Ricarica Email Studio e apri Tracking → Test Send Emails.'
             };
-            show(messages[data.stage] || 'Non trovo la cartella Test Send Emails. Aprila dal menu Tracking di Email Studio e verifica i permessi della BU.', true);
+            show(messages[data.stage] || 'La cartella Test Send Emails non è ancora disponibile. Puoi aprirla dal menu Tracking mentre il caricamento prosegue.', true);
         }
     }
     function routeChanged() { if (!isEmail()) { stop(true); toast?.remove(); } }
     function tick() {
-        if (stopped) return;
+        if (stopped || failed) return;
         if (!isEmail()) { routeChanged(); return; }
         if (Date.now() >= deadline) {
             stop(true);
-            show('Il tracking non ha completato il caricamento. Riprova da Tracking test o apri Test Send Emails dal menu Tracking.', true);
+            show('Il tracking non ha completato il caricamento. Riprova da Tracking Test o apri Test Send Emails dal menu Tracking.', true);
             return;
         }
         show(progress);
