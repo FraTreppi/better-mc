@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Activity Versioning — SFMC Fixer</title>
+  <title>Impostazioni e versioni — SFMC Fixer</title>
   <style>
     :root {
       --primary: #0070d2;
@@ -51,6 +51,11 @@
       font-size: 11px;
       font-weight: 500;
     }
+
+    .interface-settings { padding: 14px 20px; border-bottom: 1px solid var(--border); background: #fff; }
+    .interface-settings label { display: flex; gap: 8px; align-items: center; font-weight: 600; }
+    .interface-settings p { margin-top: 6px; color: var(--muted); }
+    #interface-status { min-height: 18px; }
 
     /* ── TOOLBAR ── */
     .toolbar {
@@ -253,9 +258,15 @@
 <body>
 
   <header class="app-header">
-    <h1>Activity Versioning</h1>
+    <h1>SFMC Fixer · Impostazioni e versioni</h1>
     <span class="badge" id="total-count">…</span>
   </header>
+
+  <section class="interface-settings" aria-label="Visibilità delle icone">
+    <label><input type="checkbox" id="show-preview-icons" disabled> Mostra le icone Impostazioni SFMC e Test History in Preview and Test</label>
+    <p>Disattiva per nasconderle entrambe. Per riattivarle torna qui dall’icona dell’estensione nel browser. Vale per tutte le BU di questo profilo.</p>
+    <p id="interface-status" role="status" aria-live="polite"></p>
+  </section>
 
   <div class="toolbar">
     <input type="search" id="search" placeholder="Filtra per activity, MID o stack…" autocomplete="off">
@@ -274,5 +285,6 @@
   </footer>
 
   <script src="../js/activity-versioning.js"></script>
+  <script src="../js/interface-preferences.js"></script>
 </body>
 </html>

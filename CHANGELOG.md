@@ -1,3 +1,10 @@
+# 1.1.6 — 21 ottobre 2026
+
+- Aggiunta nelle impostazioni dell’estensione una scelta persistente per nascondere completamente entrambe le icone di Preview and Test e riattivarle dalla barra del browser. Preferenza generale del profilo, indipendente dal MID; tester e storico non vengono eliminati.
+- Aggiunto Tracking test accanto a Send Test. Apre lo stack corrente e seleziona la cartella nativa Test Send Emails tramite fraLeftNav/fraTree. Attesa limitata e messaggio se la cartella non è disponibile; nessun invio automatico o ID di cartella fisso.
+- Preparato il collegamento Apri Data Extension sull’entry del Journey: lettura della versione e della definizione evento, GUID esplicito della DE, aggancio a identificatori nativi dell’entry e rifiuto di risposte obsolete/ambigue. Il posizionamento nell’interfaccia dell’utente richiede ancora verifica dell’HTML dell’entry.
+- Nessun nuovo permesso. Prove con pagine e risposte API simulate; verifica autenticata dei nuovi collegamenti ancora necessaria.
+
 # 1.1.5 — 21 ottobre 2026
 
 - Sostituita la barra flottante MID/Tester BU con un’icona Impostazioni SFMC accanto a Test History, solo in Preview and Test. Menu con due opzioni, chiusura con clic esterno o Escape e uso da tastiera. Nelle Data Extension non compaiono i controlli; uscendo da Preview and Test si chiudono menu, rubrica e storico aperti.

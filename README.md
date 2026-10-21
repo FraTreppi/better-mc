@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.5
+# SFMC UI Fixer — Multi BU 1.1.6
 
 **Autore della versione Multi BU: Francesco Trepiccioni.**
 
@@ -45,6 +45,16 @@ Senza MID e stack riconosciuti le cronologie restano temporanee in memoria e il 
 
 Se cambi BU senza ricaricare, controlla sempre il MID nel menu: un MID inserito manualmente non può aggiornarsi da solo. In Query Studio il testo dell'editor viene conservato, ma dopo un cambio di contesto occorre copiarlo se necessario e premere Clear prima di salvare nella nuova BU.
 
+## Nascondere completamente le due icone
+
+Clicca l’icona dell’estensione nella barra del browser. Nella pagina **Impostazioni e versioni**, disattiva **Mostra le icone Impostazioni SFMC e Test History in Preview and Test**. Scompaiono entrambe, senza lasciare un pulsante sostitutivo. La scelta resta salvata per tutto il profilo browser, anche senza MID. Per riattivarle torna alla stessa pagina e rimetti la spunta. I tester e lo storico restano salvati.
+
+## Tracking delle email di prova
+
+In Preview and Test, accanto al pulsante nativo **Send Test**, compare **Tracking test**. Apre Email Studio → Tracking e seleziona la cartella nativa **Test Send Emails** in una nuova scheda. Il comando resta disponibile anche quando nascondi le due icone e non invia email. Usa lo stack e la sessione SFMC correnti; non cambia la BU e non filtra automaticamente un singolo invio o una singola email.
+
+Se la cartella non è disponibile o non si carica, compare un messaggio: puoi aprirla manualmente dal menu Tracking e verificare l’accesso della BU. Il codice non usa un identificativo di cartella fisso per tutti i clienti.
+
 ## Aprire la stessa DE in Email Studio
 
 1. Seleziona la BU corretta in Marketing Cloud e apri una DE in Contact Builder, nella scheda Proprietà oppure Record.
@@ -59,13 +69,19 @@ Dalla versione 1.1.4 l’estensione conserva il GUID prima dell’inizializzazio
 
 La diagnostica resta disponibile dall’icona dell’estensione → **Diagnostica Email Studio** per eventuali problemi. Raccoglie percorsi tecnici e stringhe di navigazione dei bundle nativi, senza leggere record o risposte API e senza invio automatico del rapporto.
 
+## Data Extension dell’entry di un Journey
+
+Per un Journey con una sola entry associata a una DE, il comando **Apri Data Extension ↗** apre la DE in Contact Builder in una nuova scheda. Legge gli identificativi dalla configurazione della versione del Journey e dalla definizione dell’evento. Non cerca per nome e non usa le DE delle attività successive. La vecchia barra generale resta assente dal Journey.
+
+Il pulsante viene inserito soltanto quando il riquadro nativo dell’entry è riconoscibile; l’aggancio alla tua interfaccia va ancora verificato con l’HTML richiesto. Se il riquadro non espone un identificatore riconosciuto, se l’entry non ha una DE o se i dati sono ambigui/non accessibili, non viene mostrato un collegamento ipotetico.
+
 ## Cosa include
 
 - Contact Builder: ricerca DE, viste recenti, prima/ultima pagina, clonazione riga, inserimento multiplo, CSV della pagina caricata, strumenti SMS e nuovo link Email Studio.
 - Content Builder: completamento destinatari per BU, log locali dei tentativi di test per 60 giorni, rigenerazione anteprima e cartelle virtuali delle DE recenti quando la radice è riconosciuta.
 - Automation Studio: cronologia, collegamenti alle attività e DE target, copia SQL e visualizzazione SQL validato, esportazione JSON e snapshot all'ingresso in modifica.
 - Query Studio: bozze, recupero dell'ultima query, copia colonne, pannelli comprimibili.
-- Journey Builder: apertura delle referenze ai Journey in un'altra scheda.
+- Journey Builder: apertura delle referenze ai Journey e collegamento alla DE dell’entry quando identificabile.
 - Clic sull'icona dell'estensione: consultazione, ricerca per MID/stack, download ed eliminazione delle versioni SQL locali; esportazione dello storico.
 
 Dettagli, funzioni solo previste nell'originale, limiti e collaudo: [DOCUMENTATION.md](DOCUMENTATION.md).

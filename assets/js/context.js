@@ -3,11 +3,13 @@
     const api = window.sfmcfix;
     const SETTINGS = 'SFMCFIX---SETTINGS-V2';
     const CONTEXT_HINT = 'SFMCFIX---MANUAL-CONTEXT-HINT';
+    const UI_SETTINGS = 'SFMCFIX---UI-PREFERENCES';
     const memory = new Map();
     const pageId = crypto.randomUUID();
     let manualMid = null;
     let manualStack = null;
     let settings = {};
+    let uiSettings = {};
     let lastScope;
 
     function asMid(value) {
@@ -78,6 +80,9 @@
 
     function scopedKey(key) { return `SFMCFIX:v2:${current().scope}:${key}`; }
     api.context = { current, stackFrom, scopedKey };
+    api.uiPreferences = {
+        get() { return { hidePreviewIcons: uiSettings.hidePreviewIcons === true }; }
+    };
     api.escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 
@@ -113,6 +118,9 @@
         },
         journey(id, version) {
             return `${this.shell()}/cloud/#app/Journey%20Builder/%23${encodeURIComponent(id)}/${encodeURIComponent(version)}`;
+        },
+        testTracking() {
+            return `${this.shell()}/cloud/#app/Email/C12/Default.aspx?entityType=none&entityID=0&ks=ks%23Tracking&sfmcfix_tracking=tests`;
         },
         emailStudio(id) {
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) {
@@ -236,11 +244,17 @@
     };
 
     api.context.ready = (async () => {
-        settings = await api.storage.getItem(SETTINGS, {});
+        [settings, uiSettings] = await Promise.all([
+            api.storage.getItem(SETTINGS, {}), api.storage.getItem(UI_SETTINGS, {})
+        ]);
         api.storage.onChange(changes => {
             if (changes[SETTINGS]) {
                 settings = changes[SETTINGS].newValue || {};
                 window.dispatchEvent(new Event('sfmcfix:preferences'));
+            }
+            if (changes[UI_SETTINGS]) {
+                uiSettings = changes[UI_SETTINGS].newValue || {};
+                window.dispatchEvent(new Event('sfmcfix:ui-preferences'));
             }
         });
         window.addEventListener('sfmcfix:preferences', renderContext);

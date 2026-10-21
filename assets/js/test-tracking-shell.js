@@ -1,0 +1,80 @@
+(function () {
+    'use strict';
+    if (window !== window.top || location.pathname !== '/cloud/') return;
+    const stack = location.hostname.match(/^mc\.(s\d+)\.exacttarget\.com$/i)?.[1];
+    const queryIndex = location.hash.indexOf('?');
+    const params = new URLSearchParams(queryIndex < 0 ? '' : location.hash.slice(queryIndex + 1));
+    const isEmail = () => /^#app\/Email(?:\/|$)/i.test(location.hash);
+    if (!stack || params.get('sfmcfix_tracking') !== 'tests' || !isEmail()) return;
+    const origin = `https://members.${stack.toLowerCase()}.exacttarget.com`;
+    const channel = 'sfmcfix-test-tracking';
+    const requestId = crypto.randomUUID();
+    const deadline = Date.now() + 30000;
+    let timer;
+    let toast;
+    let stopped = false;
+    function frames() {
+        return Array.from(document.querySelectorAll('iframe')).filter(frame => {
+            try {
+                const url = new URL(frame.src, location.href);
+                return url.origin === origin && /^\/C12\/Default\.aspx$/i.test(url.pathname);
+            } catch (_) { return false; }
+        });
+    }
+    function send(status) {
+        frames().forEach(frame => frame.contentWindow.postMessage({ channel, requestId, status }, origin));
+    }
+    function show(message, error = false) {
+        if (!document.body) return;
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'sfmcfix-tracking-opening';
+            toast.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:1200;max-width:calc(100% - 40px);padding:10px 16px;background:white;border:1px solid #b5c8da;border-radius:5px;box-shadow:0 2px 8px #0002;font:14px/1.5 Arial,sans-serif;pointer-events:none';
+            document.body.appendChild(toast);
+        }
+        toast.setAttribute('role', error ? 'alert' : 'status');
+        toast.textContent = message;
+    }
+    function stop(cancel = false) {
+        stopped = true;
+        clearInterval(timer);
+        if (cancel) send('cancel');
+        window.removeEventListener('message', receive);
+        window.removeEventListener('hashchange', routeChanged);
+    }
+    function receive(event) {
+        const data = event.data;
+        if (stopped || event.origin !== origin || data?.channel !== channel || data.requestId !== requestId ||
+            !frames().some(frame => frame.contentWindow === event.source)) return;
+        if (data.status === 'opened') {
+            stop();
+            toast?.remove();
+            const index = location.hash.indexOf('?');
+            if (index >= 0) {
+                const query = new URLSearchParams(location.hash.slice(index + 1));
+                query.delete('sfmcfix_tracking');
+                history.replaceState(history.state, '', location.pathname + location.search + location.hash.slice(0, index) + '?' + query.toString());
+            }
+        } else if (data.status === 'error') {
+            stop();
+            show('Non trovo la cartella Test Send Emails. Aprila dal menu Tracking di Email Studio e verifica i permessi della BU.', true);
+        }
+    }
+    function routeChanged() { if (!isEmail()) { stop(true); toast?.remove(); } }
+    function tick() {
+        if (stopped) return;
+        if (!isEmail()) { routeChanged(); return; }
+        if (Date.now() >= deadline) {
+            stop(true);
+            show('Il tracking non ha completato il caricamento. Riprova da Tracking test o apri Test Send Emails dal menu Tracking.', true);
+            return;
+        }
+        show('Apertura di Tracking → Test Send Emails…');
+        send('open');
+    }
+    window.addEventListener('message', receive);
+    window.addEventListener('hashchange', routeChanged);
+    window.addEventListener('pagehide', () => stop(true), { once: true });
+    timer = setInterval(tick, 300);
+    tick();
+})();

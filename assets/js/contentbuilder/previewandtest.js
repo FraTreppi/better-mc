@@ -333,6 +333,27 @@
         const toolbox = document.querySelector('.previewandtest-toolbox');
         sfmcfix.context.mountControls(toolbox);
         let queued = false;
+        const syncTrackingButton = active => {
+            const existing = document.getElementById('sfmcfix-test-tracking');
+            const labels = ['send test', 'send test email', 'send test emails', 'invia test', 'invia email di test'];
+            const send = active && Array.from(document.querySelectorAll('button, [role="button"], a.btn, input[type="submit"], input[type="button"]')).find(button =>
+                !button.closest('#sfmcfix-context, #sfmcfix-tester-editor, #testsendlog-viewer') &&
+                labels.includes((button.value || button.textContent || '').trim().replace(/\s+/g, ' ').toLowerCase()) &&
+                button.getClientRects().length > 0 && getComputedStyle(button).visibility !== 'hidden');
+            if (!send || !sfmcfix.context.current().stack) { existing?.remove(); return; }
+            const link = existing || document.createElement('a');
+            if (!existing) {
+                link.id = 'sfmcfix-test-tracking';
+                link.className = 'btn btn-default sfmcfix-test-tracking';
+                link.textContent = 'Tracking test';
+                link.title = 'Apri Email Studio → Tracking → Test Send Emails';
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+            }
+            const href = sfmcfix.links.testTracking();
+            if (link.href !== href) link.href = href;
+            if (send.nextElementSibling !== link) send.after(link);
+        };
         const syncVisibility = () => {
             queued = false;
             // This native surface belongs to Preview and Test. Its own tab can
@@ -342,8 +363,10 @@
                 const panel = surface.parentElement;
                 return panel && panel.getClientRects().length > 0 && getComputedStyle(panel).visibility !== 'hidden';
             });
-            if (toolbox.hidden === active) toolbox.hidden = !active;
-            if (!active) {
+            const showIcons = active && !sfmcfix.uiPreferences.get().hidePreviewIcons;
+            syncTrackingButton(active);
+            if (toolbox.hidden === showIcons) toolbox.hidden = !showIcons;
+            if (!showIcons) {
                 const options = toolbox.querySelector('#sfmcfix-context-options');
                 if (options && !options.hidden) {
                     options.hidden = true;
@@ -351,10 +374,11 @@
                 }
                 const history = document.getElementById('testsendlog-viewer');
                 if (history?.classList.contains('is-open')) history.classList.remove('is-open');
-                document.getElementById('sfmcfix-tester-editor')?.close();
+                if (!active) document.getElementById('sfmcfix-tester-editor')?.close();
             }
         };
         syncVisibility();
+        window.addEventListener('sfmcfix:ui-preferences', syncVisibility);
         const observer = new MutationObserver(() => {
             if (!queued) { queued = true; requestAnimationFrame(syncVisibility); }
         });

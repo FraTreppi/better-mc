@@ -4,6 +4,7 @@
     z-index: 1;
     position: absolute;
 }
+.sfmcfix-test-tracking { display: inline-block; margin-left: 8px; vertical-align: middle; }
 
 .input-suggestion {
     position: relative;

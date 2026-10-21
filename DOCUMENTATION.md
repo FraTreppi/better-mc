@@ -93,9 +93,13 @@ La nuova versione gestisce testo Unicode nel salvataggio locale. Il recupero all
 
 ### Journey Builder
 
-Il codice aggiunge un collegamento per aprire in una nuova scheda un Journey referenziato da un elemento riconosciuto dell'interfaccia (`.ixn-collection-definition`). Il modulo originale è specifico di s7; nella nuova versione usa lo stack corrente.
+Il collegamento preesistente apre un Journey referenziato da un elemento riconosciuto (`.ixn-collection-definition`) usando lo stack corrente.
 
-Nel sorgente esaminato **non ho trovato l'implementazione di un'apertura delle email da Journey Builder in Email Studio**, anche se la documentazione originale ne elenca una voce. Non la considero una funzione verificata.
+Dalla versione 1.1.6 il modulo `journey/entry-de.js` legge esclusivamente i metadati della versione aperta: GET `/fuelapi/interaction/v1/interactions/<GUID>?extras=all&versionNumber=<n>` e, quando necessario, GET `/fuelapi/interaction/v1/eventDefinitions/<GUID>` oppure `key:<chiave>`. Richiede corrispondenza di ID e versione e una sola entry; accetta solo un GUID esplicito `dataExtensionId`/`dataExtensionID` nel trigger o nella definizione dell’evento. Non usa i dati delle attività successive, il nome della DE o l’External Key come se fossero il GUID.
+
+Il comando **Apri Data Extension** viene aggiunto a elementi HTML con identificatori nativi corrispondenti al trigger (`data-key`, `data-activity-key`, `data-event-key`, riferimenti espliciti alla definizione evento o ID dell’elemento); sono supportati anche contenitori univoci di entry DE con tipo esplicito. Non viene costruito un overlay sul canvas SVG né aggiunta una barra generale. L’HTML effettivo dell’entry dell’utente non è ancora disponibile: il posizionamento resta da verificare/adattare nel tenant. Se il riquadro non è riconosciuto non compare alcun link.
+
+Al cambio di route, versione o contesto il comando viene rimosso, la richiesta precedente annullata e le risposte tardive ignorate. Errori di accesso, eventi senza DE e più trigger non generano una destinazione di ripiego. Le letture non interrogano record delle DE e non modificano Journey o configurazioni.
 
 ## 4. Voci previste ma assenti o incomplete
 
@@ -150,6 +154,12 @@ La comunicazione verifica origine, finestra, GUID e identificativo della richies
 
 Il collegamento usa la sessione Email Studio corrente e non cambia automaticamente cliente o BU. Seleziona la BU corretta e riapri Contact Builder dopo un cambio di contesto. Per DE condivise, sincronizzate o di altri tipi speciali occorre verificare disponibilità e permessi nel tenant. La verifica locale del router non equivale a un collaudo autenticato su ogni tenant.
 
+### Visibilità e tracking dei test dalla versione 1.1.6
+
+La chiave generale `SFMCFIX---UI-PREFERENCES` in `chrome.storage.local` contiene `hidePreviewIcons`. La pagina dell’estensione la salva attraverso il service worker e i frame recepiscono gli aggiornamenti tramite il bridge esistente. Non dipende da stack/MID e non altera `SFMCFIX---SETTINGS-V2` o i log. Le icone possono essere riattivate dalla pagina dell’estensione anche quando entrambe sono nascoste.
+
+Il nuovo collegamento accanto a Send Test usa il percorso Tracking fornito dall’utente con lo stack corrente e un marcatore nel frammento. Gli script dedicati conservano l’intento prima della normalizzazione della shell, verificano origine/finestra/nonce, attendono il router nativo e il frame `fraLeftNav.frames.fraTree` con `strCurSect` uguale a `tracking`, poi cliccano la voce nativa Test Send Emails. Non viene dedotto un category ID dal nome e non viene selezionata la cartella generica Sends. L’attesa è limitata; le normali pagine senza marcatore non vengono modificate. Il comando apre la cartella generale dei test e non identifica un singolo job.
+
 ## 8. Dove finiscono i dati
 
 | Dati | Posizione nella nuova versione | Note |
@@ -184,6 +194,8 @@ I controlli del router utilizzano il modulo nativo `js/router` fornito per l’a
 La rubrica mantiene il formato di archivio precedente: un array di triple Cognome/Nome/Email per stack e MID. L’editor a righe non impone un numero massimo; controlla ogni email, mostra gli errori di salvataggio e chiude senza salvare se cambia contesto. Il limite di cinque riguarda soltanto i suggerimenti visibili della ricerca. Il menu e Test History seguono la presenza del pannello nativo Preview and Test; la visibilità si aggiorna anche durante la navigazione senza ricaricamento.
 
 Le verifiche nel browser simulato coprono dieci tester aggiunti e salvati dall’editor, recupero dei contatti preesistenti, annullamento, email non valide, errore dello storage, rimozione di una riga, ricerca e selezione del decimo tester, menu con tastiera, assenza di sovrapposizioni con il footer, uscita da Preview and Test e finestra su schermi piccoli. I controlli della rubrica usano uno storage simulato persistente tra i documenti: verificano salvataggio e recupero dopo il ricaricamento, riconferma obbligatoria del MID manuale, annullamento, separazione di due BU, priorità del MID nativo, rifiuto di suggerimenti di stack diverso o malformati e funzionamento quando `sessionStorage` non è disponibile.
+
+Le nuove prove coprono la scelta di visibilità nella pagina reale dell’estensione con API Chrome simulate, persistenza al ricaricamento, aggiornamento in più pagine, ripristino dopo errore e integrità della rubrica. Il tracking è provato con il router nativo fornito e una navigazione fra tre frame simulati su stack diversi, cartella mancante, timeout, annullamento e pagina senza marcatore. Le prove Journey simulano i metadati: GUID/versione/evento, cambio versione, risposta obsoleta, evento senza DE, più trigger, permessi negati e aggancio a identificatori HTML espliciti. Non certificano la struttura DOM o l’autenticazione effettiva del tenant.
 
 Prima di distribuire al team, il collaudo sul tenant deve coprire:
 

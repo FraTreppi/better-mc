@@ -1,6 +1,6 @@
 # SFMC UI Fixer - Guida rapida al test
 
-Versione 1.1.5 | Autore: Francesco Trepiccioni | 21 ottobre 2026
+Versione 1.1.6 | Autore: Francesco Trepiccioni | 21 ottobre 2026
 
 Obiettivo: verificare l'estensione sul nostro Marketing Cloud. Tempo indicativo: 20-30 minuti. Il pacchetto è una versione di sviluppo: i controlli automatici sono passati, il collaudo reale resta da fare.
 
@@ -9,7 +9,7 @@ Obiettivo: verificare l'estensione sul nostro Marketing Cloud. Tempo indicativo:
 1. Estrai lo ZIP in una cartella permanente. Non aprirlo direttamente come estensione.
 2. In Chrome apri `chrome://extensions`, attiva **Modalità sviluppatore**, premi **Carica estensione non pacchettizzata** e scegli la cartella contenente `manifest.json`.
 3. Disabilita eventuali vecchie versioni di SFMC UI Fixer e ricarica Marketing Cloud.
-4. Apri Content Builder → Preview and Test. Accanto a **Test History** premi l’icona **Impostazioni SFMC** e verifica **BU/MID e stack** nella prima opzione. Se compare **Imposta MID**, inserisci il MID della BU attualmente selezionata; se richiesto, lo stack (es. `s10`). Il menu deve essere assente nelle Data Extension e negli altri moduli.
+4. Apri Content Builder → Preview and Test. Accanto a **Test History** premi l’icona **Impostazioni SFMC** e verifica **BU/MID e stack** nella prima opzione. Se compare **Imposta MID**, inserisci il MID della BU attualmente selezionata; se richiesto, lo stack (es. `s10`). Il menu deve essere assente nelle Data Extension e negli altri moduli. Dall’icona dell’estensione nel browser disattiva e riattiva **Mostra le icone…**: devono sparire e ricomparire entrambe, senza cancellare tester o storico.
 
 Usa una DE di prova e una casella email controllata. CLONE e MULTI ROWS possono salvare dati reali; il test send invia email. Non utilizzare campagne o dati operativi per queste prove.
 
@@ -31,6 +31,8 @@ Usa una DE di prova e una casella email controllata. CLONE e MULTI ROWS possono 
 - Ripeti con una seconda DE senza ricaricare Contact Builder; confronta nome e GUID. Tornando all'elenco, il comando deve scomparire.
 - Ripeti dopo aver selezionato un’altra BU e riaperto Contact Builder. Il link usa la sessione Email Studio corrente e non cambia BU automaticamente. Se apre una pagina errata, segna **FAIL** e riporta i passaggi e lo stack; la rotta è stata ricavata dal router nativo, ma resta da collaudare nel tenant.
 
+- In Preview and Test premi **Tracking test**, accanto a Send Test: deve aprire Email Studio → Tracking → **Test Send Emails**, anche con le due icone nascoste. Non deve inviare una nuova email. Se resta sul solo Tracking o appare un avviso, segna FAIL.
+
 **C. Separazione tra due Business Unit**
 
 - Nella BU A apri Preview and Test → icona Impostazioni SFMC → **Tester BU**. Compila Nome, Cognome ed Email, aggiungi righe con **+ Aggiungi tester** e premi **Salva tester**: verifica la conferma del numero salvato. Prova con dieci indirizzi controllati.
@@ -46,7 +48,7 @@ Usa una DE di prova e una casella email controllata. CLONE e MULTI ROWS possono 
 | Anteprima | Apri Preview da un log con DE e riga disponibili | Anteprima caricata. Usa dati attuali: non è una copia storica dell'email |
 | Automation Studio | Apri una Query Activity di prova; usa Copy, Toggle Query e Download Version; entra in Edit e poi annulla | SQL copiato, testo alternativo disponibile se restituito da Salesforce, JSON scaricato e snapshot visibile cliccando l'icona dell'estensione |
 | Query Studio | Salva una query con un accento (es. `SELECT 'città' AS esempio`), cambia testo e recuperala dalla Lista query | Bozza ripristinata senza perdere gli accenti; non occorre eseguire SQL. Dopo un cambio BU conserva il testo utile e premi Clear prima di salvare nel nuovo contesto |
-| Journey Builder | Su un elemento con riferimento a un Journey, prova il collegamento in un'altra scheda | Apre il Journey e la versione referenziati, quando l'elemento è riconosciuto dall'estensione |
+| Journey Builder | Su una entry DE riconosciuta premi Apri Data Extension; ripeti con un’altra versione e verifica anche il vecchio link alle referenze Journey | Stessa DE in Contact Builder, nessun comando sulle attività successive. Se il pulsante manca, serve l’HTML dell’entry per verificarne l’aggancio |
 
 ## 4. Restituisci un esito semplice
 

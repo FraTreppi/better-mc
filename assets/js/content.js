@@ -360,6 +360,7 @@
 
         sfmcfix.addCss('journey/_index');
         sfmcfix.addJs('journey/_index');
+        sfmcfix.addJs('journey/entry-de');
 
     } else {
 
