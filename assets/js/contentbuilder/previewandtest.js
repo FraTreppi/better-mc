@@ -25,13 +25,13 @@
             $parent.append($wrap);
         }
     },500);
-    
+
     const searchOnType = debounce(($input) => {
         const val = $input.val().toLowerCase();
         var lis = [];
         const $ul = $('#suggestion-items');
         if(val && val.length > 2) {
-            lis = getTesters().filter((tester) =>  !!tester[2] && (tester[0]?.toLowerCase().indexOf(val) != -1 || tester[1]?.toLowerCase().indexOf(val) != -1 || tester[2]?.toLowerCase().indexOf(val) != -1)).map((tester) => `<li class="suggestion-list-item" data-email="${tester[2]}">${sfmcfix.escapeHtml(tester[2])}</li>`).slice(0,5);
+            lis = getTesters().filter((tester) =>  !!tester[2] && (tester[0]?.toLowerCase().indexOf(val) != -1 || tester[1]?.toLowerCase().indexOf(val) != -1 || tester[2]?.toLowerCase().indexOf(val) != -1)).map((tester) => `<li class="suggestion-list-item" data-email="${sfmcfix.escapeHtml(tester[2])}">${sfmcfix.escapeHtml(tester[2])}</li>`).slice(0,5);
             lis = [...new Set(lis)]
         }
         $ul.html(lis.join(''));
@@ -41,6 +41,37 @@
     var dempreviewmodal;
     const reponseTemplate = (data) => `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>${data.title}</title><style>*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}:root{--bg:#0f0f10;--tp:#f0ede8;--ts:#7a7873;--ac:#c4503a;--ad:rgba(196,80,58,0.12);--ab:rgba(196,80,58,0.3);--fm:'Courier New',Courier,monospace;--fd:Georgia,'Times New Roman',serif}html,body{height:100%;background:var(--bg);color:var(--tp);font-family:var(--fm);overflow:hidden}body{display:flex;align-items:center;justify-content:center;padding:2rem}.c{max-width:520px;width:100%;animation:f 0.4s ease both}@keyframes f{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.b{display:inline-flex;align-items:center;gap:6px;background:var(--ad);border:1px solid var(--ab);color:var(--ac);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:4px 10px;border-radius:3px;margin-bottom:1.5rem}.b::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ac);animation:p 1.8s ease-in-out infinite}@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}.e{font-size:11px;color:var(--ts);letter-spacing:.05em;margin-bottom:.75rem}h1{font-family:var(--fd);font-size:clamp(1.6rem,4vw,2.2rem);font-weight:400;line-height:1.15;letter-spacing:-.01em;color:var(--tp);margin-bottom:1rem}.d{width:32px;height:1px;background:var(--ac);margin-bottom:1.25rem;opacity:.6}.t{font-size:13px;line-height:1.7;color:var(--ts)}</style></head><body><main class="c" role="main"><div class="b">${data.header}</div><p class="e">${data.code}</p><h1>${data.title}</h1><div class="d"></div><p class="t">${data.message}</p></main></body></html>`;
 
+    function previewDocument(html, allowImages = false) {
+        // A detached template is inert: parsing it does not fetch email assets.
+        const template = document.createElement('template');
+        template.innerHTML = String(html);
+        function sanitize(fragment) {
+            fragment.querySelectorAll('template').forEach(node => node.remove());
+            fragment.querySelectorAll('script, iframe, frame, object, embed, base, meta, link, form, title, animate, animateMotion, animateTransform, set').forEach(node => node.remove());
+            fragment.querySelectorAll('*').forEach(node => {
+                for (const attribute of Array.from(node.attributes)) {
+                    if (/^on/i.test(attribute.name) || ['srcdoc', 'ping', 'formaction'].includes(attribute.name.toLowerCase())) node.removeAttribute(attribute.name);
+                }
+                if (!['image', 'use'].includes(node.localName.toLowerCase())) {
+                    for (const name of ['href', 'xlink:href', 'target', 'download']) node.removeAttribute(name);
+                }
+            });
+        }
+        sanitize(template.content);
+        const policy = `default-src 'none'; script-src 'none'; img-src data:${allowImages ? ' https:' : ''}; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'`;
+        return `<!doctype html><html><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="${policy}"><meta name="referrer" content="no-referrer"></head><body>${template.innerHTML}</body></html>`;
+    }
+    function displayPreview(html) {
+        dempreviewmodal.$modal.find('iframe')[0].srcdoc = previewDocument(html);
+        const images = dempreviewmodal.$modal.find('[data-action="preview-load-images"]');
+        images.prop('disabled', false).text('Carica immagini esterne');
+        images.off('click.sfmcfixImages').on('click.sfmcfixImages', () => {
+            if (!confirm('Caricare le immagini esterne per questa anteprima? I server delle immagini riceveranno le richieste e potrebbero registrare la visualizzazione.')) return;
+            dempreviewmodal.$modal.find('iframe')[0].srcdoc = previewDocument(html, true);
+            images.prop('disabled', true).text('Immagini esterne abilitate per questa anteprima');
+        });
+    }
+
     const getPreviewCallback = function(data) {
         $.ajax({method: 'POST',
             url: `/fuelapi/guide/v1/emails/${data.emailID}/dataExtension/${data.dataSource.id}/row/${data.dataSource.row}/preview`,
@@ -48,15 +79,15 @@
                 'Content-Type': 'application/json; charset=UTF-8',
             },
             success : function(data) {
-                console.log("SFMC Fixer -- ", data);
+
                 sfmcfix.notificationLogger('success', null, "Preview ottenuta con successo, la sto elaborando.");
                 const view  = data.message.views.find((v) => v.contentType === "vnd.exacttarget.message.email.htmlBody");
                 const subject  = data.message.views.find((v) => v.contentType === "vnd.exacttarget.message.email.subjectLine");
                 if(view?.content) {
-                    dempreviewmodal.$modal.find('iframe')[0].srcdoc = view.content;
+                    displayPreview(view.content);
                 }
                 if(subject?.content) {
-                    dempreviewmodal.$modal.find('.modal-title').html(subject.content)
+                    dempreviewmodal.$modal.find('.modal-title').text(subject.content)
                 }
             },
             error: function() {
@@ -73,9 +104,9 @@
     }
 
     const getPreview = function(data) {
-
-        let url;
-        if(!data || data.dataSource?.row == null) {
+        if (!data || !/^\d{1,15}$/.test(String(data.emailID)) || data.dataSource?.type !== 'DataExtension' ||
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.dataSource.id || '') ||
+            !Number.isInteger(data.dataSource.row) || data.dataSource.row < 0) {
             sfmcfix.notificationLogger('error', null, "Posso generare preview solo per le send su base Data Extension con una row seleizionata!");
             return false;
         }
@@ -95,6 +126,7 @@
             });
         } else {
             dempreviewmodal.$modal.find('.modal-title').text('Caricamento Preview');
+            dempreviewmodal.$modal.find('[data-action="preview-load-images"]').prop('disabled', true);
             dempreviewmodal.$modal.find('iframe')[0].srcdoc = reponseTemplate({
                 title: 'Caricamente preview in corso...',
                 header: 'Attendere',
@@ -105,9 +137,23 @@
             getPreviewCallback(data);
         }
 
-        
-        
+
+
         return true;
+    }
+
+    function safeLog(data) {
+        if (!data || !Number.isFinite(new Date(data.logdate).getTime())) return null;
+        const result = { logdate: new Date(data.logdate).toISOString(), version: 1,
+            uuid: /^[0-9a-f-]{36}$/i.test(data.uuid || '') ? data.uuid : '',
+            name: String(data.name || '').slice(0, 1000), emailID: /^\d{1,15}$/.test(String(data.emailID)) ? data.emailID : '',
+            subjectPrefix: String(data.subjectPrefix || '').slice(0, 1000),
+            recipients: Array.isArray(data.recipients) ? data.recipients.filter(value => typeof value === 'string').slice(0, 1000).map(value => value.slice(0, 254)) : [] };
+        const source = data.dataSource;
+        if (source?.type === 'DataExtension' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(source.id || '') && Number.isInteger(source.row) && source.row >= 0) {
+            result.dataSource = { type: 'DataExtension', id: source.id, row: source.row };
+        }
+        return result;
     }
 
     const logitem = function(data) {
@@ -119,15 +165,15 @@
             <article>
                 <ul>
                     <li class="log-row_name"><strong>Name: </strong><span>${sfmcfix.escapeHtml(details.name || '--')}</span></li>
-                    <li class="log-row_emailid"><strong>Id: </strong><span>${details.emailID || '--'}</span></li>
-                    ${details.dataSource && `<li class="log-row_source"><strong>Test source: </strong><a data-action="show-source-data" data-exid="${details.dataSource.id}" data-row="${details.dataSource.row}" target="_blank" rel="noopener noreferrer" href="${sfmcfix.links.contactBuilder(details.dataSource.id)}">${details.dataSource.type}</a></li>` || ''}
+                    <li class="log-row_emailid"><strong>Id: </strong><span>${sfmcfix.escapeHtml(details.emailID || '--')}</span></li>
+                    ${details.dataSource && `<li class="log-row_source"><strong>Test source: </strong><a data-action="show-source-data" data-exid="${sfmcfix.escapeHtml(details.dataSource.id)}" data-row="${sfmcfix.escapeHtml(details.dataSource.row)}" target="_blank" rel="noopener noreferrer" href="${sfmcfix.links.contactBuilder(details.dataSource.id)}">${sfmcfix.escapeHtml(details.dataSource.type)}</a></li>` || ''}
                     <li class="log-row_prefix"><strong>Subject Prefix: </strong><span data-original="${sfmcfix.escapeHtml(details.subjectPrefix)}">${sfmcfix.escapeHtml(details.subjectPrefix)}</span></li>
                     <li class="log-row_recipients"><strong>Testers</strong> ${details.recipients.map((t) => `<b>${sfmcfix.escapeHtml(t)}</b>`).join('')}
                     </li>
                 </ul>
                 <footer>
-                    <button disabled data-action="logitem-remove" data-uuid="${details.uuid||''}" data-logdate="${datetime}" class="btn btn-danger btn-sm">Remove</button>
-                    <button ${details.dataSource?.row == null && 'disabled'||''}data-action="logitem-preview" data-uuid="${details.uuid||''}" data-logdate="${datetime}" class="btn btn-primary btn-sm">Preview</button>
+                    <button disabled data-action="logitem-remove" data-uuid="${sfmcfix.escapeHtml(details.uuid||'')}" data-logdate="${sfmcfix.escapeHtml(datetime)}" class="btn btn-danger btn-sm">Remove</button>
+                    <button ${details.dataSource?.row == null && 'disabled'||''}data-action="logitem-preview" data-uuid="${sfmcfix.escapeHtml(details.uuid||'')}" data-logdate="${sfmcfix.escapeHtml(datetime)}" class="btn btn-primary btn-sm">Preview</button>
                 </footer>
             </article>
         </div>`;
@@ -135,7 +181,7 @@
 
     const loglist = function() {
         var testsendlogs = sfmcfix.local.getItem("testsendlogs") || '[]';
-        var testsendlogsArray = JSON.parse(testsendlogs);
+        var testsendlogsArray = JSON.parse(testsendlogs).map(safeLog).filter(Boolean);
 
         const milliseconds60days = 60 * 24 * 60 * 60 * 1000;
         const now = Date.now();
@@ -148,7 +194,7 @@
         return testsendlogsArray.sort((a, b) => new Date(b.logdate) - new Date(a.logdate)).map((data) => logitem({
             datetime: data.logdate,
             message: `${data.name || data.emailID}`,
-            details: data, 
+            details: data,
         }));
     }
 
@@ -157,13 +203,13 @@
     sfmcfix.ajax.prefilter['fuelapi/guide/v1/emails/preview/send'] = function(options) {
         try {
             const testsendlogs = sfmcfix.local.getItem("testsendlogs") || '[]';
-            let testsendlogsArray = JSON.parse(testsendlogs);
+            let testsendlogsArray = JSON.parse(testsendlogs).map(safeLog).filter(Boolean);
             const _data = JSON.parse(options.data);
             let _overrides = {logdate:new Date(),uuid:crypto.randomUUID(), version:1};
             if(sfmcfix.temp?.currentasset?.legacyData?.legacyId === _data?.emailID) {
                 _overrides.name = sfmcfix.temp.currentasset.name;
-            } 
-            testsendlogsArray.push({..._data, ..._overrides});
+            }
+            testsendlogsArray.push(safeLog({..._data, ..._overrides}));
             sfmcfix.local.setItem("testsendlogs",JSON.stringify(testsendlogsArray));
             $('#testsendlog-viewer').trigger('updateview');
             // scommetnare la riga sotto per fare dei test senza inviare continuamente email
@@ -195,12 +241,12 @@
         return {
             send : function(headers, completeCallback){
                 const testsendlogs = sfmcfix.local.getItem("testsendlogs") || '[]';
-                const testsendlogsArray = JSON.parse(testsendlogs);
+                const testsendlogsArray = JSON.parse(testsendlogs).map(safeLog).filter(Boolean);
                 const current = sfmcfix.temp.currentasset;
                 if(current?.id && testsendlogsArray?.length) {
                     const tests = [...new Set(testsendlogsArray.filter((test) => test.emailID && (test.emailID == current.id || test.emailID == current.legacyData?.legacyId) && test.dataSource?.type === 'DataExtension' && !!test.dataSource.id).map((test) => test.dataSource.id))];
                     Promise.all(tests.map(
-                        (deId) => fetch(`/fuelapi/data-internal/v1/customobjects/${deId}`).then((response) => response.json()) 
+                        (deId) => fetch(`/fuelapi/data-internal/v1/customobjects/${deId}`).then((response) => response.json())
                     )).then((items) => {
                         completeCallback(200, 'success', { json: {
                             count: items?.length || 0,
@@ -227,12 +273,12 @@
         return {
             send : function(headers, completeCallback){
                 const testsendlogs = sfmcfix.local.getItem("testsendlogs") || '[]';
-                const testsendlogsArray = JSON.parse(testsendlogs);
+                const testsendlogsArray = JSON.parse(testsendlogs).map(safeLog).filter(Boolean);
                 const current = sfmcfix.temp.currentasset;
                 if(current?.id && testsendlogsArray?.length) {
                     const tests = [...new Set(testsendlogsArray.filter(test => test.dataSource?.type === 'DataExtension' && test.dataSource.id).slice(-8).reverse().map((test) => test.dataSource.id))];
                     Promise.all(tests.map(
-                        (deId) => fetch(`/fuelapi/data-internal/v1/customobjects/${deId}`).then((response) => response.json()) 
+                        (deId) => fetch(`/fuelapi/data-internal/v1/customobjects/${deId}`).then((response) => response.json())
                     )).then((items) => {
                         completeCallback(200, 'success', { json: {
                             count: items?.length || 0,
@@ -254,7 +300,7 @@
             },
             abord : function(){}
         }
-    } 
+    }
     sfmcfix.ajax.success['/fuelapi/platform-internal/v1/categories/'] = function(data, b, c, options) {
         const url = new URL(options.url, location.href);
         if (!/\/categories\/\d+\/children$/.test(url.pathname) || !Array.isArray(data.items)) return;
@@ -279,7 +325,7 @@
         const dataset = $(this).data();
         if(dataset.uuid || dataset.logdate) {
             const testsendlogs = sfmcfix.local.getItem("testsendlogs") || '[]';
-            const testsendlogsArray = JSON.parse(testsendlogs);
+            const testsendlogsArray = JSON.parse(testsendlogs).map(safeLog).filter(Boolean);
 
             const log = testsendlogsArray.find((item) => (dataset.uuid && item.uuid === dataset.uuid) || (dataset.logdate && item.logdate === dataset.logdate));
 
@@ -304,7 +350,7 @@
         if($(this).data('action') === 'logitem-remove') {
             const logdate = $(this).data('logdate');
             const testsendlogs = sfmcfix.local.getItem("testsendlogs") || '[]';
-            const testsendlogsArray = JSON.parse(testsendlogs);
+            const testsendlogsArray = JSON.parse(testsendlogs).map(safeLog).filter(Boolean);
             const newlogArray = testsendlogsArray.filter((i) => i.logdate !== logdate);
             sfmcfix.local.setItem("testsendlogs",JSON.stringify(newlogArray));
             $('#testsendlog-viewer').trigger('updateview');
@@ -391,5 +437,5 @@
             });
         },1000);
     });
-    
+
 })();

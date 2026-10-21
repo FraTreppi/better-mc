@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SFMC UI Fixer — Multi BU",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "description": "Strumenti per Contact Builder, Content Builder, Automation Studio, Journey Builder e Query Studio, configurabili per Business Unit.",
   "action": {
     "default_title": "SFMC UI Fixer — Impostazioni e versioni"
@@ -12,8 +12,7 @@
         "https://*.exacttarget.com/*",
         "https://*.marketingcloud.com/*",
         "https://*.marketingcloudapps.com/*",
-        "https://querystudio.herokuapp.com/*",
-        "https://*.sfmc-content.com/*"
+        "https://querystudio.herokuapp.com/*"
       ],
       "js": [
         "assets/js/email-studio-diagnostics-content.js",
@@ -23,13 +22,23 @@
       "all_frames": true
     },
     {
-      "matches": ["https://*.exacttarget.com/cloud/*"],
-      "js": ["assets/js/email-studio-navigation-shell.js", "assets/js/test-tracking-shell.js"],
+      "matches": [
+        "https://*.exacttarget.com/cloud/*"
+      ],
+      "js": [
+        "assets/js/email-studio-navigation-shell.js",
+        "assets/js/test-tracking-shell.js"
+      ],
       "run_at": "document_start"
     },
     {
-      "matches": ["https://*.exacttarget.com/C12/Default.aspx*"],
-      "js": ["assets/js/email-studio-navigation-main.js", "assets/js/test-tracking-main.js"],
+      "matches": [
+        "https://*.exacttarget.com/C12/Default.aspx*"
+      ],
+      "js": [
+        "assets/js/email-studio-navigation-main.js",
+        "assets/js/test-tracking-main.js"
+      ],
       "run_at": "document_end",
       "all_frames": true,
       "world": "MAIN"
@@ -38,16 +47,25 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "assets/js/*",
+        "assets/js/content.js",
+        "assets/js/context.js",
+        "assets/js/contactbuilder/*",
+        "assets/js/contentbuilder/*",
+        "assets/js/automation/*",
+        "assets/js/querystudio/*",
+        "assets/js/journey/*",
+        "assets/js/components/*",
         "assets/css/*",
-        "assets/html/*"
+        "assets/html/contactbuilder/*",
+        "assets/html/modals/*",
+        "assets/html/previewandtest/*",
+        "assets/html/querystudio/*"
       ],
       "matches": [
         "https://*.exacttarget.com/*",
         "https://*.marketingcloud.com/*",
         "https://*.marketingcloudapps.com/*",
-        "https://querystudio.herokuapp.com/*",
-        "https://*.sfmc-content.com/*"
+        "https://querystudio.herokuapp.com/*"
       ]
     }
   ],
@@ -61,9 +79,11 @@
     "https://*.exacttarget.com/*",
     "https://*.marketingcloud.com/*",
     "https://*.marketingcloudapps.com/*",
-    "https://querystudio.herokuapp.com/*",
-    "https://*.sfmc-content.com/*"
+    "https://querystudio.herokuapp.com/*"
   ],
   "minimum_chrome_version": "111",
-  "author": "Francesco Trepiccioni"
+  "author": "Francesco Trepiccioni",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+  }
 }

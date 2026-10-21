@@ -2,11 +2,11 @@
     const $ = window.jQuery;
     const generateTemplate = (data) => {
         const {title, body, id, size, footer, show} = data || {};
-        return `<div class="create-attribute-dialog modal in sfmcfix-custommodal" id="${id || 'sfmcfix-modal-' + new Date().getDate()}" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog ${size || 'modal-lg'}">
+        return `<div class="create-attribute-dialog modal in sfmcfix-custommodal" id="${sfmcfix.escapeHtml(id || 'sfmcfix-modal-' + new Date().getDate())}" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+            <div class="modal-dialog ${sfmcfix.escapeHtml(size || 'modal-lg')}">
                 <div class="modal-content">
                     <div class="modal-header"><button type="button" class="close" data-customdismiss><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>
-                        ${title && `<h4 class="modal-title">${title}</h4>` || ''}
+                        ${title && `<h4 class="modal-title">${sfmcfix.escapeHtml(title)}</h4>` || ''}
                     </div>
                     ${body && `<div class="modal-body">${body}</div>` || ''}
                     ${footer && `<div class="modal-footer">${footer}</div>` || ''}

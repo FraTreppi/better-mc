@@ -55,7 +55,7 @@
             download.textContent = 'Scarica diagnostica tracking';
             download.style.cssText = 'display:block;margin-top:8px;padding:6px 10px;border:1px solid #b5c8da;border-radius:4px;background:#fff;color:#145b92;cursor:pointer';
             download.onclick = () => {
-                const report = { format: 'sfmcfix-test-tracking-v1', extensionVersion: '1.1.10', capturedAt: new Date().toISOString(),
+                const report = { format: 'sfmcfix-test-tracking-v1', extensionVersion: '1.1.11', capturedAt: new Date().toISOString(),
                     shellHost: location.hostname, stage: progress, nativeHandshakeReceived,
                     native: latestDiagnostics };
                 const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));

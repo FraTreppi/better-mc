@@ -11,6 +11,9 @@
     let settings = {};
     let uiSettings = {};
     let lastScope;
+    let settingsError = null;
+    let settingsLoading = false;
+    let settingsGeneration = 0;
 
     function asMid(value) {
         return /^\d{1,15}$/.test(String(value ?? '')) && Number(value) > 0 ? String(value) : null;
@@ -86,6 +89,16 @@
     api.escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 
+    api.activitySnapshot = record => {
+        const safe = {};
+        for (const key of ['queryDefinitionId', 'name', 'key', 'description', 'queryText', 'targetName', 'targetKey', 'targetId', 'targetDescription',
+            'createdDate', 'modifiedDate', 'targetUpdateTypeId', 'targetUpdateTypeName', 'validatedQueryText', 'categoryId', 'folderLocationText', 'isFrozen', 'versioning']) {
+            const value = record?.[key];
+            if (typeof value === 'string' || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))) safe[key] = value;
+        }
+        return safe;
+    };
+
     // Unknown MID: preserve features in memory for this document, never mix two BUs in a shared fallback.
     api.local = {
         getItem(key) {
@@ -140,6 +153,7 @@
             const context = current();
             if (!context.persistent) throw new Error('Imposta il MID della BU prima di salvare le preferenze.');
             const result = await api.storage.mergeItem(SETTINGS, { [context.scope]: patch });
+            if (context.scope !== current().scope) return;
             settings = result[SETTINGS] || settings;
             window.dispatchEvent(new Event('sfmcfix:preferences'));
         },
@@ -149,6 +163,8 @@
                 alert('Per salvare i destinatari di test, apri Impostazioni SFMC e scegli Imposta MID o Conferma MID per la BU corrente.');
                 return;
             }
+            if (settingsLoading) return;
+            if (settingsError) { alert(`Rubrica non disponibile: ${settingsError}`); return; }
             if (api.openTesterEditor) api.openTesterEditor();
             else api.addJs('components/tester-editor', () => api.openTesterEditor());
         }
@@ -163,6 +179,7 @@
             hint ? `Conferma MID ${hint.mid} · ${hint.stack}` : 'SFMC Fixer · Imposta MID';
         bar.querySelector('[data-context-action="testers"]').textContent = `Tester BU (${api.preferences.get().testers?.length || 0})`;
         bar.dataset.ready = String(context.persistent);
+        bar.querySelector('[data-context-action="testers"]').disabled = settingsLoading;
         const trigger = bar.querySelector('[data-context-action="toggle"]');
         trigger.title = context.persistent ? `Impostazioni SFMC · BU ${context.mid} · ${context.stack}` :
             hint ? 'Riconferma il MID della BU attuale per ritrovare i tester salvati nel browser. Puoi correggerlo se hai cambiato BU.' :
@@ -180,7 +197,7 @@
         });
     }
 
-    api.context.configure = function () {
+    api.context.configure = async function () {
         const detected = detectMid();
         if (detected) { alert(`MID rilevato dalla pagina: ${detected}`); return; }
         const hint = rememberedContext();
@@ -196,8 +213,10 @@
         manualMid = value.trim();
         rememberContext();
         lastScope = current().scope;
-        renderContext();
+        settings = {};
         window.dispatchEvent(new Event('sfmcfix:contextchange'));
+        await loadSettings();
+        renderContext();
     };
 
     api.context.mountControls = function (target) {
@@ -245,13 +264,30 @@
         renderContext();
     };
 
+    async function loadSettings() {
+        const generation = ++settingsGeneration;
+        const context = current();
+        settings = {};
+        settingsError = null;
+        settingsLoading = false;
+        if (!/^content-builder\./i.test(location.hostname) || !context.persistent) { renderContext(); return; }
+        settingsLoading = true;
+        renderContext();
+        try {
+            const value = await api.storage.getItem(SETTINGS, {});
+            if (generation === settingsGeneration && context.scope === current().scope) settings = { [context.scope]: value[context.scope] || {} };
+        } catch (error) {
+            if (generation === settingsGeneration) settingsError = error.message;
+        } finally {
+            if (generation === settingsGeneration) { settingsLoading = false; renderContext(); }
+        }
+    }
     api.context.ready = (async () => {
-        [settings, uiSettings] = await Promise.all([
-            api.storage.getItem(SETTINGS, {}), api.storage.getItem(UI_SETTINGS, {})
-        ]);
+        await Promise.all([loadSettings(), api.storage.getItem(UI_SETTINGS, {}).then(value => { uiSettings = value; }).catch(() => {})]);
         api.storage.onChange(changes => {
             if (changes[SETTINGS]) {
-                settings = changes[SETTINGS].newValue || {};
+                const scope = current().scope;
+                settings = { [scope]: changes[SETTINGS].newValue?.[scope] || {} };
                 window.dispatchEvent(new Event('sfmcfix:preferences'));
             }
             if (changes[UI_SETTINGS]) {
@@ -265,8 +301,10 @@
             const scope = current().scope;
             if (scope !== lastScope) {
                 lastScope = scope;
+                settings = {};
                 renderContext();
                 window.dispatchEvent(new Event('sfmcfix:contextchange'));
+                loadSettings().then(() => window.dispatchEvent(new Event('sfmcfix:preferences')));
             }
         }, 1000);
     })();

@@ -1,117 +1,225 @@
-// Service worker: unico proprietario di chrome.storage.local per tutta l'estensione.
-// Tutte le mutazioni passano da qui e vengono serializzate in una coda,
-// così il read-modify-write del merge è atomico e non ci sono race tra frame/tab.
-
-const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
-
-// merge profondo: gli oggetti si fondono ricorsivamente, tutto il resto
-// (array, primitivi) viene sostituito. Un valore undefined elimina la chiave.
-function deepMerge(target, source) {
-    const out = isPlainObject(target) ? { ...target } : {};
-    for (const key of Object.keys(source)) {
-        if (['__proto__', 'constructor', 'prototype'].includes(key)) continue;
-        const sv = source[key];
-        if (sv === undefined) { delete out[key]; continue; }
-        out[key] = (isPlainObject(sv) && isPlainObject(out[key])) ? deepMerge(out[key], sv) : sv;
-    }
-    return out;
-}
-
-// coda globale: serializza le scritture per garantire l'atomicità del read-modify-write
+// Privileged storage stays in the extension. Page scripts receive only an
+// explicitly approved BU view, never the full archive or a network proxy.
+'use strict';
+const SETTINGS = 'SFMCFIX---SETTINGS-V2';
+const UI = 'SFMCFIX---UI-PREFERENCES';
+const VERSIONS = 'SFMCFIX---ACTIVITYVERSIONING';
+const DOCUMENTS = 'SFMCFIX---DOCUMENT-GRANTS';
+const forbidden = key => ['__proto__', 'constructor', 'prototype'].includes(key);
+const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const scopeParts = value => typeof value === 'string' && /^(s\d+):(\d{1,15})$/.test(value) && Number(value.split(':')[1]) > 0 ? value.split(':') : null;
+const versionBucket = scope => `SFMCFIX:v2:${scope}:${VERSIONS}`;
 let writeChain = Promise.resolve();
 function enqueue(task) {
     const run = writeChain.then(task, task);
     writeChain = run.then(() => {}, () => {});
     return run;
 }
-
-const getLocal = (keys) => new Promise((res, rej) =>
-    chrome.storage.local.get(keys, (items) =>
-        chrome.runtime.lastError ? rej(chrome.runtime.lastError) : res(items)));
-const setLocal = (items) => new Promise((res, rej) =>
-    chrome.storage.local.set(items, () =>
-        chrome.runtime.lastError ? rej(chrome.runtime.lastError) : res(true)));
-const removeLocal = (keys) => new Promise((res, rej) =>
-    chrome.storage.local.remove(keys, () =>
-        chrome.runtime.lastError ? rej(chrome.runtime.lastError) : res(true)));
-const clearLocal = () => new Promise((res, rej) =>
-    chrome.storage.local.clear(() =>
-        chrome.runtime.lastError ? rej(chrome.runtime.lastError) : res(true)));
-
-async function handle(action, payload) {
-    switch (action) {
-        case 'get':
-            return await getLocal(payload?.keys ?? null);
-        case 'set':
-            return await enqueue(() => setLocal(payload?.items || {}));
-        case 'merge':
-            return await enqueue(async () => {
-                const items = payload?.items || {};
-                const keys = Object.keys(items);
-                const current = await getLocal(keys);          // leggi
-                const next = {};
-                for (const k of keys) {                        // fondi
-                    next[k] = isPlainObject(items[k]) ? deepMerge(current[k], items[k]) : items[k];
-                }
-                await setLocal(next);                          // scrivi
-                return next;
-            });
-        case 'remove':
-            return await enqueue(() => removeLocal(payload?.keys || []));
-        case 'clear':
-            return await enqueue(() => clearLocal());
-        case 'deleteVersions':
-            return await enqueue(async () => {
-                const entries = payload?.entries || [];
-                const buckets = [...new Set(entries.map(entry => entry.bucket))];
-                if (buckets.some(key => key !== 'SFMCFIX---ACTIVITYVERSIONING' &&
-                    !/^SFMCFIX:v2:.+:SFMCFIX---ACTIVITYVERSIONING$/.test(key))) throw new Error('Archivio versioni non valido');
-                const data = await getLocal(buckets);
-                for (const { bucket, key } of entries) {
-                    if (data[bucket]) delete data[bucket][key];
-                }
-                await setLocal(data);
-                return true;
-            });
-        default:
-            throw new Error(`azione storage sconosciuta: ${action}`);
-    }
+const read = (area, keys) => new Promise((resolve, reject) => chrome.storage[area].get(keys, items =>
+    chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve(items)));
+const write = (area, items) => new Promise((resolve, reject) => chrome.storage[area].set(items, () =>
+    chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve(true)));
+const initialized = Promise.all(['local', 'session'].map(area =>
+    chrome.storage[area].setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' }))).then(() => enqueue(async () => {
+        const all = await read('local', null);
+        const cleaned = {};
+        for (const [key, value] of Object.entries(all)) {
+            const match = key.match(/^SFMCFIX:v2:(s\d+:\d{1,15}):SFMCFIX---ACTIVITYVERSIONING$/);
+            if (!match && key !== VERSIONS) continue;
+            const records = {};
+            for (const [id, record] of Object.entries(plain(value) ? value : {})) {
+                if (forbidden(id) || id.length > 512 || !plain(record)) continue;
+                records[id] = match && scopeParts(match[1]) ? versionView(record, match[1]) : activityFields(record);
+                if (!match && scopeParts(record.sfmcfixContext?.scope)) records[id].sfmcfixContext = versionView(record, record.sfmcfixContext.scope).sfmcfixContext;
+            }
+            if (JSON.stringify(value) !== JSON.stringify(records)) cleaned[key] = records;
+        }
+        if (plain(all[SETTINGS])) {
+            const settings = {};
+            for (const [scope, record] of Object.entries(all[SETTINGS])) if (scopeParts(scope)) settings[scope] = { testers: Array.isArray(record?.testers) ? record.testers : [] };
+            if (JSON.stringify(settings) !== JSON.stringify(all[SETTINGS])) cleaned[SETTINGS] = settings;
+        }
+        if (Object.keys(cleaned).length) await write('local', cleaned);
+    }));
+initialized.catch(() => console.error('SFMC Fixer: inizializzazione dello storage protetto non riuscita. Accesso dalla pagina bloccato.'));
+function pageRole(value) {
+    try {
+        const url = new URL(value);
+        if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
+        const host = url.hostname;
+        const stack = host.match(/(?:^|\.)(s\d+)\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i)?.[1].toLowerCase();
+        let role;
+        if (host === 'querystudio.herokuapp.com') role = 'query';
+        else if (stack && /^content-builder\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host)) role = 'content';
+        else if (stack && /^jbinteractions\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host)) role = 'journey';
+        else if (stack && /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/contactsmeta\/admin\.html$/i.test(url.pathname)) role = 'contact';
+        else if (stack && /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/AutomationStudioFuel3(?:\/|$)/i.test(url.pathname)) role = 'automation';
+        return role ? { role, stack, page: url.origin + url.pathname } : null;
+    } catch (_) { return null; }
 }
-
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (!msg || !msg.__sfmcfixStorage) return; // non è roba nostra
-    handle(msg.action, msg.payload)
-        .then((result) => sendResponse({ ok: true, result }))
-        .catch((e) => sendResponse({ ok: false, error: (e && e.message) || String(e) }));
-    return true; // mantiene il canale aperto per la risposta asincrona
-});
-
-// Fetch proxy: esegue fetch nel contesto del service worker (ha host_permissions SFMC)
-// e restituisce la response serializzata. Gli script iniettati nel main world non possono
-// aggirare CORS da soli; il service worker invece usa le host_permissions del manifest.
-async function handleFetch({ url, options = {} }) {
-    const target = new URL(url);
-    if (target.protocol !== 'https:' || target.username || target.password || target.port ||
-        !/\.(exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(target.hostname)) {
-        throw new Error('Il proxy accetta solo URL HTTPS di Marketing Cloud');
-    }
-    if (options.method && options.method.toUpperCase() !== 'GET') throw new Error('Il proxy supporta solo letture GET');
-    const response = await fetch(url, { method: 'GET', credentials: 'include', redirect: 'error',
-        signal: AbortSignal.timeout(25000) });
-    const headers = Object.fromEntries(response.headers.entries());
-    const body = await response.text();
-    return { status: response.status, statusText: response.statusText, headers, ok: response.ok, body };
+function source(sender) {
+    if (sender.id !== chrome.runtime.id) throw new Error('Mittente non autorizzato.');
+    if (sender.url === chrome.runtime.getURL('assets/html/activity-versioning.html')) return { internal: true };
+    const page = pageRole(sender.url);
+    if (!page || !/^[0-9a-f-]{36}$/i.test(sender.documentId || '') || !Number.isInteger(sender.tab?.id)) throw new Error('Documento non autorizzato.');
+    return { ...page, id: sender.documentId, tabId: sender.tab.id };
 }
-
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (!msg || !msg.__sfmcfixFetch) return;
-    handleFetch(msg)
-        .then((result) => sendResponse({ ok: true, result }))
-        .catch((e) => sendResponse({ ok: false, error: (e && e.message) || String(e) }));
+async function registerDocument(caller, scope) {
+    return enqueue(async () => {
+        const docs = (await read('session', [DOCUMENTS]))[DOCUMENTS] || {};
+        const previous = docs[caller.id];
+        const grant = { page: caller.page, role: caller.role, stack: caller.stack || null, tabId: caller.tabId,
+            scope: scope || (previous?.page === caller.page ? previous.scope : null), touched: Date.now() };
+        docs[caller.id] = grant;
+        const recent = Object.fromEntries(Object.entries(docs).filter(([, d]) => Date.now() - d.touched < 12 * 60 * 60 * 1000)
+            .sort((a, b) => b[1].touched - a[1].touched).slice(0, 200));
+        await write('session', { [DOCUMENTS]: recent });
+        return grant;
+    });
+}
+function testers(value) {
+    if (!Array.isArray(value) || value.length > 1000) throw new Error('Rubrica non valida: massimo 1000 tester.');
+    return value.map(row => {
+        if (!Array.isArray(row) || row.length !== 3 || row.some(v => typeof v !== 'string') || row[0].length > 250 || row[1].length > 250 ||
+            row[2].length > 254 || !/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(row[2])) throw new Error('Dati tester non validi.');
+        return row.map(v => v.trim());
+    });
+}
+function preferencesView(all, scope) {
+    if (!scope || !plain(all?.[scope])) return {};
+    let rows = [];
+    try { rows = testers(all[scope].testers || []); } catch (_) { /* Invalid legacy data is not exposed to the page. */ }
+    return { [scope]: { testers: rows } };
+}
+const versionFields = ['queryDefinitionId', 'name', 'key', 'description', 'queryText', 'targetName', 'targetKey', 'targetId', 'targetDescription',
+    'createdDate', 'modifiedDate', 'targetUpdateTypeId', 'targetUpdateTypeName', 'validatedQueryText', 'categoryId', 'folderLocationText', 'isFrozen', 'versioning'];
+function activityFields(record) {
+    if (!plain(record)) throw new Error('Versione SQL non valida.');
+    const result = {};
+    for (const key of versionFields) {
+        const value = record[key];
+        if (typeof value === 'string' || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))) result[key] = value;
+    }
+    return result;
+}
+function versionView(record, scope) {
+    const result = activityFields(record);
+    const [stack, mid] = scopeParts(scope);
+    result.sfmcfixContext = { stack, mid, scope, persistent: true };
+    return result;
+}
+function versionsView(records, scope) {
+    const result = {};
+    for (const [key, value] of Object.entries(records || {})) {
+        if (forbidden(key) || key.length > 512 || !plain(value)) continue;
+        result[key] = versionView(value, scope);
+    }
+    return result;
+}
+function uiView(value) { return { hidePreviewIcons: value?.hidePreviewIcons === true }; }
+async function grantFor(caller, scope) {
+    const parts = scopeParts(scope);
+    if (!parts || parts[0] !== caller.stack) throw new Error('Stack o MID non validi per questa pagina.');
+    const grant = (await read('session', [DOCUMENTS]))[DOCUMENTS]?.[caller.id];
+    if (!grant || grant.page !== caller.page || grant.scope !== scope || Date.now() - grant.touched >= 12 * 60 * 60 * 1000) {
+        throw new Error('Accesso ai dati di questa BU non autorizzato. Riapri il modulo e conferma l’accesso.');
+    }
+    return grant;
+}
+async function pageStorage(caller, action, payload, scope) {
+    if (action === 'register') { await registerDocument(caller); return true; }
+    if (action === 'authorize') {
+        const parts = scopeParts(scope);
+        if (!['content', 'automation'].includes(caller.role) || !parts || parts[0] !== caller.stack) throw new Error('Contesto non autorizzabile.');
+        await registerDocument(caller, scope);
+        return true;
+    }
+    if (!['get', 'merge'].includes(action) || !plain(payload)) throw new Error('Operazione non consentita alla pagina.');
+    const keys = action === 'get' ? payload.keys : Object.keys(payload.items || {});
+    if (!Array.isArray(keys) || keys.length !== 1 || typeof keys[0] !== 'string') throw new Error('Richiedi una sola chiave autorizzata.');
+    const key = keys[0];
+    if (key === UI && action === 'get') return { [UI]: uiView((await read('local', [UI]))[UI]) };
+    if (key === SETTINGS && caller.role === 'content' && !scope && action === 'get') return { [SETTINGS]: {} };
+    await grantFor(caller, scope);
+    if (key === SETTINGS && caller.role === 'content') {
+        if (action === 'get') return { [SETTINGS]: preferencesView((await read('local', [SETTINGS]))[SETTINGS], scope) };
+        const patch = payload.items[SETTINGS];
+        if (!plain(patch) || Object.keys(patch).length !== 1 || !Object.hasOwn(patch, scope) || !plain(patch[scope]) ||
+            Object.keys(patch[scope]).some(k => k !== 'testers')) throw new Error('Modifica preferenze non autorizzata.');
+        const rows = testers(patch[scope].testers);
+        return enqueue(async () => {
+            const all = (await read('local', [SETTINGS]))[SETTINGS] || {};
+            const next = { ...all, [scope]: { ...all[scope], testers: rows } };
+            await write('local', { [SETTINGS]: next });
+            return { [SETTINGS]: preferencesView(next, scope) };
+        });
+    }
+    if (key === versionBucket(scope) && caller.role === 'automation') {
+        if (action === 'get') return { [key]: versionsView((await read('local', [key]))[key], scope) };
+        const patch = payload.items[key];
+        if (!plain(patch) || Object.keys(patch).length > 8 || JSON.stringify(patch).length > 2 * 1024 * 1024 ||
+            Object.keys(patch).some(k => forbidden(k) || k.length > 512)) throw new Error('Snapshot SQL non valido.');
+        const safe = versionsView(patch, scope);
+        if (Object.keys(safe).length !== Object.keys(patch).length) throw new Error('Snapshot SQL non valido.');
+        return enqueue(async () => {
+            const current = (await read('local', [key]))[key] || {};
+            const next = { ...current, ...safe };
+            if (Object.keys(next).length > 5000) throw new Error('Archivio pieno: esporta ed elimina alcune versioni.');
+            await write('local', { [key]: next });
+            return { [key]: safe };
+        });
+    }
+    throw new Error('Chiave non autorizzata per questo modulo.');
+}
+async function internalStorage(action, payload) {
+    if (action === 'merge' && plain(payload?.items) && Object.keys(payload.items).length === 1 && plain(payload.items[UI]) &&
+        Object.keys(payload.items[UI]).every(k => k === 'hidePreviewIcons') && typeof payload.items[UI].hidePreviewIcons === 'boolean') {
+        const value = uiView(payload.items[UI]);
+        await enqueue(() => write('local', { [UI]: value }));
+        return { [UI]: value };
+    }
+    if (action === 'deleteVersions') {
+        const entries = payload?.entries;
+        if (!Array.isArray(entries) || entries.length > 10000 || entries.some(e => !plain(e) || typeof e.bucket !== 'string' ||
+            (e.bucket !== VERSIONS && !/^SFMCFIX:v2:s\d+:\d{1,15}:SFMCFIX---ACTIVITYVERSIONING$/.test(e.bucket)) ||
+            typeof e.key !== 'string' || forbidden(e.key) || e.key.length > 512)) throw new Error('Versioni non valide.');
+        return enqueue(async () => {
+            const buckets = [...new Set(entries.map(e => e.bucket))];
+            const data = await read('local', buckets);
+            for (const { bucket, key } of entries) if (plain(data[bucket])) delete data[bucket][key];
+            await write('local', data);
+            return true;
+        });
+    }
+    throw new Error('Operazione interna non consentita.');
+}
+chrome.runtime.onMessage.addListener((msg, sender, respond) => {
+    if (!msg?.__sfmcfixStorage && !msg?.__sfmcfixFetch) return;
+    (async () => {
+        await initialized;
+        if (msg.__sfmcfixFetch) throw new Error('Il proxy di rete generico è stato rimosso.');
+        const caller = source(sender);
+        return caller.internal ? internalStorage(msg.action, msg.payload) : pageStorage(caller, msg.action, msg.payload, msg.scope);
+    })().then(result => respond({ ok: true, result })).catch(error => respond({ ok: false, error: error.message }));
     return true;
 });
-
-// Apre la pagina Activity Versioning in una nuova tab al click sull'icona dell'estensione.
-chrome.action.onClicked.addListener(() => {
-    chrome.tabs.create({ url: chrome.runtime.getURL('assets/html/activity-versioning.html') });
+// Notify each registered document of its own projection only. Content scripts
+// cannot subscribe to the complete chrome.storage.local change stream.
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    read('session', [DOCUMENTS]).then(async result => {
+        for (const [documentId, grant] of Object.entries(result[DOCUMENTS] || {})) {
+            if (Date.now() - grant.touched >= 12 * 60 * 60 * 1000) continue;
+            const visible = {};
+            if (changes[UI]) visible[UI] = { newValue: uiView(changes[UI].newValue) };
+            if (grant.scope && grant.role === 'content' && changes[SETTINGS]) visible[SETTINGS] = {
+                newValue: preferencesView(changes[SETTINGS].newValue, grant.scope) };
+            const bucket = grant.scope && versionBucket(grant.scope);
+            if (bucket && grant.role === 'automation' && changes[bucket]) visible[bucket] = { newValue: versionsView(changes[bucket].newValue, grant.scope) };
+            if (!Object.keys(visible).length) continue;
+            try { await chrome.tabs.sendMessage(grant.tabId, { __sfmcfixStorageChange: true, changes: visible }, { documentId }); }
+            catch (_) { /* Closed or refreshed document. */ }
+        }
+    }).catch(() => console.error('SFMC Fixer: notifica preferenze non disponibile.'));
 });
+chrome.action.onClicked.addListener(() => chrome.tabs.create({ url: chrome.runtime.getURL('assets/html/activity-versioning.html') }));

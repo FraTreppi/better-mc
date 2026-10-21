@@ -187,8 +187,8 @@
     return await resp.json();
     }
 
-    // Storage condiviso via bridge col content script (chrome.storage.local).
-    // A differenza di localStorage è condiviso tra tutti gli origin SFMC.
+    // Scoped local storage bridge. The worker validates module, document and BU;
+    // only a single approved key can be read or merged by a page.
     sfmcfix.storage = (function() {
         const CHANNEL = 'sfmcfix-storage';
         const pending = {};
@@ -196,7 +196,7 @@
         let seq = 0;
 
         window.addEventListener('message', function(event) {
-            if(event.source !== window) return;
+            if(event.source !== window || event.origin !== location.origin) return;
             const msg = event.data;
             if(!msg || msg.source !== CHANNEL) return;
 
@@ -216,29 +216,23 @@
             return new Promise((resolve, reject) => {
                 const id = `${Date.now()}-${++seq}`;
                 pending[id] = { resolve, reject };
-                window.postMessage({ source: CHANNEL, direction: 'request', id, action, payload }, location.origin);
+                const context = sfmcfix.context?.current();
+                const scope = context?.persistent ? context.scope : null;
+                window.postMessage({ source: CHANNEL, direction: 'request', id, action, payload, scope }, location.origin);
                 setTimeout(() => {
                     if(pending[id]) {
                         delete pending[id];
                         reject(new Error(`storage timeout (${action})`));
                     }
-                }, 10000);
+                }, 120000);
             });
         };
 
         return {
-            // get(): tutto | get('chiave') | get(['a','b']) | get({chiave: default})
-            get: (keys) => request('get', { keys: keys === undefined ? null : keys }),
             // get di una singola chiave restituendo direttamente il valore
             getItem: (key, fallback) => request('get', { keys: [key] }).then((items) => items[key] === undefined ? fallback : items[key]),
-            set: (items) => request('set', { items }),
-            setItem: (key, value) => request('set', { items: { [key]: value } }),
-            // merge profondo e ATOMICO (serializzato dal service worker): le chiavi/valori
-            // annidati non passati restano intatti. merge({config:{x:9}}) NON cancella config.y
-            merge: (items) => request('merge', { items }),
+            // The worker serializes and validates each permitted BU update.
             mergeItem: (key, partial) => request('merge', { items: { [key]: partial } }),
-            remove: (keys) => request('remove', { keys }),
-            clear: () => request('clear'),
             onChange: (callback) => {
                 changeCallbacks.push(callback);
                 return () => {
@@ -246,51 +240,6 @@
                     if(i > -1) changeCallbacks.splice(i, 1);
                 };
             }
-        };
-    })();
-
-    // Proxy fetch via service worker: aggira CORS usando le host_permissions del manifest.
-    // API analoga a window.fetch ma eseguita nel contesto del service worker.
-    // Restituisce un oggetto Response-like con .text() e .json().
-    sfmcfix.fetch = (function() {
-        const CHANNEL = 'sfmcfix-fetch';
-        const pending = {};
-        let seq = 0;
-
-        window.addEventListener('message', function(event) {
-            if(event.source !== window) return;
-            const msg = event.data;
-            if(!msg || msg.source !== CHANNEL || msg.direction !== 'response') return;
-            const p = pending[msg.id];
-            if(!p) return;
-            delete pending[msg.id];
-            if(msg.ok) {
-                const r = msg.result;
-                p.resolve({
-                    status: r.status,
-                    statusText: r.statusText,
-                    headers: r.headers,
-                    ok: r.ok,
-                    text: () => Promise.resolve(r.body),
-                    json: () => Promise.resolve(JSON.parse(r.body))
-                });
-            } else {
-                p.reject(new Error(msg.error || 'fetch proxy error'));
-            }
-        });
-
-        return function(url, options) {
-            return new Promise((resolve, reject) => {
-                const id = `${Date.now()}-${++seq}`;
-                pending[id] = { resolve, reject };
-                window.postMessage({ source: CHANNEL, direction: 'request', id, url, options: options || {} }, location.origin);
-                setTimeout(() => {
-                    if(pending[id]) {
-                        delete pending[id];
-                        reject(new Error('fetch proxy timeout'));
-                    }
-                }, 30000);
-            });
         };
     })();
 

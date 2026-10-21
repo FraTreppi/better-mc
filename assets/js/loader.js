@@ -1,140 +1,87 @@
-(function() {
-    const ignoreList = ['/Init.aspx','/cloud/','/cloud/tools/SessionStatus.ashx','/utils/require-sandbox/'];
-    if(ignoreList.some( (item) => location.href.indexOf(item) > -1 )) {
-        console.log(`SFMC fixer - ${location.pathname} --- IGNORE`);
-        return false;
-    }
-
-    const extensionPath = chrome.runtime.getURL("");
-    const timestamp = Date.now();
-
-    const writeConfigurations = function(config) {
-        var script = document.getElementById('sfmc-fixer-config');
-        if(script == null) {
-            script = document.createElement("script");
-            script.id = 'sfmc-fixer-config';
-            script.type = 'json/config';
-            document.head.appendChild(script);
-            console.log(`SFMC fixer - ${location.pathname} --- config ready`);
-        }
-        script.innerHTML = JSON.stringify(config);
-    }
-
-    // const addCss = function(fileName) {
-    //     const link = document.createElement("link");
-    //     link.href = `${extensionPath}assets/css/${fileName}.css?t=${timestamp}`;
-    //     console.log(`SFMC fixer - ${location.pathname} --- CSS -> ${fileName}.css`);
-    //     link.type = "text/css";
-    //     link.rel = "stylesheet";
-    //     document.head.appendChild(link);
-    // }
-
-    const addJs = function(fileName) {
-        const script = document.createElement("script");
-        script.src = `${extensionPath}assets/js/${fileName}.js?t=${timestamp}`;
-        // console.log(`SFMC fixer - ${location.pathname} --- CSS -> ${fileName}.js`);
-        document.head.appendChild(script);
-    }
-
-    // Bridge storage: gli script iniettati girano nel main world e non vedono chrome.*
-    // Qui (content script, mondo isolato) facciamo da ponte verso chrome.storage.local
-    // rispondendo alle richieste via window.postMessage con un request id.
-    const STORAGE_CHANNEL = 'sfmcfix-storage';
-
-    const storageBridge = function() {
-        if(!chrome?.storage?.local) {
-            console.log(`SFMC fixer - ${location.pathname} --- storage NON disponibile (manca il permesso "storage"?)`);
-            return;
-        }
-
-        const respond = function(id, ok, result, error) {
-            window.postMessage({
-                source: STORAGE_CHANNEL,
-                direction: 'response',
-                id: id,
-                ok: ok,
-                result: result,
-                error: error
-            }, location.origin);
-        };
-
-        window.addEventListener('message', function(event) {
-            // accetto solo messaggi originati da questa stessa finestra (il main world della pagina)
-            if(event.source !== window) return;
-            const msg = event.data;
-            if(!msg || msg.source !== STORAGE_CHANNEL || msg.direction !== 'request') return;
-
-            const { id, action, payload } = msg;
-            const done = (result) => respond(id, true, result);
-            const fail = (e) => respond(id, false, undefined, (e && e.message) || String(e));
-
-            try {
-                // inoltro al service worker: unico proprietario dello storage,
-                // serializza le scritture e rende atomico il merge
-                chrome.runtime.sendMessage({ __sfmcfixStorage: true, action, payload }, (resp) => {
-                    if(chrome.runtime.lastError) return fail(chrome.runtime.lastError);
-                    if(resp && resp.ok) return done(resp.result);
-                    fail(new Error(resp?.error || 'storage error'));
-                });
-            } catch(e) {
-                fail(e);
-            }
+(function () {
+    'use strict';
+    // Do not expose extension bridges on CloudPages, email previews, asset hosts
+    // or unrelated SFMC documents, even when a host permission matches them.
+    const host = location.hostname;
+    const stack = host.match(/(?:^|\.)(s\d+)\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i)?.[1].toLowerCase();
+    const role = host === 'querystudio.herokuapp.com' ? 'query' : !stack ? null :
+        /^content-builder\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) ? 'content' : /^jbinteractions\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) ? 'journey' :
+        /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/contactsmeta\/admin\.html$/i.test(location.pathname) ? 'contact' :
+        /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/AutomationStudioFuel3(?:\/|$)/i.test(location.pathname) ? 'automation' : null;
+    if (location.protocol !== 'https:' || !role) return;
+    const CHANNEL = 'sfmcfix-storage';
+    let approvedScope = null;
+    let authorization;
+    let lastDeniedScope = null;
+    const send = message => new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ __sfmcfixStorage: true, ...message }, response => {
+            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+            response?.ok ? resolve(response.result) : reject(new Error(response?.error || 'Storage non disponibile.'));
         });
-
-        // propago al main world le modifiche dello storage (anche da altre tab/origin)
-        chrome.storage.onChanged.addListener((changes, areaName) => {
-            if(areaName !== 'local') return;
-            window.postMessage({
-                source: STORAGE_CHANNEL,
-                direction: 'change',
-                changes: changes
-            }, location.origin);
-        });
-
-        console.log(`SFMC fixer - ${location.pathname} --- storage bridge pronto`);
-    };
-
-    // Bridge fetch: gli script iniettati chiedono una fetch via postMessage,
-    // qui la inoltriamo al service worker che ha le host_permissions SFMC.
-    const FETCH_CHANNEL = 'sfmcfix-fetch';
-
-    const fetchBridge = function() {
-        const respond = function(id, ok, result, error) {
-            window.postMessage({
-                source: FETCH_CHANNEL,
-                direction: 'response',
-                id, ok, result, error
-            }, location.origin);
-        };
-
-        window.addEventListener('message', function(event) {
-            if(event.source !== window) return;
-            const msg = event.data;
-            if(!msg || msg.source !== FETCH_CHANNEL || msg.direction !== 'request') return;
-
-            const { id, url, options } = msg;
-            const done = (result) => respond(id, true, result);
-            const fail = (e) => respond(id, false, undefined, (e && e.message) || String(e));
-
-            try {
-                chrome.runtime.sendMessage({ __sfmcfixFetch: true, url, options }, (resp) => {
-                    if(chrome.runtime.lastError) return fail(chrome.runtime.lastError);
-                    if(resp && resp.ok) return done(resp.result);
-                    fail(new Error(resp?.error || 'fetch proxy error'));
-                });
-            } catch(e) {
-                fail(e);
-            }
-        });
-
-        console.log(`SFMC fixer - ${location.pathname} --- fetch bridge pronto`);
-    };
-
-    writeConfigurations({
-        extensionPath: extensionPath,
-        timestamp: timestamp
     });
-    storageBridge();
-    fetchBridge();
-    addJs('content');
+    async function approve(scope) {
+        if (!['content', 'automation'].includes(role) || typeof scope !== 'string' ||
+            !/^(s\d+):(\d{1,15})$/.test(scope) || scope.split(':')[0] !== stack || Number(scope.split(':')[1]) <= 0) {
+            throw new Error('Stack o MID non validi per questo modulo.');
+        }
+        if (approvedScope === scope) return;
+        if (lastDeniedScope === scope) throw new Error('Accesso locale non consentito. Ricarica il modulo per riprovare.');
+        if (authorization) {
+            await authorization;
+            if (approvedScope === scope) return;
+            throw new Error('È già in corso la conferma per una diversa BU.');
+        }
+        authorization = (async () => {
+            // This is the native dialog of the isolated content script. Scripts
+            // in the page cannot replace its confirm function or approve a BU.
+            const allowed = window.confirm(`SFMC UI Fixer\nConsentire a ${host} di usare i dati locali della BU ${scope.split(':')[1]} · ${stack}?\n\n${role === 'content' ? 'Verrà resa disponibile la rubrica tester di questa BU.' : 'Potrai leggere e salvare le copie SQL di questa BU.'}\nI dati restano in questo profilo browser, senza cifratura propria dell’estensione. Verifica che la BU sia corretta.`);
+            if (!allowed) { lastDeniedScope = scope; throw new Error('Accesso ai dati locali annullato.'); }
+            await send({ action: 'authorize', scope });
+            approvedScope = scope;
+        })();
+        try { await authorization; } finally { authorization = null; }
+    }
+    function reply(id, ok, result, error) {
+        window.postMessage({ source: CHANNEL, direction: 'response', id, ok, result, error }, location.origin);
+    }
+    window.addEventListener('message', async event => {
+        if (event.source !== window || event.origin !== location.origin) return;
+        const msg = event.data;
+        if (msg?.source !== CHANNEL || msg.direction !== 'request' || !/^[a-z0-9-]{1,80}$/i.test(msg.id || '')) return;
+        try {
+            if (!['get', 'merge'].includes(msg.action) || !msg.payload || typeof msg.payload !== 'object') throw new Error('Operazione non consentita.');
+            const keys = msg.action === 'get' ? msg.payload.keys : Object.keys(msg.payload.items || {});
+            if (!Array.isArray(keys) || keys.length !== 1) throw new Error('La pagina non può leggere o cancellare l’intero archivio.');
+            const key = keys[0];
+            const uiRead = msg.action === 'get' && key === 'SFMCFIX---UI-PREFERENCES';
+            const emptyPreferences = msg.action === 'get' && key === 'SFMCFIX---SETTINGS-V2' && !msg.scope && role === 'content';
+            const sensitive = role === 'content' && key === 'SFMCFIX---SETTINGS-V2' ||
+                role === 'automation' && key === `SFMCFIX:v2:${msg.scope}:SFMCFIX---ACTIVITYVERSIONING`;
+            if (!uiRead && !emptyPreferences) {
+                if (!sensitive) throw new Error('Chiave non autorizzata per questo modulo.');
+                await approve(msg.scope);
+            }
+            const result = await send({ action: msg.action, payload: msg.payload, scope: msg.scope });
+            reply(msg.id, true, result);
+        } catch (error) { reply(msg.id, false, undefined, error.message); }
+    });
+    chrome.runtime.onMessage.addListener((message, sender) => {
+        if (sender.id !== chrome.runtime.id || message?.__sfmcfixStorageChange !== true) return;
+        const visible = {};
+        const changes = message.changes || {};
+        if (changes['SFMCFIX---UI-PREFERENCES']) visible['SFMCFIX---UI-PREFERENCES'] = changes['SFMCFIX---UI-PREFERENCES'];
+        if (approvedScope && role === 'content' && changes['SFMCFIX---SETTINGS-V2']) visible['SFMCFIX---SETTINGS-V2'] = changes['SFMCFIX---SETTINGS-V2'];
+        const bucket = approvedScope && `SFMCFIX:v2:${approvedScope}:SFMCFIX---ACTIVITYVERSIONING`;
+        if (bucket && role === 'automation' && changes[bucket]) visible[bucket] = changes[bucket];
+        if (Object.keys(visible).length) window.postMessage({ source: CHANNEL, direction: 'change', changes: visible }, location.origin);
+    });
+    send({ action: 'register' }).catch(() => console.error('SFMC Fixer: registrazione del documento non riuscita.'));
+    const config = document.createElement('script');
+    config.id = 'sfmc-fixer-config';
+    config.type = 'application/json';
+    config.textContent = JSON.stringify({ extensionPath: chrome.runtime.getURL(''), timestamp: Date.now() });
+    document.head.appendChild(config);
+    const script = document.createElement('script');
+    script.src = chrome.runtime.getURL('assets/js/content.js');
+    document.head.appendChild(script);
 })();

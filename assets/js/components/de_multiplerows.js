@@ -5,7 +5,8 @@
     
     const submit = function() {
 
-        if(!window.currentDEData?.id) throw new Error("Manca l'id della data extension.");
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(window.currentDEData?.id || '')) throw new Error("Apri prima la Data Extension di destinazione.");
+        if ($wrapper.data('sfmcfixScope') !== sfmcfix.context.current().scope) throw new Error('La BU è cambiata: riapri la tabella prima di salvare.');
         const routeId = location.hash.match(/#admin\/data-extension\/([^/]+)/)?.[1];
         if (routeId !== window.currentDEData.id) throw new Error('La Data Extension è cambiata: riapri la tabella prima di salvare.');
 
@@ -16,8 +17,8 @@
         var hasError = false;
         records.each((_i,$row) => {
             var obj = {
-                keys: {},
-                values: {}
+                keys: Object.create(null),
+                values: Object.create(null)
             };
 
 
@@ -62,7 +63,7 @@
             contentType: 'application/json',
             type: 'POST',
             error: function (jqxhr, reqStatus, error) {
-                console.log(jqxhr, reqStatus, error);
+                sfmcfix.notificationLogger('error', null, `Inserimento non riuscito: HTTP ${jqxhr.status || 'non disponibile'}.`);
             },
             success: function (data, reqStatus, jqxhr) {
                 window.sfmcfix.notificationLogger('success',null,`${rowset.length} record salvati con successo`);
@@ -86,7 +87,9 @@
     $('.multiple-rows-actions button[data-action]').on('click',function(e) {
         e.preventDefault();
         const action = $(this).data('action');
-        if(action == 'submit') submit();
+        if (action === 'submit') {
+            try { submit(); } catch (error) { sfmcfix.notificationLogger('error', null, error.message); }
+        }
         if(action == 'cancel') $('.edit-de-grid-cancel-save > div').trigger('click');
         return false;
     });

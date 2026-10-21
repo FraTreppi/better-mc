@@ -3,6 +3,20 @@
     let allData = {};
     let searchTerm = '';
 
+    function safeRecord(record) {
+        const safe = {};
+        for (const key of ['queryDefinitionId', 'name', 'key', 'description', 'queryText', 'targetName', 'targetKey', 'targetId', 'targetDescription',
+            'createdDate', 'modifiedDate', 'targetUpdateTypeId', 'targetUpdateTypeName', 'validatedQueryText', 'categoryId', 'folderLocationText', 'isFrozen', 'versioning']) {
+            const value = record?.[key];
+            if (typeof value === 'string' || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))) safe[key] = value;
+        }
+        const context = record?.sfmcfixContext;
+        if (/^s\d+$/.test(context?.stack || '') && /^\d{1,15}$/.test(context?.mid || '')) {
+            safe.sfmcfixContext = { stack: context.stack, mid: context.mid };
+        }
+        return safe;
+    }
+
     /* ── storage ── */
 
     const isBucket = key => key === STORAGE_KEY || (key.startsWith('SFMCFIX:v2:') && key.endsWith(':' + STORAGE_KEY));
@@ -13,7 +27,7 @@
                 const flat = {};
                 for (const [bucket, records] of Object.entries(result)) {
                     if (!isBucket(bucket)) continue;
-                    for (const [key, record] of Object.entries(records || {})) flat[JSON.stringify([bucket, key])] = record;
+                    for (const [key, record] of Object.entries(records || {})) flat[JSON.stringify([bucket, key])] = safeRecord(record);
                 }
                 resolve(flat);
             });
@@ -21,8 +35,10 @@
     }
     async function removeEntries(keys) {
         const entries = keys.map(value => { const [bucket, key] = JSON.parse(value); return { bucket, key }; });
-        const response = await chrome.runtime.sendMessage({ __sfmcfixStorage: true, action: 'deleteVersions', payload: { entries } });
-        if (!response?.ok) throw new Error(response?.error || 'Eliminazione non riuscita');
+        for (let offset = 0; offset < entries.length; offset += 1000) {
+            const response = await chrome.runtime.sendMessage({ __sfmcfixStorage: true, action: 'deleteVersions', payload: { entries: entries.slice(offset, offset + 1000) } });
+            if (!response?.ok) throw new Error(response?.error || 'Eliminazione non riuscita');
+        }
         allData = await loadData();
     }
 
@@ -49,9 +65,9 @@
     }
 
     function downloadVersion(record) {
-        const name = (record.name || record.queryDefinitionId || 'activity')
+        const name = String(record.name || record.queryDefinitionId || 'activity')
             .toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-        const date = (record.modifiedDate || 'unknown').replace(/[^0-9T]/g, '');
+        const date = String(record.modifiedDate || 'unknown').replace(/[^0-9T]/g, '');
         const blob = new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
         const url = URL.createObjectURL(blob);
@@ -110,7 +126,7 @@
         /* ordina versioni per data (più recente prima) */
         for (const g of Object.values(groups)) {
             g.versions.sort((a, b) =>
-                (b.record.modifiedDate || '').localeCompare(a.record.modifiedDate || ''));
+                String(b.record.modifiedDate || '').localeCompare(String(a.record.modifiedDate || '')));
         }
 
         /* ordina gruppi per nome */

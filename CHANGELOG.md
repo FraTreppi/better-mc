@@ -1,3 +1,12 @@
+# 1.1.11 — 21 ottobre 2026
+
+- Ponte storage limitato ai moduli riconosciuti e a una sola chiave: niente letture globali, cancellazioni generali, scritture arbitrarie o notifiche complete alle pagine. Il worker verifica il mittente Chrome e conserva autorizzazioni per documento e BU; l’accesso ai dati locali richiede una conferma dal content script isolato.
+- Storage locale e di sessione ristretto ai contesti fidati. Rubriche e copie SQL vengono validate e proiettate sul contesto autorizzato; le scritture restano serializzate. Rubriche fino a 1000 tester.
+- Rimosso il proxy fetch generico, il permesso sul dominio degli asset sfmc-content.com e il componente SMS aziendale inattivo. Le pagine interne privilegiate non sono più risorse accessibili ai siti; aggiunta una policy restrittiva per le pagine dell’estensione.
+- Codificati i valori inseriti nelle interfacce, incluso l’oggetto delle anteprime, i nomi delle automation e i metadati Query Studio. Le anteprime usano sandbox, contenuto inerte e policy di rete restrittiva; le immagini esterne richiedono un consenso esplicito per anteprima.
+- Controllo SMS interamente locale, con conteggio GSM/esteso/Unicode; CSV protetti dai prefissi di formula. Limitati i campi dei log e degli snapshot, ripuliti i vecchi snapshot e i modelli URL non più usati, rimossi dump di anteprime/SQL dalla console.
+- Aggiunte Guida utente Markdown/PDF con tutte le funzionalità e relative istruzioni, senza risultati di collaudo, e documentazione dedicata alla sicurezza. Sostituita la vecchia guida per il collaudo.
+
 # 1.1.10 — 21 ottobre 2026
 
 - Il pulsante accanto a Send Test ora si chiama **Tracking Test**.

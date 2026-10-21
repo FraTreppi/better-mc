@@ -16,7 +16,7 @@
             <form novalidate>
                 <h2 id="sfmcfix-tester-title">Tester BU</h2>
                 <p class="sfmcfix-tester-context"></p>
-                <p id="sfmcfix-tester-description">Aggiungi una riga per persona. Puoi salvare dieci tester e anche di più.
+                <p id="sfmcfix-tester-description">Aggiungi una riga per persona. Puoi salvare fino a 1000 tester.
                     I contatti restano in questo profilo browser, separati per BU. Salvarli non invia email.</p>
                 <div class="sfmcfix-tester-table-wrap">
                     <table>
@@ -62,6 +62,7 @@
                 const input = document.createElement('input');
                 input.type = type;
                 input.autocomplete = 'off';
+                input.maxLength = index === 2 ? 254 : 250;
                 input.placeholder = ['Rossi', 'Mario', 'mario@example.com'][index];
                 input.value = values[index] || '';
                 cell.appendChild(input);
@@ -91,6 +92,7 @@
         dialog.querySelector('[data-tester-action="add"]').onclick = () => {
             if (saving) return;
             edited();
+            if (body.rows.length >= 1000) { status.textContent = 'Puoi salvare al massimo 1000 tester per BU.'; return; }
             addRow().querySelector('input').focus();
         };
         close.onclick = () => dialog.close();

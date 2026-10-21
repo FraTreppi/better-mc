@@ -1,4 +1,6 @@
-# SFMC UI Fixer: analisi del codice e guida alla versione Multi BU
+# SFMC UI Fixer — Documentazione tecnica
+
+Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezioni attuali sono descritte in [SICUREZZA.md](SICUREZZA.md). Le sezioni storiche seguenti descrivono anche versioni precedenti; la versione 1.1.11 sostituisce il ponte generico con operazioni limitate al modulo, al documento e alla BU autorizzati.
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
@@ -30,7 +32,7 @@ Script nella pagina
 
 `manifest.json` stabilisce domini, permessi e file iniziali. L'opzione `all_frames: true` consente l'esecuzione anche negli iframe, molto usati da Marketing Cloud. Non significa che tutti gli iframe espongano lo stesso contesto o che siano accessibili senza limiti.
 
-`loader.js` crea la configurazione e inietta `content.js`. Fa da ponte per storage e fetch perché lo script nella pagina non può usare direttamente `chrome.*`. Alcune pagine, compreso il contenitore `/cloud/`, vengono ignorate: il lavoro avviene soprattutto nei frame dei singoli prodotti.
+`loader.js` crea la configurazione e inietta `content.js`. Fa da ponte per lo storage, con operazioni e contesti limitati, perché lo script nella pagina non può usare direttamente `chrome.*`. Alcune pagine, compreso il contenitore `/cloud/`, vengono ignorate: il lavoro avviene soprattutto nei frame dei singoli prodotti.
 
 `content.js` crea l'oggetto globale `window.sfmcfix`, carica CSS/JS/HTML e sceglie il modulo in base all'URL. Installa intercettori jQuery sulle richieste AJAX: i moduli possono osservare risposte, modificare liste restituite o sostituire alcune risposte con dati locali. Le cartelle "Recently used" del selettore DE sono esempi di cartelle virtuali dell'interfaccia: non sono vere cartelle create nel tenant.
 
@@ -135,7 +137,7 @@ Altri limiti riscontrati: il modulo DE non veniva caricato entrando direttamente
 - Gli endpoint di scrittura delle righe usano l'origine corrente e la DE aperta, con un controllo prima dell'inserimento multiplo.
 - I link esistenti verso attività, Journey e Contact Builder usano lo stack corrente. Continuano a dipendere dalla sessione e dalla BU attiva di Salesforce; non effettuano un cambio account automatico.
 - La ricerca gestisce caratteri speciali, cancellazione delle richieste superate ed errori HTTP. L'esportazione CSV gestisce virgolette, separatori e ritorni a capo.
-- Il proxy fetch esegue soltanto GET HTTPS sui domini Marketing Cloud ammessi. Il permesso `tabs` è stato rimosso: aprire la pagina interna non richiede il permesso di leggere le schede.
+- Il proxy fetch generico è stato rimosso nella 1.1.11. Il permesso `tabs` è stato rimosso: aprire la pagina interna non richiede il permesso di leggere le schede.
 - Le anteprime email sono mostrate in un iframe sandbox. L'elenco personale dei tester non viene incluso nel pacchetto.
 
 Questi cambiamenti rendono il codice **configurabile e collaudabile su BU e stack diversi**. Non costituiscono una certificazione di compatibilità con qualsiasi configurazione Salesforce.
@@ -185,7 +187,7 @@ Dopo un errore il documento osserva soltanto per altri 120 secondi, senza naviga
 | Versioni Query Activity | `chrome.storage.local`, per stack/MID | Restano finché eliminate o rimossa l'estensione; esportabili JSON |
 | Dati reali DE e asset | Salesforce | Le funzioni di scrittura modificano il tenant con la sessione dell'utente |
 
-Non ho trovato un backend di telemetria dell'estensione. Le richieste operative vanno a Salesforce e alle risorse locali. Il collegamento SMS a **Messente**, quando cliccato, apre invece un servizio esterno mettendo il testo nel parametro URL: quel testo è quindi inviato al sito. Il pacchetto mantiene questa funzione esplicita dell'originale.
+Non è presente un backend di telemetria dell’estensione. Dalla versione 1.1.11 il controllo SMS è interamente locale e il collegamento a Messente è rimosso. Le anteprime email bloccano le risorse esterne per impostazione predefinita e permettono le immagini HTTPS solo con un comando e una conferma espliciti. Le richieste operative ai dati rimangono sui moduli Salesforce della sessione corrente.
 
 Il `localStorage` non equivale a un archivio protetto o a un backup centralizzato. Disinstallazione, pulizia dei dati browser, profili differenti e limiti di quota possono far perdere i salvataggi. I file JSON esportati possono contenere SQL, nomi di DE e configurazioni interne.
 
@@ -205,7 +207,7 @@ Le verifiche locali del collegamento coprono URL su stack differenti, MID differ
 
 I controlli del router utilizzano il modulo nativo `js/router` fornito per l’analisi, con dipendenze e stato applicativo simulati: verificano che il GUID raggiunga Properties nella UI moderna e ObjectDetails nella UI legacy. Le prove con frame di origini diverse riproducono la normalizzazione del percorso esterno, il caricamento ritardato del modulo e del router, l’annullamento quando si cambia modulo, il rifiuto dei messaggi di conferma di origine errata e il timeout. Le prove nel browser usano pagine simulate. Non eseguono le API Salesforce né certificano l’apertura in una sessione autenticata; il collaudo reale resta necessario.
 
-La rubrica mantiene il formato di archivio precedente: un array di triple Cognome/Nome/Email per stack e MID. L’editor a righe non impone un numero massimo; controlla ogni email, mostra gli errori di salvataggio e chiude senza salvare se cambia contesto. Il limite di cinque riguarda soltanto i suggerimenti visibili della ricerca. Il menu e Test History seguono la presenza del pannello nativo Preview and Test; la visibilità si aggiorna anche durante la navigazione senza ricaricamento.
+La rubrica mantiene il formato di archivio precedente: un array di triple Cognome/Nome/Email per stack e MID. L’editor a righe nella 1.1.11 ammette fino a 1000 tester per BU; controlla ogni email, mostra gli errori di salvataggio e chiude senza salvare se cambia contesto. Il limite di cinque riguarda soltanto i suggerimenti visibili della ricerca. Il menu e Test History seguono la presenza del pannello nativo Preview and Test; la visibilità si aggiorna anche durante la navigazione senza ricaricamento.
 
 Le verifiche nel browser simulato coprono dieci tester aggiunti e salvati dall’editor, recupero dei contatti preesistenti, annullamento, email non valide, errore dello storage, rimozione di una riga, ricerca e selezione del decimo tester, menu con tastiera, assenza di sovrapposizioni con il footer, uscita da Preview and Test e finestra su schermi piccoli. I controlli della rubrica usano uno storage simulato persistente tra i documenti: verificano salvataggio e recupero dopo il ricaricamento, riconferma obbligatoria del MID manuale, annullamento, separazione di due BU, priorità del MID nativo, rifiuto di suggerimenti di stack diverso o malformati e funzionamento quando `sessionStorage` non è disponibile.
 

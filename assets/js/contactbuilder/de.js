@@ -2,32 +2,22 @@
     let $;
 
     const DEHISTORYNAME = 'SFMCFIX---DEHISTORY'
-    const gsmChars = [  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-        'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-        'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-        '!', '#', ' ', '"', '%', '&', '\'', '(', ')', '*', ',', '.', '?',
-        '+', '-', '/', ';', ':', '<', '=', '>', '¡', '¿', '_', '@',
-        '$', '£', '¥', '¤',
-        'è', 'é', 'ù', 'ì', 'ò', 'Ç', 'Ø', 'ø', 'Æ', 'æ', 'ß', 'É', 'Å',
-        'å', 'Ä', 'Ö', 'Ñ', 'Ü', '§', 'ä', 'ö', 'ñ', 'ü', 'à',
-        'Δ','Φ','Ξ','Γ','Ω','Π','Ψ','Σ','Θ','Λ','€'];
-
-    window.sfmcfix.checkBody = function(body) {
-        body = String(body ?? "");
-        var charCount = body.length;
-        var segmentCount = null;
-        let bodyCharSet = new Set(body.split(""));
-        let bodyCharArray = Array.from(bodyCharSet);
-        var notGsm = ((bodyCharArray.filter(e => !gsmChars.includes(e)).length > 0));
-        if(notGsm){
-            segmentCount = Math.ceil(charCount / 67);
-        }else {
-            segmentCount = Math.ceil(charCount / 153);
-        }
-        return { charCount, notGsm, segmentCount }
-    }
+    const gsmBasic = new Set(Array.from('@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà'));
+    const gsmExtended = new Set(Array.from('\f^{}\\[~]|€'));
+    window.sfmcfix.checkBody = function (body) {
+        body = String(body ?? '');
+        const characters = Array.from(body);
+        const notGsm = characters.some(char => !gsmBasic.has(char) && !gsmExtended.has(char));
+        const units = notGsm ? body.length : characters.reduce((sum, char) => sum + (gsmExtended.has(char) ? 2 : 1), 0);
+        const single = notGsm ? 70 : 160;
+        const multiple = notGsm ? 67 : 153;
+        const segmentCount = units === 0 ? 0 : units <= single ? 1 : Math.ceil(units / multiple);
+        return { charCount: characters.length, notGsm, units, segmentCount, encoding: notGsm ? 'Unicode' : 'GSM-7' };
+    };
+    window.sfmcfix.showSmsInfo = function (message) {
+        const result = sfmcfix.checkBody(message);
+        alert(`Analisi SMS locale\nCaratteri: ${result.charCount}\nCodifica: ${result.encoding}\nUnità: ${result.units}\nSegmenti stimati: ${result.segmentCount}\n\nIl testo resta in questa pagina. Il conteggio effettivo dipende dal servizio di invio e dalle personalizzazioni.`);
+    };
 
     window.sfmcfix.isUrlValid = function(userInput) {
         var res = userInput.match(/(https:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g);
@@ -51,8 +41,7 @@
         if(!message || $(this).is('input') || $(this).find('.testgsm').length) return;
         let $button = $('<button class="btn btn-primary testgsm"></button>');
         $button.on('click', function() {
-            let url = `https://messente.com/sms-length-calculator?message=${encodeURIComponent(message.replace(/%%cod_sms%% */gi,''))}`;
-            window.open(url, '_blank', 'noopener,noreferrer');
+            sfmcfix.showSmsInfo(message);
         });
         $(this).append($button);
     }
@@ -103,13 +92,15 @@
                     <ul></ul></div>`);
                 $cat.before($historyspace);
             }
-            const dejson = JSON.parse(dehistoryJsonString);
+            const dejson = JSON.parse(dehistoryJsonString).filter(item => Array.isArray(item) &&
+                /^#admin\/data-extension\/[0-9a-f-]{36}\/properties\/$/i.test(item[0]) &&
+                /^#admin\/data-extension\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/properties\/$/i.test(item[0]));
             if(dejson.length > 0) {
                 $historyspace.removeClass('hide');
                 //<button class="btn btn-link remove-de-history-item" data-timestemp="${item[2]}"><i></i></button>*/}
                 $historyspace.find('ul').html(() => dejson.reverse().map((item) => `<li>
-                ${item[3] && `<button data-action="navigate-to-folder" data-categoryid="${item[3]}" class="btn btn-link"><span class="glyphicon icon-folder glyphicon-folder-close"></span></button>` || ''}
-                <a href="${item[0]}">${sfmcfix.escapeHtml(item[1])}</a></li>`).join(''));
+                ${item[3] && `<button data-action="navigate-to-folder" data-categoryid="${sfmcfix.escapeHtml(item[3])}" class="btn btn-link"><span class="glyphicon icon-folder glyphicon-folder-close"></span></button>` || ''}
+                <a href="${sfmcfix.escapeHtml(item[0])}">${sfmcfix.escapeHtml(item[1])}</a></li>`).join(''));
             } else {
                 $historyspace.addClass('hide');
             }
@@ -245,6 +236,7 @@
         const $table = $('.repeater-list-wrapper table',$container);
     
         const afterInit = function() {
+            $wrapper.data('sfmcfixScope', sfmcfix.context.current().scope);
             const $tableClone = $table.clone();
             ['data-preserve','aria-readonly'].map((attr) => $tableClone.removeAttr(attr));
             $tableClone.find('tbody tr:not(.new-record)').remove();
@@ -405,7 +397,12 @@
 
     var exportRexcordsAsCsv = function() {
         if(currentDEData?.records?.length) {
-            const csv = value => `"${String(value ?? '').replaceAll('"', '""')}"`;
+            const csv = value => {
+                let text = String(value ?? '');
+                // Quoting alone does not prevent spreadsheet formula execution.
+                if (/^[\s\u0000-\u001f]*[=+@-]/.test(text)) text = "'" + text;
+                return `"${text.replaceAll('"', '""')}"`;
+            };
             let headline = Object.keys(currentDEData?.records[0]).map((field) => {
                 const ff = currentDEData?.fields?.find((f) => f.name.toLowerCase() === field.toLowerCase());
                 return csv(ff?.name || field);
@@ -443,11 +440,14 @@
     }
 
     var recordsobserver;
+    let recordsScope;
 
     var hashChange = function() {
         if (!$) return;
         const routeId = location.hash.match(/#admin\/data-extension\/([^/]+)/)?.[1];
-        if (window.currentDEData?.id !== routeId) window.currentDEData = { records: [], fields: [], fieldCount: 0 };
+        const scope = sfmcfix.context.current().scope;
+        if (recordsScope !== scope || window.currentDEData?.id !== routeId) window.currentDEData = { records: [], fields: [], fieldCount: 0 };
+        recordsScope = scope;
 
 
         $(document).off('focus','.editableInput.form-control:not(.wrapped)', focusListener);

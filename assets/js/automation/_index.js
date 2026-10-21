@@ -92,32 +92,10 @@
     }
 
     ActivityInstance.prototype.getVersions = async function() {
+        if (!sfmcfix.context.current().persistent) return [];
         const activities = await sfmcfix.storage.getItem(sfmcfix.context.scopedKey(VERSIONING_STORAGEID))||{};
         return Object.values(activities).filter((act) => act.queryDefinitionId === this.id);
     }
-
-    /* activity data example
-    {
-    "queryDefinitionId": "bfe2c53e-2f28-4f85-a75f-f4ea037d53ae",
-    "name": "PersonalizationDriversMoreHouseholdIDs",
-    "key": "BFE2C53E-2F28-4F85-A75F-F4EA037D53AE",
-    "description": "",
-    "queryText": "SELECT \n    contract, userExternalID,household\n    \nFROM [Personalization_Driver_From_CDP]\nWHERE JSON_QUERY(household,'$[2]') IS NOT NULL",
-    "targetName": "PersonalizationDriversMoreHouseholdIDs",
-    "targetKey": "70277BA2-0574-4B20-8010-7B0A3CA49917",
-    "targetId": "467d269c-3b5f-f111-a5bd-48df37d1dad7",
-    "targetDescription": "",
-    "createdDate": "2026-06-03T12:12:32Z",
-    "modifiedDate": "2026-06-03T12:12:32Z",
-    "targetUpdateTypeId": 0,
-    "targetUpdateTypeName": "Overwrite",
-    "validatedQueryText": "SET NOCOUNT ON; SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;\r\n\r\nINSERT INTO C7310821.[PersonalizationDriversMoreHouseholdIDs] ([userExternalID], [household], [contract])\r\nSELECT querydef.[userExternalID], querydef.[household], querydef.[contract]\r\nFROM (SELECT  contract, userExternalID,household  FROM C7310821.[Personalization_Driver_From_CDP] WHERE JSON_QUERY(household,N'$[2]') IS NOT NULL) AS querydef \r\nSELECT @rcInsert = @@ROWCOUNT;;\r\n",
-    "categoryId": 1455,
-    "folderLocationText": "Query",
-    "parentCategoryId": [],
-    "isFrozen": false
-    }
-    */
 
     window.debounce = (callback, wait) => {
         let timeoutId = null;
@@ -137,7 +115,7 @@
             $lastView = $(`<div class="automation-view-history"><header><h2>Last Viewed Automations</h2><button class="bth btn-secondary" id="clear-automation-history">Clear</button></header><section><ul></ul></section></div>`);
         }
 
-        $lastView.find('ul').html(`${aHistory?.filter((item) => !!item.name).reverse().map((item) => `<li><a href="#Instance/${item.id}">${item.name}</a></li>`).join('') || '<li>--</li>'}`);
+        $lastView.find('ul').html(`${aHistory?.filter((item) => !!item.name).reverse().map((item) => `<li><a href="#Instance/${encodeURIComponent(item.id)}">${sfmcfix.escapeHtml(item.name)}</a></li>`).join('') || '<li>--</li>'}`);
 
         $('#AutomationFolderTreeContainer .panel-body').prepend($lastView);
     }
@@ -207,7 +185,7 @@
 
             $buttonVersioning.on('click', () => {
                 var a = document.createElement("a");
-                var file = new Blob([JSON.stringify(currentact.data)], {type: 'application/json'});
+                var file = new Blob([JSON.stringify(sfmcfix.activitySnapshot(currentact.data))], {type: 'application/json'});
                 a.href = URL.createObjectURL(file);
                 a.download = filename(`activity-${currentact.data.name}_${currentact.data.versioning}.json`);
                 a.click();
@@ -237,12 +215,16 @@
                 if (activityScope !== sfmcfix.context.current().scope) return;
                 $(".mcefix-activity-toolbar").remove();
                 $wrapper.insertAfter('#summaryQueryEditor');
-                currentact.data?.targetId && $('.summaryPane .summary--dataExtension').html(`<a class="btn btn-link" target="_blank" rel="noopener noreferrer" href="${sfmcfix.links.contactBuilder(currentact.data.targetId)}">${currentact.data.targetName}</a>`)
+                if (currentact.data?.targetId) {
+                    const link = $('<a class="btn btn-link" target="_blank" rel="noopener noreferrer"></a>');
+                    link.attr('href', sfmcfix.links.contactBuilder(currentact.data.targetId)).text(currentact.data.targetName || 'Data Extension');
+                    $('.summaryPane .summary--dataExtension').empty().append(link);
+                }
 
                 $('.editProperties, button.editTargetDe, button.editQuery').off('click.sfmcfixVersion').on('click.sfmcfixVersion', function(e) {
                     if (activityScope !== sfmcfix.context.current().scope) return;
                     if (currentact.data && sfmcfix.context.current().persistent) {
-                        const record = { ...currentact.data, sfmcfixContext: sfmcfix.context.current() };
+                        const record = { ...sfmcfix.activitySnapshot(currentact.data), sfmcfixContext: sfmcfix.context.current() };
                         sfmcfix.storage.mergeItem(sfmcfix.context.scopedKey(VERSIONING_STORAGEID), {
                             [btoa(currentact.data.versioning)]: record
                         }).then(() => {
@@ -253,8 +235,7 @@
                     }
                 });
 
-                const versions = await currentact.getVersions();
-                console.log(`SFMC fixer --- versioni [${currentact.id}]: `,versions);
+
 
             },1000);
         }
@@ -290,7 +271,7 @@
                 _data.steps?.forEach(step => {
                     step.activities?.forEach(activity => {
                         if(activity.name == title && !$dropdownlist.find('.btn-to-activity-page').length) {
-                            $dropdownlist.append(`<li><a target="_blank" href="${sfmcfix.links.activity(activity.objectTypeId, activity.activityObjectId)}" class="action-item btn-to-activity-page"><strong>View</strong> <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a></li>`)
+                            $dropdownlist.append(`<li><a target="_blank" rel="noopener noreferrer" href="${sfmcfix.links.activity(activity.objectTypeId, activity.activityObjectId)}" class="action-item btn-to-activity-page"><strong>View</strong> <span class="glyphicon glyphicon-new-window" aria-hidden="true"></span></a></li>`)
                         }
                     });
                 });

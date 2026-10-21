@@ -47,11 +47,11 @@
             name = query.name || query.id;
                 break;
         }
-        return `<li class="item--${key}" data-id="${query.id}">
+        return `<li class="item--${sfmcfix.escapeHtml(key)}" data-id="${sfmcfix.escapeHtml(query.id)}">
             <p>${sfmcfix.escapeHtml(name)}</p><pre>${sfmcfix.escapeHtml(decodeQuery(query.query).substring(0,100))}</pre>
             ${key.id !== 'last' && `<div class="on-hover">
-                <button data-action="remove-stash" data-key="${key}" class="slds-button slds-button_neutral">REMOVE</button>
-                <button data-action="unstash" data-key="${key}" class="slds-button slds-button_brand">SHOW EDITOR</button>
+                <button data-action="remove-stash" data-key="${sfmcfix.escapeHtml(key)}" class="slds-button slds-button_neutral">REMOVE</button>
+                <button data-action="unstash" data-key="${sfmcfix.escapeHtml(key)}" class="slds-button slds-button_brand">SHOW EDITOR</button>
             </div>` || ''}
         </li>`
     }
@@ -232,7 +232,7 @@
             window.addFieldsToObjectExplorer = function(dekey,dename) {
                 $.ajax({
                     type: "GET",
-                    url: "/dataextension/" + dekey + "/fields",
+                    url: "/dataextension/" + encodeURIComponent(dekey) + "/fields",
                     contentType:  "text/xml",
                     success: function(data) {
                         var pks = [];
@@ -246,22 +246,22 @@
                             pks.push(i.Name?.[0]);
                         }
                         if (i.FieldType[0]=== 'Text'){
-                                return `<li class="oe-field ${required}" title="${i.Name?.[0]} - ${i.FieldType?.[0]} (${i.MaxLength?.[0]||'none'})">${i.Name?.[0]} - ${i.FieldType?.[0]} (${i.MaxLength?.[0]||'none'}) </li>`
+                                return `<li class="oe-field ${required}" title="${sfmcfix.escapeHtml(i.Name?.[0])} - ${sfmcfix.escapeHtml(i.FieldType?.[0])} (${sfmcfix.escapeHtml(i.MaxLength?.[0]||'none')})">${sfmcfix.escapeHtml(i.Name?.[0])} - ${sfmcfix.escapeHtml(i.FieldType?.[0])} (${sfmcfix.escapeHtml(i.MaxLength?.[0]||'none')}) </li>`
                             } else if  (i.FieldType[0]=== 'Number') {
-                                return `<li class="oe-field ${required}"  title="${i.Name?.[0]} - ${i.FieldType?.[0]}">${i.Name?.[0]} - ${i.FieldType?.[0]}</li>`
+                                return `<li class="oe-field ${required}"  title="${sfmcfix.escapeHtml(i.Name?.[0])} - ${sfmcfix.escapeHtml(i.FieldType?.[0])}">${sfmcfix.escapeHtml(i.Name?.[0])} - ${sfmcfix.escapeHtml(i.FieldType?.[0])}</li>`
                             } else {
-                                return `<li class="oe-field ${required}"  title="${i.Name?.[0]} - ${i.FieldType?.[0]}">${i.Name?.[0]} - ${i.FieldType?.[0]}</li>`
+                                return `<li class="oe-field ${required}"  title="${sfmcfix.escapeHtml(i.Name?.[0])} - ${sfmcfix.escapeHtml(i.FieldType?.[0])}">${sfmcfix.escapeHtml(i.Name?.[0])} - ${sfmcfix.escapeHtml(i.FieldType?.[0])}</li>`
                             }
                         })
                     var li_html = lis.join('')
-                    var card = `<article data-key="${dekey}" class='slds-card oe-table-card'><div class='slds-card__header'>
+                    var card = `<article data-key="${sfmcfix.escapeHtml(dekey)}" class='slds-card oe-table-card'><div class='slds-card__header'>
                             <svg class="remove-card slds-button__icon_left" aria-hidden='true'><use xlink:href="/pub/icons/utility-sprite/svg/symbols.svg#close"></use></svg>
                             <button data-content="${sfmcfix.escapeHtml(fiels.join(',\n'))}" class="slds-button slds-button_neutral btn-copy"><svg class="slds-button__icon slds-button__icon_left" aria-hidden="true"><use xlink:href="/pub/icons/utility-sprite/svg/symbols.svg#copy"></use></svg>SQL</button>
                             <button data-content="${sfmcfix.escapeHtml(pks.join(',\n'))}" class="slds-button slds-button_neutral btn-copy" data-action="pks">Required</button>
-                            <h3 class='slds-card__header-title'>${dename}</h3>
+                            <h3 class='slds-card__header-title'>${sfmcfix.escapeHtml(dename)}</h3>
                         </div>`
                     card += `<div class='slds-card__body slds-card__body_inner'>
-                        <textarea style="position:absolute; width:0; height:0; z-index:-1;' readonly style="display:none"></textarea>
+                        <textarea readonly style="position:absolute;width:0;height:0;z-index:-1"></textarea>
                         <ul style="list-style-type:none;">${li_html}</ul></div>
                         </article>`
                     $('.object-explorer').append(card)
