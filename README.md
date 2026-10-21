@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.0
+# SFMC UI Fixer — Multi BU 1.1.1
 
 **Autore della versione Multi BU: Francesco Trepiccioni.**
 
@@ -57,7 +57,7 @@ Sono accettati solo URL HTTPS dei domini Marketing Cloud previsti. Non incollare
 
 **Non viene proposto un percorso Email Studio predefinito inventato:** l'URL effettivo non era presente nei sorgenti e non è stato possibile verificarlo in una sessione autenticata. Configurazione e prova sul tenant sono necessarie prima di considerare questa funzione operativa.
 
-Se l’indirizzo resta su `#app/Email/C12/Default.aspx?entityType=none&entityID=0` anche aprendo una DE, quel link non identifica il dettaglio. Per raccogliere i percorsi interni: apri la DE in Email Studio, clicca l’icona dell’estensione, scegli **Diagnostica Email Studio**, seleziona la scheda e premi **Raccogli diagnostica**. Controlla l’anteprima e usa **Scarica rapporto** per condividerlo con chi sviluppa il collegamento. Dopo un aggiornamento dell’estensione occorre ricaricare anche la pagina Email Studio prima della raccolta. Il rapporto non contiene i record o le risposte API e non viene inviato automaticamente; può contenere stack e identificativi tecnici. La diagnostica non implementa ancora la navigazione automatica tra le DE.
+Se l’indirizzo resta su `#app/Email/C12/Default.aspx?entityType=none&entityID=0` anche aprendo una DE, quel link non identifica il dettaglio. Per raccogliere i percorsi interni: ricarica Email Studio e apri la DE, clicca l’icona dell’estensione, scegli **Diagnostica Email Studio**, seleziona la scheda e premi **Raccogli diagnostica**. Nella diagnostica v2 attendi anche l’analisi delle stringhe di navigazione dei bundle JavaScript nativi già caricati. Controlla l’anteprima e usa **Scarica rapporto** per condividerlo con chi sviluppa il collegamento. Dopo un aggiornamento dell’estensione occorre ricaricare anche la pagina Email Studio prima della raccolta. Il rapporto non contiene i record o le risposte API e non viene inviato automaticamente; può contenere stack e identificativi tecnici. La diagnostica non implementa ancora la navigazione automatica tra le DE.
 
 ## Cosa include
 

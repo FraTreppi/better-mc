@@ -1,5 +1,6 @@
-# Modifiche non rilasciate
+# 1.1.1 — 21 ottobre 2026
 
+- Diagnostica Email Studio v2: raccolta delle stringhe di navigazione nei tre bundle nativi già caricati, memoria delle richieste recenti anche dopo il riempimento del buffer del browser, attesa dei frame con analisi in corso e indicazione dei risultati incompleti. Nessuna lettura dei record o delle risposte API, nessun nuovo permesso.
 - Aggiunta diagnostica di sola lettura per il collegamento Contact Builder → Email Studio: raccolta esplicita dei percorsi dei frame e delle richieste, parametri filtrati, anteprima ed esportazione JSON senza invio automatico. Nessun nuovo permesso richiesto. L’apertura automatica del dettaglio resta da implementare dopo la verifica del percorso nativo.
 - Journey Builder: barra di configurazione raccolta in un menu inizialmente chiuso in alto a destra, anche nei frame delle attività, per lasciare liberi Done/Cancel e zoom. Chiusura con clic esterno o Esc.
 
