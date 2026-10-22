@@ -7,6 +7,15 @@
     font-size: .5rem;
 }
 
+.sfmcfix-run-log-refresh {
+    display: inline-block;
+    margin-left: 8px;
+    vertical-align: middle;
+    white-space: nowrap;
+    font-size: 11px;
+    padding: 2px 7px;
+}
+
 /* overrides */
 
 body #workflowPane .codeBlock .codeBlock-wrapper .activityInfoContainer .activityNameIcon .activityIcon {

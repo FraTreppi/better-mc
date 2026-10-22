@@ -284,6 +284,7 @@
         
         $ = window.jQuery;
         sfmcfix.initAjaxHanlders($);
+        sfmcfix.addJs('automation/run-log-refresh');
         window.addEventListener('sfmcfix:contextchange', () => {
             for (const cache of [automations, activities, additionalData]) Object.keys(cache).forEach(key => delete cache[key]);
             $('.mcefix-activity-toolbar, .automation-view-history').remove();

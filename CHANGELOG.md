@@ -1,3 +1,10 @@
+# 1.1.17 — 22 ottobre 2026
+
+- Aggiunto Auto refresh 5s ON/OFF nella barra del Run Log in Automation Studio, accanto alle date. Aziona il refresh nativo ogni cinque secondi senza ricaricare la scheda.
+- Riconoscimento del pulsante FuelUX refresh fornito dall’utente, limitato al Run Log con due date e comando univoco. Le richieste native jQuery già osservate e i comandi disabilitati sospendono i nuovi clic; il cambio automation o BU disattiva l’automatismo.
+- Stato conservato durante la ricostruzione della barra e sospensione mentre il Run Log è nascosto. Nessun nuovo permesso, endpoint o dato persistente.
+- Aggiunta verifica browser con timer controllato, richieste lente, sostituzione della barra, cambio automation/BU e comandi ambigui. Guida utente Markdown e PDF aggiornata con le istruzioni della funzione.
+
 # 1.1.16 — 22 ottobre 2026
 
 - Corretta la lettura della rubrica DE quando Salesforce restituisce i campi Email/Nome/Cognome in minuscolo o con maiuscole diverse dai nomi dichiarati nello schema. Gestiti anche i record suddivisi in keys/values.

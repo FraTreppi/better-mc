@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.16 · Autore: Francesco Trepiccioni
+Versione 1.1.17 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -194,6 +194,19 @@ Per il campo `mediaURL`, quando presente, viene evidenziato un formato URL sospe
 
 ## Automation Studio
 
+### Aggiornamento automatico del Run Log
+
+Nella scheda **Activity** dell’automation, accanto alle due date del **Run Log**, trovi **Auto refresh 5s: OFF**.
+
+- Clicca il pulsante: passa a **ON** e il primo aggiornamento parte dopo cinque secondi. Seguono aggiornamenti ogni cinque secondi.
+- Cliccalo di nuovo: torna a **OFF** e interrompe gli aggiornamenti automatici. Una richiesta già partita può completarsi.
+- Viene azionato lo stesso pulsante refresh nativo sulla destra, mantenendo date e filtro di stato selezionati. La scheda Chrome non viene ricaricata.
+- Se il comando nativo è disabilitato o una richiesta di refresh osservata è ancora in corso, quel giro viene saltato.
+
+Il pulsante rimane attivo anche se Salesforce ricostruisce il Run Log dopo un aggiornamento. Quando il Run Log non è visibile, i clic automatici sono sospesi; tornando al Run Log della stessa automation riprendono. Aprendo un’altra automation, cambiando BU, chiudendo o ricaricando la scheda, l’automatismo si disattiva: va riacceso con un clic.
+
+Il pulsante compare solo se vengono riconosciuti il Run Log, le due date e un unico comando refresh. L’estensione non avvia l’automation e non aziona Run Once, Save o altri comandi.
+
 ### Automation recenti e collegamenti
 
 **Last Viewed Automations** mostra fino a dieci automation visitate. Clicca il nome per riaprirne una; **Clear** cancella solo la lista locale.
@@ -289,7 +302,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **chrome://extensions** mostri la versione **1.1.16**.
+1. Controlla che la scheda su **chrome://extensions** mostri la versione **1.1.17**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

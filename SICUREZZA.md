@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.16 · 22 ottobre 2026
+Versione 1.1.17 · 22 ottobre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -31,6 +31,10 @@ Le richieste operative delle funzioni attive usano gli endpoint Salesforce del m
 Il dominio `*.sfmc-content.com` è stato eliminato dai permessi. I pattern Salesforce rimasti devono coprire stack diversi, ma il loader applica anche i controlli su host e percorsi dei moduli. Query Studio resta un’applicazione sul dominio separato `querystudio.herokuapp.com`, necessario per la relativa integrazione.
 
 Non è presente un backend di telemetria dell’estensione. Le immagini esterne di un’email sono un’eccezione esplicita: possono essere caricate solo con il comando e la conferma descritti nella guida.
+
+## Aggiornamento del Run Log
+
+L’automatismo è disattivato all’apertura e aziona ogni cinque secondi soltanto l’unico refresh riconosciuto nel Run Log accanto alle due date. Usa la gestione nativa di Salesforce, senza introdurre endpoint, permessi o salvataggi aggiuntivi. Non aziona Run Once, Save o Delete. Si sospende quando il Run Log non è visibile e si disattiva cambiando automation o contesto BU. Le richieste jQuery avviate dal clic riconosciuto vengono osservate soltanto per attenderne il completamento, senza leggerne le risposte o modificarle. Il riconoscimento dipende dal DOM dell’interfaccia nativa.
 
 ## Rubrica DE condivisa
 

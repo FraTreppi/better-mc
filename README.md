@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.16
+# SFMC UI Fixer — Multi BU 1.1.17
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -18,7 +18,7 @@ Per aggiornare, sostituisci i file nella stessa cartella e premi **Ricarica** su
 | --- | --- |
 | Contact Builder | Ricerca avanzata DE, visite recenti, prima/ultima pagina, CLONE, MULTI ROWS, CSV completo della DE con avanzamento e annullamento, analisi SMS locale, collegamento alla stessa DE in Email Studio. |
 | Preview and Test | Rubrica locale o DE condivisa tester_content_builder, fino a 1000 tester per BU, suggerimenti destinatari, Test History locale e nuove anteprime, cartelle virtuali delle DE recenti, Tracking Test. |
-| Automation Studio | Automation recenti, collegamenti alle attività e alla DE target, copia SQL, vista SQL validato, download JSON, copie locali prima della modifica. |
+| Automation Studio | Refresh automatico del Run Log ogni 5 secondi con pulsante ON/OFF, automation recenti, collegamenti alle attività e alla DE target, copia SQL, vista SQL validato, download JSON, copie locali prima della modifica. |
 | Query Studio | Bozze, recupero dell’editor, elenco query, copia campi e campi obbligatori, pannelli comprimibili. |
 | Journey Builder | Collegamento ai Journey referenziati e alla DE dell’entry quando identificabile. |
 | Pagina dell’estensione | Visibilità delle icone, consultazione ed esportazione delle versioni SQL, eliminazione delle copie locali, diagnostica Email Studio. |
@@ -31,7 +31,7 @@ Crea in ogni BU **Data Extensions → SFMC_UI_Fixer → tester_content_builder**
 
 ## Sicurezza e dati
 
-La versione 1.1.16 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. Rifiutare non disabilita le altre funzioni.
+La versione 1.1.17 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. Le anteprime bloccano script, navigazione e risorse esterne; le immagini HTTPS richiedono un comando e una conferma espliciti. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
