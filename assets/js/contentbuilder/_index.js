@@ -12,7 +12,7 @@
     }
 
     const init = function() {
-        sfmcfix.addJs('contentbuilder/previewandtest');
+        sfmcfix.addJs('contentbuilder/tester-source', () => sfmcfix.addJs('contentbuilder/previewandtest'));
         sfmcfix.addCss('contentbuilder/previewandtest');
         sfmcfix.initAjaxHanlders(window.jQuery);
     }

@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.11 · Autore: Francesco Trepiccioni
+Versione 1.1.12 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -44,18 +44,45 @@ La scelta riguarda questo profilo browser e non cancella rubrica o cronologie. I
 
 ## Rubrica Tester BU
 
-La rubrica conserva i destinatari di prova nel profilo del browser, separati per stack e MID. Puoi salvare una decina di tester o molti di più, fino a **1000 per BU**, nei limiti dello spazio disponibile.
+In **Preview and Test → Impostazioni SFMC → Tester BU**, scegli la **Sorgente dei destinatari**. Ogni BU può usare la rubrica locale del browser oppure una DE condivisa. La scelta è separata per stack e MID e non cambia la BU selezionata in Salesforce.
 
-1. In Preview and Test apri **Impostazioni SFMC → Tester BU**.
-2. Compila una riga con **Cognome**, **Nome** ed **Email**. Nome e cognome sono facoltativi; l’email deve essere valida.
-3. Premi **+ Aggiungi tester** per aggiungere altre persone.
-4. Premi **Salva tester** e attendi il messaggio che indica quanti contatti sono stati salvati.
+### Rubrica condivisa con Data Extension
 
-Per modificare un contatto, riapri la rubrica, correggi la riga e salva. Per eliminarlo, premi **×** sulla riga e poi salva. **Annulla** ed Escape chiudono senza salvare le modifiche. Se cambia il contesto BU, l’editor si chiude per evitare di salvare nella BU sbagliata.
+Predisponi questa struttura in **ciascuna BU** dove vuoi usare i tester. Non servono GUID o ID di cartelle uguali tra clienti.
 
-Nel campo **type a name...** dei destinatari di prova, digita almeno **tre caratteri** di nome, cognome o email. Compaiono fino a cinque suggerimenti alla volta. Selezionandone uno, l’indirizzo viene aggiunto ai destinatari nativi di Salesforce.
+1. Nella radice locale **Data Extensions**, crea la cartella **SFMC_UI_Fixer**. Non usare Shared Data Extensions o una cartella annidata con lo stesso nome.
+2. Dentro la cartella crea una DE standard con **Nome** ed **External Key** entrambi uguali a **tester_content_builder**. La DE può essere non sendable: serve da rubrica dei destinatari di prova.
+3. Crea questi campi, rispettando esattamente maiuscole e minuscole:
 
-Salvare la rubrica non invia email e non crea record nelle DE. Per inviare rimane necessario il comando nativo **Send Test**. I tester già salvati ricompaiono usando lo stesso profilo, stack e MID e autorizzando l’accesso locale.
+| Campo | Configurazione |
+| --- | --- |
+| Nome | Text, lunghezza 100, Nullable. |
+| Cognome | Text, lunghezza 100, Nullable. |
+| Email | EmailAddress, lunghezza 254, Primary Key, obbligatorio. |
+
+4. Aggiungi i contatti dai **Records** della DE oppure importali. Nel pacchetto trovi **esempi/tester_content_builder.csv** con una riga dimostrativa: sostituiscila con i tuoi contatti reali prima dell’importazione.
+5. In **Tester BU**, scegli **Data Extension condivisa: tester_content_builder**. L’estensione verifica nome, External Key, percorso e campi e indica quanti tester ha letto.
+6. Premi **Salva sorgente**. La scelta resta in questo profilo Chrome per quella BU; ogni collega la imposta nel proprio browser.
+
+Nel campo **type a name...** dei destinatari di prova, digita almeno **tre caratteri** di nome, cognome o email. Compaiono fino a cinque suggerimenti alla volta, con nome e indirizzo. Un clic inserisce l’email nei destinatari nativi di Salesforce. I campi Nome e Cognome servono alla ricerca: non sostituiscono la DE e la riga usate da Salesforce per la personalizzazione della preview.
+
+Per aggiungere, modificare o rimuovere tester condivisi, modifica i record in Salesforce. I colleghi con i permessi necessari sulla stessa DE vedono gli aggiornamenti alla successiva lettura. I contatti vengono conservati **solo in memoria per cinque minuti**; riapri **Tester BU → Verifica e carica DE** per rileggerli subito. L’estensione non crea la cartella o la DE e non scrive né cancella i suoi record.
+
+La rubrica ammette fino a **1000 righe**. Le email non valide vengono escluse e segnalate nel conteggio; gli indirizzi duplicati compaiono una volta sola. Una DE vuota è valida. Se DE, percorso o schema non corrispondono, i permessi mancano o la lettura supera il limite, compare un messaggio e non viene usata una lista parziale né la rubrica locale in sostituzione. La ricerca usa la sessione della BU attiva; confermare un MID non cambia cliente. Un cambio contesto svuota i suggerimenti e interrompe le letture in corso.
+
+### Rubrica locale del browser
+
+Seleziona **Rubrica locale di questo browser** per mantenere i tester nell’archivio dell’estensione. Puoi salvare una decina di contatti o molti di più, fino a **1000 per BU**, nei limiti dello spazio disponibile.
+
+1. Compila una riga con **Cognome**, **Nome** ed **Email**. Nome e cognome sono facoltativi; l’email deve essere valida.
+2. Premi **+ Aggiungi tester** per aggiungere altre persone.
+3. Premi **Salva tester** e attendi il messaggio che indica quanti contatti sono stati salvati.
+
+Per modificare un contatto, correggi la riga e salva. Per eliminarlo, premi **×** sulla riga e poi salva. **Annulla** ed Escape chiudono senza salvare. Un cambio BU chiude l’editor. I tester salvati ricompaiono usando lo stesso profilo, stack e MID e autorizzando l’accesso locale.
+
+Passare alla sorgente DE **conserva la rubrica locale già salvata**: puoi riattivarla scegliendo la relativa sorgente e premendo Salva tester. Le due rubriche non vengono unite automaticamente.
+
+Salvare una rubrica, scegliere la sorgente o selezionare un tester **non invia email**. Per inviare rimane necessario il comando nativo **Send Test**.
 
 ## Test History e anteprime email
 
@@ -249,12 +276,13 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 | Dati | Dove si trovano |
 | --- | --- |
-| Rubrica tester e copie SQL delle Query Activity | Archivio locale dell’estensione nel profilo Chrome, organizzato per stack e MID. |
+| Rubrica locale, scelta della sorgente tester e copie SQL delle Query Activity | Archivio locale dell’estensione nel profilo Chrome, organizzato per stack e MID. |
+| Rubrica DE condivisa | Record in Salesforce; copia temporanea in memoria nella scheda, per cinque minuti. |
 | DE recenti, automation recenti, Test History e bozze Query Studio | Dati locali del sito/modulo nel profilo browser; temporanei se manca un contesto completo. |
 | Scelta di mostrare le due icone | Impostazione generale dell’estensione per quel profilo. |
 | Record modificati o inseriti nelle DE | Salesforce, dopo il salvataggio reale. |
 | CSV, versioni esportate e diagnostica scaricata | File nella posizione scelta per i download. |
 
-I salvataggi non si sincronizzano automaticamente con altri browser o colleghi. Il rinnovo di una conferma non cancella i dati già presenti. Un profilo nuovo, la disinstallazione, la pulizia dei dati del browser o il raggiungimento delle quote possono renderli indisponibili.
+I salvataggi locali non si sincronizzano automaticamente con altri browser o colleghi. La rubrica DE è invece condivisa tramite Salesforce con chi può leggere quella DE; i destinatari utilizzati possono comparire anche nel Test History locale. Il rinnovo di una conferma non cancella i dati già presenti. Un profilo nuovo, la disinstallazione, la pulizia dei dati del browser o il raggiungimento delle quote possono renderli indisponibili.
 
 Per rimuovere dati usa **Clear** nelle liste recenti, **REMOVE** nelle bozze, la rimozione delle righe nella rubrica seguita da **Salva tester**, oppure i cestini nell’archivio SQL. La cancellazione dei dati locali di un sito può rimuovere anche preferenze del sito stesso. I dati locali non hanno una cifratura propria dell’estensione: la protezione del computer e del profilo browser resta necessaria.

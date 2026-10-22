@@ -1,3 +1,10 @@
+# 1.1.12 — 22 ottobre 2026
+
+- Corretto il rifiuto “Documento non autorizzato” causato dal controllo che accettava solo identificativi documento con trattini. Sono accettati gli identificativi Chrome di 32 cifre esadecimali, mantenendo controllo del mittente, documento, modulo, stack e BU.
+- Aggiunta sorgente tester DE condivisa: Data Extensions → SFMC_UI_Fixer → tester_content_builder, con Nome ed External Key esatti e campi Nome, Cognome ed Email. Scelta salvata per BU; rubrica locale precedente conservata come alternativa esplicita.
+- Letture GET sulla stessa origine, controllo percorso e schema, paginazione fino a 1000 righe, cache in memoria di cinque minuti e aggiornamento manuale. Nessuna creazione o modifica dei record. Errori visibili, nessun ripiego silenzioso sulla rubrica locale e scarto delle risposte al cambio BU.
+- Ricerca asincrona con nome ed email nei suggerimenti; selezionare un tester compila i destinatari senza inviare. Aggiornate guida Markdown/PDF, informazioni sicurezza e CSV dimostrativo.
+
 # 1.1.11 — 21 ottobre 2026
 
 - Ponte storage limitato ai moduli riconosciuti e a una sola chiave: niente letture globali, cancellazioni generali, scritture arbitrarie o notifiche complete alle pagine. Il worker verifica il mittente Chrome e conserva autorizzazioni per documento e BU; l’accesso ai dati locali richiede una conferma dal content script isolato.

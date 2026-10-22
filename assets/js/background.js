@@ -36,7 +36,7 @@ const initialized = Promise.all(['local', 'session'].map(area =>
         }
         if (plain(all[SETTINGS])) {
             const settings = {};
-            for (const [scope, record] of Object.entries(all[SETTINGS])) if (scopeParts(scope)) settings[scope] = { testers: Array.isArray(record?.testers) ? record.testers : [] };
+            for (const [scope, record] of Object.entries(all[SETTINGS])) if (scopeParts(scope)) settings[scope] = { testers: Array.isArray(record?.testers) ? record.testers : [], testerSource: record?.testerSource === 'de' ? 'de' : 'local' };
             if (JSON.stringify(settings) !== JSON.stringify(all[SETTINGS])) cleaned[SETTINGS] = settings;
         }
         if (Object.keys(cleaned).length) await write('local', cleaned);
@@ -61,7 +61,7 @@ function source(sender) {
     if (sender.id !== chrome.runtime.id) throw new Error('Mittente non autorizzato.');
     if (sender.url === chrome.runtime.getURL('assets/html/activity-versioning.html')) return { internal: true };
     const page = pageRole(sender.url);
-    if (!page || !/^[0-9a-f-]{36}$/i.test(sender.documentId || '') || !Number.isInteger(sender.tab?.id)) throw new Error('Documento non autorizzato.');
+    if (!page || !/^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(sender.documentId || '') || !Number.isInteger(sender.tab?.id)) throw new Error('Documento non autorizzato.');
     return { ...page, id: sender.documentId, tabId: sender.tab.id };
 }
 async function registerDocument(caller, scope) {
@@ -89,7 +89,7 @@ function preferencesView(all, scope) {
     if (!scope || !plain(all?.[scope])) return {};
     let rows = [];
     try { rows = testers(all[scope].testers || []); } catch (_) { /* Invalid legacy data is not exposed to the page. */ }
-    return { [scope]: { testers: rows } };
+    return { [scope]: { testers: rows, testerSource: all[scope].testerSource === 'de' ? 'de' : 'local' } };
 }
 const versionFields = ['queryDefinitionId', 'name', 'key', 'description', 'queryText', 'targetName', 'targetKey', 'targetId', 'targetDescription',
     'createdDate', 'modifiedDate', 'targetUpdateTypeId', 'targetUpdateTypeName', 'validatedQueryText', 'categoryId', 'folderLocationText', 'isFrozen', 'versioning'];
@@ -145,11 +145,16 @@ async function pageStorage(caller, action, payload, scope) {
         if (action === 'get') return { [SETTINGS]: preferencesView((await read('local', [SETTINGS]))[SETTINGS], scope) };
         const patch = payload.items[SETTINGS];
         if (!plain(patch) || Object.keys(patch).length !== 1 || !Object.hasOwn(patch, scope) || !plain(patch[scope]) ||
-            Object.keys(patch[scope]).some(k => k !== 'testers')) throw new Error('Modifica preferenze non autorizzata.');
-        const rows = testers(patch[scope].testers);
+            Object.keys(patch[scope]).some(k => !['testers', 'testerSource'].includes(k))) throw new Error('Modifica preferenze non autorizzata.');
+        const update = {};
+        if (Object.hasOwn(patch[scope], 'testers')) update.testers = testers(patch[scope].testers);
+        if (Object.hasOwn(patch[scope], 'testerSource')) {
+            if (!['local', 'de'].includes(patch[scope].testerSource)) throw new Error('Sorgente tester non valida.');
+            update.testerSource = patch[scope].testerSource;
+        }
         return enqueue(async () => {
             const all = (await read('local', [SETTINGS]))[SETTINGS] || {};
-            const next = { ...all, [scope]: { ...all[scope], testers: rows } };
+            const next = { ...all, [scope]: { ...all[scope], ...update } };
             await write('local', { [SETTINGS]: next });
             return { [SETTINGS]: preferencesView(next, scope) };
         });

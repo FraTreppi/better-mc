@@ -10,7 +10,15 @@
         };
     }
 
-    const getTesters = () => sfmcfix.preferences.get().testers || [];
+    let searchGeneration = 0;
+    function clearTesterSearch() {
+        searchGeneration++;
+        $('#tester-input').val('');
+        $('#suggestion-items').empty().hide();
+        $('#sfmcfix-tester-search-status').text('');
+    }
+    window.addEventListener('sfmcfix:contextchange', clearTesterSearch);
+    window.addEventListener('sfmcfix:preferences', clearTesterSearch);
 
     console.log(`SFMC fixer - PREVIEW AND SEND`);
 
@@ -18,7 +26,8 @@
         var $input = $parent.find('#tester-input');
         if(!$input.length) {
             const $wrap = $(`<div class="input-suggestion">
-                <input type="text" id="tester-input" class="form-control" placeholder="type a name..." />
+                <input type="text" id="tester-input" class="form-control" placeholder="type a name..." aria-label="Cerca un tester per nome, cognome o email" aria-describedby="sfmcfix-tester-search-status" autocomplete="off" />
+                <p id="sfmcfix-tester-search-status" role="status" aria-live="polite"></p>
                 <div class="suggestion-list-wrapper">
                 <ul id="suggestion-items"></ul></div>
             </div>`);
@@ -26,16 +35,31 @@
         }
     },500);
 
-    const searchOnType = debounce(($input) => {
-        const val = $input.val().toLowerCase();
-        var lis = [];
+    const searchOnType = debounce(async ($input, generation) => {
+        const val = $input.val().trim().toLowerCase();
         const $ul = $('#suggestion-items');
-        if(val && val.length > 2) {
-            lis = getTesters().filter((tester) =>  !!tester[2] && (tester[0]?.toLowerCase().indexOf(val) != -1 || tester[1]?.toLowerCase().indexOf(val) != -1 || tester[2]?.toLowerCase().indexOf(val) != -1)).map((tester) => `<li class="suggestion-list-item" data-email="${sfmcfix.escapeHtml(tester[2])}">${sfmcfix.escapeHtml(tester[2])}</li>`).slice(0,5);
-            lis = [...new Set(lis)]
+        const $status = $('#sfmcfix-tester-search-status');
+        $ul.empty().hide();
+        if (val.length < 3) { $status.text('Digita almeno tre caratteri.'); return; }
+        const scope = sfmcfix.context.current().scope;
+        $status.text('Ricerca tester…');
+        try {
+            const result = sfmcfix.testerSource ? await sfmcfix.testerSource.list() : { testers: sfmcfix.preferences.get().testers || [] };
+            if (generation !== searchGeneration || scope !== sfmcfix.context.current().scope || !$input[0]?.isConnected) return;
+            const found = result.testers.filter(tester => tester.some(value => value.toLowerCase().includes(val)));
+            const emails = new Set();
+            for (const tester of found) {
+                if (emails.has(tester[2].toLowerCase())) continue;
+                emails.add(tester[2].toLowerCase());
+                const person = [tester[1], tester[0]].filter(Boolean).join(' ');
+                $('<li class="suggestion-list-item">').attr('data-email', tester[2]).text(person ? `${person} · ${tester[2]}` : tester[2]).appendTo($ul);
+                if (emails.size === 5) break;
+            }
+            $status.text(emails.size ? `${emails.size} suggerimenti${found.length > 5 ? '; precisa la ricerca per vedere gli altri' : ''}.` : 'Nessun tester trovato.');
+            $ul.toggle(emails.size > 0);
+        } catch (error) {
+            if (generation === searchGeneration && scope === sfmcfix.context.current().scope) $status.text(error.message);
         }
-        $ul.html(lis.join(''));
-        $ul.show();
     },300);
 
     var dempreviewmodal;
@@ -334,8 +358,10 @@
         return false;
     });
 
-    $(document).on('keyup','#tester-input', function(e) {
-        searchOnType($(this));
+    $(document).on('input keyup','#tester-input', function(e) {
+        const generation = ++searchGeneration;
+        $('#suggestion-items').empty().hide();
+        searchOnType($(this), generation);
     });
 
     $(document).on('focusout','#tester-input', function(e) {
@@ -358,8 +384,8 @@
     });
 
     $(document).on('click', '.suggestion-list-item', function(e){
-        const email = $(this).data('email');
-        $('#tester-input').val('');
+        const email = $(this).attr('data-email');
+        clearTesterSearch();
         $('.test-send-recipients-pillbox .pillbox-add-item').val(email);
         $('.test-send-recipients-pillbox .pillbox-add-item').trigger('focusout');
     });

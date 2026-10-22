@@ -84,6 +84,11 @@ div#defixer_logs ul {
 #sfmcfix-tester-editor td button { width: 30px; padding: 5px 0; font-size: 18px; }
 #sfmcfix-tester-editor .sfmcfix-primary { border-color: #145b92; color: #fff; background: #145b92; }
 #sfmcfix-tester-editor button:disabled { opacity: .6; cursor: wait; }
+#sfmcfix-tester-editor [hidden] { display: none !important; }
+#sfmcfix-tester-editor select { display: block; box-sizing: border-box; max-width: 100%; padding: 8px; margin: 6px 0 14px; font: inherit; }
+#sfmcfix-tester-editor [data-tester-de] { padding: 12px; border: 1px solid #b5c8da; border-radius: 4px; margin-bottom: 14px; }
+#sfmcfix-tester-editor [data-tester-de-link] { margin-left: 10px; }
+#sfmcfix-tester-search-status { font-size: 12px; color: #536b7e; margin: 4px 0; }
 #sfmcfix-tester-editor :is(button, input):focus-visible { outline: 2px solid #145b92; outline-offset: 2px; }
 #sfmcfix-tester-editor .sfmcfix-tester-help { color: #536b7e; font-size: 12px; }
 #sfmcfix-tester-editor .sfmcfix-tester-status { min-height: 21px; color: #266334; }

@@ -177,7 +177,8 @@
         const hint = rememberedContext();
         bar.querySelector('[data-context-action="configure"]').textContent = context.mid ? `BU ${context.mid} · ${context.stack || '?'}` :
             hint ? `Conferma MID ${hint.mid} · ${hint.stack}` : 'SFMC Fixer · Imposta MID';
-        bar.querySelector('[data-context-action="testers"]').textContent = `Tester BU (${api.preferences.get().testers?.length || 0})`;
+        bar.querySelector('[data-context-action="testers"]').textContent = api.preferences.get().testerSource === 'de' ?
+            'Tester BU · Data Extension' : `Tester BU (${api.preferences.get().testers?.length || 0})`;
         bar.dataset.ready = String(context.persistent);
         bar.querySelector('[data-context-action="testers"]').disabled = settingsLoading;
         const trigger = bar.querySelector('[data-context-action="toggle"]');

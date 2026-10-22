@@ -99,3 +99,21 @@ test('privileged pages are private and network permissions remain limited', () =
     assert.ok(manifest.content_security_policy.extension_pages.includes("frame-ancestors 'none'"));
     assert.ok(manifest.content_security_policy.extension_pages.includes("script-src 'self'"));
 });
+
+test('Chrome document IDs with 32 hex digits can authorize only their own BU', async () => {
+    const w = workerFixture();
+    const sender = { ...w.from('https://content-builder.s50.marketingcloudapps.com/'), documentId: 'ABCDEF0123456789ABCDEF0123456789' };
+    assert.equal((await w.request(sender, 'register', {})).ok, true);
+    assert.equal((await w.request(sender, 'authorize', {}, 's50:123')).ok, true);
+    assert.equal((await w.request(sender, 'get', { keys: [SETTINGS] }, 's50:123')).ok, true);
+    assert.equal((await w.request(sender, 'get', { keys: [SETTINGS] }, 's50:999')).ok, false);
+    for (const documentId of ['', '---'.repeat(12), 'g'.repeat(32), 'a'.repeat(31), 'a'.repeat(33)]) {
+        assert.equal((await w.request({ ...sender, documentId }, 'register', {})).ok, false);
+    }
+    const original = clone(w.state.local[SETTINGS]['s50:123'].testers);
+    assert.equal((await w.request(sender, 'merge', { items: { [SETTINGS]: { 's50:123': { testerSource: 'de' } } } }, 's50:123')).ok, true);
+    assert.equal(w.state.local[SETTINGS]['s50:123'].testerSource, 'de');
+    assert.deepEqual(w.state.local[SETTINGS]['s50:123'].testers, original);
+    assert.equal((await w.request(sender, 'merge', { items: { [SETTINGS]: { 's50:123': { testerSource: 'https://arbitrary.invalid/' } } } }, 's50:123')).ok, false);
+    assert.equal(w.state.local[SETTINGS]['s50:999'].testerSource, 'local');
+});

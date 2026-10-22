@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.11 · 21 ottobre 2026
+Versione 1.1.12 · 22 ottobre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -12,7 +12,7 @@ Ora:
 
 - Il ponte è attivo solo nei moduli riconosciuti di Contact Builder, Content Builder, Automation Studio, Journey Builder e Query Studio. Non viene attivato su CloudPages, documenti generici o anteprime degli asset.
 - Lo storage Chrome locale e di sessione è limitato ai contesti fidati dell’estensione. I content script passano dal service worker e non leggono direttamente l’archivio.
-- Il service worker verifica identità dell’estensione, URL reale del mittente, scheda e identificativo del documento forniti da Chrome.
+- Il service worker verifica identità dell’estensione, URL reale del mittente, scheda e identificativo del documento forniti da Chrome. Accetta il formato Chrome di 32 cifre esadecimali e il formato UUID con trattini; gli identificativi malformati restano rifiutati.
 - Le pagine non possono elencare l’intero archivio, cancellarlo globalmente, impostare chiavi arbitrarie o eliminare versioni. Le operazioni pericolose dell’archivio SQL sono riservate alla pagina interna dell’estensione.
 - Content Builder riceve soltanto la rubrica della BU autorizzata; Automation Studio può leggere e aggiungere soltanto le versioni del relativo contesto. Una conferma nel mondo isolato del content script autorizza dominio, stack e MID. Lo script della pagina non può sostituire la funzione che mostra questa conferma.
 - L’autorizzazione è associata al documento, conservata nello storage di sessione e limitata nel tempo. Un altro documento o un’altra BU richiedono una nuova conferma. Le notifiche contengono solo la proiezione autorizzata, senza i valori precedenti di altre BU.
@@ -31,6 +31,12 @@ Le richieste operative delle funzioni attive usano gli endpoint Salesforce del m
 Il dominio `*.sfmc-content.com` è stato eliminato dai permessi. I pattern Salesforce rimasti devono coprire stack diversi, ma il loader applica anche i controlli su host e percorsi dei moduli. Query Studio resta un’applicazione sul dominio separato `querystudio.herokuapp.com`, necessario per la relativa integrazione.
 
 Non è presente un backend di telemetria dell’estensione. Le immagini esterne di un’email sono un’eccezione esplicita: possono essere caricate solo con il comando e la conferma descritti nella guida.
+
+## Rubrica DE condivisa
+
+La sorgente opzionale `tester_content_builder` esegue soltanto GET relativi alla stessa origine Content Builder, con la sessione corrente, senza un proxy dell’estensione. Nome ed External Key sono fissi; la cartella deve essere figlia diretta della radice locale Data Extensions e lo schema viene verificato prima dei record. Non legge automaticamente DE condivise, di altri stack o una DE con nome simile. Non richiede un Installed Package, credenziali aggiuntive né scritture in Salesforce.
+
+I dati letti vengono proiettati sui tre campi previsti, limitati a 1000 righe, validati e conservati solo in memoria per cinque minuti. La scelta della sorgente viene salvata per BU; la vecchia rubrica locale non viene eliminata. Cambi contesto interrompono le richieste e svuotano i suggerimenti; gli errori non attivano un ripiego silenzioso sulla rubrica locale. I destinatari scelti possono comunque comparire nello storico locale degli invii di prova. Le chiamate usano API interne Salesforce: disponibilità e autorizzazioni dipendono dal tenant.
 
 ## Contenuti mostrati nell’interfaccia
 
