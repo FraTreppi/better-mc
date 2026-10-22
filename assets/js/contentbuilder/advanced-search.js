@@ -3,7 +3,7 @@
     const api = window.sfmcfix;
     if (api.openAssetSearch) return;
     const buttonId = 'sfmcfix-asset-search-button', dialogId = 'sfmcfix-asset-search';
-    let mountTimer = null, mountedAnchor = null;
+    let mountTimer = null, mountedAnchor = null, opening = false;
     const nativeRoutes = new Map();
     function kind(typeId) { return Object.entries(api.assetSearch.types).find(([name, type]) => name !== 'all' && type.ids.includes(typeId))?.[0] || String(typeId); }
     function rememberNativeRoute() {
@@ -54,9 +54,15 @@
         // Prefer a route observed during native navigation when available.
         location.hash = route ? `${route.prefix}${asset.id}${route.suffix}` : `asset/${asset.id}${kind(asset.typeId) === 'email' ? '/email' : ''}`;
     }
-    api.openAssetSearch = function () {
+    api.openAssetSearch = async function () {
         const existing = document.getElementById(dialogId);
         if (existing) { existing.querySelector('input')?.focus(); return; }
+        if (opening) return;
+        const openRoute = location.href;
+        opening = true;
+        try { await api.context.refresh?.(); }
+        finally { opening = false; }
+        if (openRoute !== location.href) return;
         const previousFocus = document.activeElement, context = api.context.current();
         const dialog = document.createElement('dialog'); dialog.id = dialogId;
         dialog.setAttribute('aria-labelledby', 'sfmcfix-asset-search-title');
@@ -78,10 +84,11 @@
             </form>
             <p data-folder-status role="status">Caricamento dei percorsi delle cartelle…</p>
             <p data-status role="status" aria-live="polite">Inserisci un testo o scegli i filtri, poi premi Cerca. Senza filtri vengono elencati tutti gli asset accessibili.</p>
+            <button type="button" data-diagnostics hidden>Scarica diagnostica ricerca</button>
             <div class="sfmcfix-asset-search-results"><table><thead><tr><th scope="col">Nome / Customer Key</th><th scope="col">Tipo</th><th scope="col">Cartella</th><th scope="col">Ultima modifica</th><th scope="col">Apri</th></tr></thead><tbody></tbody></table></div>
             <footer><button type="button" data-prev disabled>Precedente</button><span data-page>Nessuna ricerca</span><button type="button" data-next disabled>Successiva</button><button type="button" data-close>Chiudi</button></footer>`;
         const $ = selector => dialog.querySelector(selector), form = $('form'), status = $('[data-status]'), body = $('tbody');
-        $('[data-context]').textContent = `${context.mid ? 'BU ' + context.mid : 'BU attiva'} · ${context.stack || location.hostname}`;
+        $('[data-context]').textContent = `${context.mid ? 'BU ' + context.mid : 'BU della sessione · MID non rilevato'} · ${context.stack || location.hostname}`;
         for (const [value, type] of Object.entries(api.assetSearch.types)) {
             const option = document.createElement('option'); option.value = value; option.textContent = type.label; $('[name="type"]').append(option);
         }
@@ -91,7 +98,7 @@
             $('[data-next]').disabled = busy || !result || result.page * result.pageSize >= result.count;
         }
         function loading(value) { busy = value; $('[data-cancel]').hidden = !value; dialog.setAttribute('aria-busy', String(value)); paging(); }
-        function clear() { result = null; body.replaceChildren(); $('[data-page]').textContent = 'Nessuna ricerca'; paging(); }
+        function clear() { result = null; body.replaceChildren(); $('[data-diagnostics]').hidden = true; $('[data-page]').textContent = 'Nessuna ricerca'; paging(); }
         function stillCurrent(value) { return !closed && value === generation && context.scope === api.context.current().scope; }
         function render() {
             body.replaceChildren();
@@ -124,7 +131,12 @@
                 const start = data.items.length ? (data.page - 1) * data.pageSize + 1 : 0, end = start ? start + data.items.length - 1 : 0;
                 status.textContent = data.count ? `${start}–${end} di ${data.count} risultati.` : 'Nessun contenuto trovato con questi filtri.';
                 $('[data-page]').textContent = `Pagina ${data.page} di ${Math.max(1, Math.ceil(data.count / data.pageSize))}`;
-            } catch (error) { if (stillCurrent(current)) status.textContent = error.name === 'AbortError' ? 'Ricerca interrotta. Premi Cerca per riprovare.' : error.message; }
+            } catch (error) {
+                if (stillCurrent(current)) {
+                    status.textContent = error.name === 'AbortError' ? 'Ricerca interrotta. Premi Cerca per riprovare.' : error.message;
+                    $('[data-diagnostics]').hidden = error.name === 'AbortError';
+                }
+            }
             finally { if (stillCurrent(current)) loading(false); }
         }
         form.onsubmit = event => { event.preventDefault(); filters = Object.fromEntries(new FormData(form)); search(1); };
@@ -136,6 +148,11 @@
         $('[data-next]').onclick = () => { if (result && !busy) search(result.page + 1); };
         $('[data-cancel]').onclick = () => { generation++; api.assetSearch.cancelSearch(); loading(false); clear(); status.textContent = 'Ricerca interrotta. Premi Cerca per riprovare.'; };
         $('[data-reset]').onclick = () => { form.reset(); form.oninput(); $('[name="term"]').focus(); };
+        $('[data-diagnostics]').onclick = () => {
+            const url = URL.createObjectURL(new Blob([JSON.stringify(api.assetSearch.diagnostics(), null, 2)], { type: 'application/json' }));
+            const link = document.createElement('a'); link.href = url; link.download = 'sfmc-content-builder-diagnostica.json';
+            dialog.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
         dialog.querySelectorAll('[data-close]').forEach(button => { button.onclick = () => dialog.close(); });
         const changeContext = () => { if (context.scope !== api.context.current().scope) dialog.close(); };
         const changeRoute = () => dialog.close();
@@ -156,6 +173,7 @@
             render();
         }).catch(error => {
             if (closed) return;
+            $('[data-diagnostics]').hidden = false;
             $('[data-folder-status]').textContent = error.name === 'AbortError' ? 'Percorsi cartelle non caricati. Riapri Advanced per riprovare; la ricerca globale resta disponibile.' :
                 `Percorsi cartelle non disponibili: ${error.message} La ricerca globale resta disponibile.`;
         });

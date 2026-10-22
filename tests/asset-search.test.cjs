@@ -10,7 +10,9 @@ function fixture(intercept) {
         assert.ok(url.startsWith('/fuelapi/asset/v1/content/'));
         assert.equal(options.mode, 'same-origin'); assert.equal(options.credentials, 'same-origin'); assert.equal(options.redirect, 'error');
         assert.equal(options.cache, 'no-store');
-        assert.ok(options.method === 'GET' && url.startsWith('/fuelapi/asset/v1/content/categories?') || options.method === 'POST' && url === '/fuelapi/asset/v1/content/assets/query');
+        assert.equal(options.headers['X-Requested-With'], 'XMLHttpRequest');
+        assert.equal(options.headers['x-fueldata-version'], '1.1');
+        assert.ok(options.method === 'GET' && url.startsWith('/fuelapi/asset/v1/content/categories?') || options.method === 'POST' && url === '/fuelapi/asset/v1/content/assets/query?scope=ours');
         if (intercept) { const answer = await intercept(url, options); if (answer) return answer; }
         return { ok: true, json: async () => url.includes('/categories?') ? { items: [{ id: 10, parentId: 0, name: 'Content Builder' }, { id: 20, parentId: 10, name: 'Campagne' }], count: 2, page: 1, pageSize: 200 } : { items: [asset()], count: 1, page: JSON.parse(options.body).page.page, pageSize: 50 } };
     } });
@@ -24,8 +26,8 @@ test('global metadata query is independent of the open folder; safe filters, exp
     const payload = JSON.parse(f.calls[0].options.body), filters = leaves(payload.query);
     assert.deepEqual(payload.page, { page: 2, pageSize: 50 });
     assert.equal(filters.some(filter => filter.property === 'category.id'), false);
-    assert.deepEqual(filters.filter(filter => filter.simpleOperator === 'like').map(filter => filter.value), ["%O'Reilly & summer%", "%O'Reilly & summer%"]);
-    assert.deepEqual(filters.find(filter => filter.property === 'assetType.id').value, [5, 207, 208, 209]);
+    assert.deepEqual(filters.filter(filter => filter.simpleOperator === 'contains').map(filter => filter.value), ["O'Reilly & summer", "O'Reilly & summer"]);
+    assert.deepEqual(filters.find(filter => filter.property === 'assetType.id').values, [5, 207, 208, 209]);
     assert.equal(filters.find(filter => filter.simpleOperator === 'lessThan').value, '2026-10-23T00:00:00.000Z');
     assert.equal(payload.fields.includes('content'), false);
     assert.ok(!JSON.stringify(result).includes('NEVER_RETURN'));
@@ -45,7 +47,7 @@ test('folders are paginated and cached only for their BU; errors do not use anot
     assert.equal((await f.api.search({})).items.length, 1);
 });
 test('cancelling or replacing a search and changing BU reject late responses even when fetch ignores abort', async () => {
-    const releases = [], f = fixture((url, options) => url.endsWith('/query') ? new Promise(resolve => releases.push(() => resolve({ ok: true, json: async () => ({ items: [asset()], count: 1, page: 1, pageSize: 50 }) }))) : null);
+    const releases = [], f = fixture((url, options) => url.includes('/query?') ? new Promise(resolve => releases.push(() => resolve({ ok: true, json: async () => ({ items: [asset()], count: 1, page: 1, pageSize: 50 }) }))) : null);
     const first = f.api.search({ term: 'old' });
     const firstCheck = assert.rejects(first, error => error.name === 'AbortError');
     const second = f.api.search({ term: 'new' }); releases.shift()(); releases.shift()();
@@ -65,8 +67,10 @@ test('native Fuel client keeps its session handling; cancellation aborts the nat
     const f = fixture(), native = []; let aborted = 0;
     f.window.Fuel = { ajax: options => { native.push(options); return { abort: () => { aborted++; } }; } };
     const pending = f.api.search({ term: 'Newsletter' });
-    assert.equal(native[0].url, '/fuelapi/asset/v1/content/assets/query'); assert.equal(native[0].type, 'POST');
-    assert.equal(native[0].useFuel2Token, true); assert.equal(native[0].contentType, 'application/json');
+    assert.equal(native[0].url, '/fuelapi/asset/v1/content/assets/query?scope=ours'); assert.equal(native[0].type, 'POST');
+    assert.equal(native[0].headers['x-fueldata-version'], '1.1');
+    assert.equal(native[0].headers['X-Requested-With'], 'XMLHttpRequest');
+    assert.equal(native[0].useFuel2Token, true); assert.equal(native[0].contentType, 'application/json;charset=utf-8;datekind=local');
     native[0].success({ items: [asset()], count: 1, page: 1, pageSize: 50 });
     assert.equal((await pending).items[0].id, 1); assert.equal(f.calls.length, 0);
     const late = f.api.search({}), lateCheck = assert.rejects(late, error => error.name === 'AbortError');

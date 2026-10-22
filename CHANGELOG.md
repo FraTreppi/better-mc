@@ -1,3 +1,10 @@
+# 1.1.20 — 22 ottobre 2026
+
+- Richieste Advanced allineate al codice nativo Salesforce fornito: scope ours, intestazioni AJAX/versione dati e Content-Type nativo; operatore contains e array values per i tipi. Riconosciuto anche il client fuel-ajax AMD già inizializzato.
+- Rilevamento MID automatico in Content Builder da organization.id del contesto della sessione, con timeout breve, rinnovo prima della ricerca e gestione del cambio BU. Nessun ripristino automatico di un MID manuale di un cliente precedente.
+- Messaggio 403 distinto dal MID assente e download diagnostico dal pannello, senza Console, token, termini cercati, metadati degli asset o record. Nessun tentativo per aggirare il rifiuto Salesforce.
+- Regressioni per intestazioni/scope obbligatori, contesto senza MID nell’URL, cambio BU, moduli AMD e annullamento durante il rilevamento. Guida Markdown/PDF aggiornata.
+
 # 1.1.19 — 22 ottobre 2026
 
 - Aggiunta ricerca Advanced accanto al campo Search di Content Builder. Cerca per nome, Customer Key o ID in tutte le cartelle della BU corrente, con corrispondenza testuale, tipi di asset, cartella specifica, date UTC di ultima modifica e ordinamento.

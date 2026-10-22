@@ -31,10 +31,14 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
             (fs.existsSync('/usr/share/javascript/jquery/jquery.js') ? '/usr/share/javascript/jquery/jquery.js' : require.resolve('jquery/dist/jquery.js')));
         await ctx.route('https://**/*', route => {
             const url = new URL(route.request().url());
+            if (url.pathname === '/fuelapi/platform/v1/tokenContext') return route.fulfill({ json: { organization: { id: 123, enterpriseId: 777 }, user: { id: 888 } } });
             if (url.pathname === '/jquery.js') return route.fulfill({ contentType: 'application/javascript', body: jquery });
             if (url.pathname === '/fuelapi/asset/v1/content/categories') return route.fulfill({ json: { count: 2, page: 1, pageSize: 200, items: [{ id: 10, parentId: 0, name: 'Content Builder' }, { id: 20, parentId: 10, name: 'Campagne' }] } });
             if (url.pathname === '/fuelapi/asset/v1/content/assets/query') {
                 assert.equal(route.request().method(), 'POST');
+                assert.equal(url.searchParams.get('scope'), 'ours');
+                assert.equal(route.request().headers()['x-requested-with'], 'XMLHttpRequest');
+                assert.equal(route.request().headers()['x-fueldata-version'], '1.1');
                 return route.fulfill({ json: { count: 1, page: 1, pageSize: 50, items: [{ id: 1001, name: 'Newsletter', customerKey: 'mail-key', assetType: { id: 208, name: 'htmlemail' }, category: { id: 20, name: 'Campagne' } }] } });
             }
             return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<html><head><script src="/jquery.js"></script></head><body><div style="width:360px"><input type="search" class="form-control dropdown-toggle" placeholder="Search"></div><main id="preview-panel"><div class="test-send-recipients-tab-content"><div class="test-send-recipients-pillbox"><input class="pillbox-add-item"></div></div></main><button>Send Test</button></body></html>' });
@@ -45,7 +49,7 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
             if (dialog.message().includes('BU 123')) { grants++; await dialog.accept(); }
             else await dialog.dismiss();
         });
-        await page.goto('https://content-builder.s50.marketingcloudapps.com/?mid=123');
+        await page.goto('https://content-builder.s50.marketingcloudapps.com/');
         const trigger = page.getByRole('button', { name: 'Impostazioni SFMC', exact: true });
         await trigger.click(); await page.locator('[data-context-action="testers"]').click();
         let editor = page.locator('#sfmcfix-tester-editor'); await editor.waitFor();
@@ -77,6 +81,7 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
         await editor.getByRole('button', { name: 'Annulla', exact: true }).click(); await editor.waitFor({ state: 'detached' });
         await page.getByRole('button', { name: 'Advanced', exact: true }).click();
         const search = page.locator('#sfmcfix-asset-search');
+        assert.equal(await search.locator('[data-context]').textContent(), 'BU 123 · s50');
         await search.locator('[name="term"]').fill('Newsletter');
         await search.getByRole('button', { name: 'Cerca', exact: true }).click();
         await search.locator('[data-status]').getByText('1–1 di 1 risultati.', { exact: true }).waitFor();

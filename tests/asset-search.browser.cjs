@@ -5,14 +5,15 @@ const root = path.resolve(__dirname, '..');
     const browser = await chromium.launch({ executablePath: process.env.SFMCFIX_CHROMIUM_PATH || (fs.existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined), headless: true, args: ['--no-sandbox'] });
     try {
         const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } }), calls = [], errors = [];
-        let slow = null, forbidden = false, bad = false;
+        let slow = null, forbidden = false, bad = false, activeMid = '123';
         const folders = [{ id: 10, parentId: 0, name: 'Content Builder' }, { id: 20, parentId: 10, name: 'Campagne' }, { id: 30, parentId: 20, name: 'Archivio' }];
         const items = Array.from({ length: 51 }, (_, i) => ({ id: 1001 + i, name: `Newsletter ${String(i).padStart(3, '0')}`, customerKey: `mail-${i}`, assetType: { id: 208, name: 'htmlemail', displayName: 'HTML Email' }, category: { id: i % 2 ? 20 : 30, name: i % 2 ? 'Campagne' : 'Archivio' }, modifiedDate: '2026-10-22T12:00:00Z' }));
         items.push({ ...items[0], id: 2000, name: 'Unsafe <img src=x onerror="window.__xss=1">', customerKey: '<script>alert(1)</script>' });
         function matches(q, item) {
             if (q.leftOperand) return q.logicalOperator === 'OR' ? matches(q.leftOperand, item) || matches(q.rightOperand, item) : matches(q.leftOperand, item) && matches(q.rightOperand, item);
             const value = q.property.split('.').reduce((object, key) => object?.[key], item);
-            if (q.simpleOperator === 'in') return q.value.includes(value);
+            if (q.simpleOperator === 'in') return q.values.includes(value);
+            if (q.simpleOperator === 'contains') return String(value).toLowerCase().includes(q.value.toLowerCase());
             if (q.simpleOperator === 'equal') return value === q.value;
             if (q.simpleOperator === 'greaterThan') return value > q.value;
             if (q.simpleOperator === 'greaterThanOrEqual') return value >= q.value;
@@ -33,6 +34,9 @@ const root = path.resolve(__dirname, '..');
             if (url.pathname === '/jquery.js') return route.fulfill({ contentType: 'application/javascript', body: fs.readFileSync(process.env.SFMCFIX_JQUERY_PATH || '/usr/share/javascript/jquery/jquery.js') });
             if (url.pathname.startsWith('/assets/')) return route.fulfill({ contentType: url.pathname.endsWith('.js') ? 'application/javascript' : 'text/css', body: fs.readFileSync(root + url.pathname) });
             if (url.pathname.startsWith('/fuelapi/')) {
+                if (url.pathname === '/fuelapi/platform/v1/tokenContext') return route.fulfill({ json: { organization: { id: activeMid, enterpriseId: 777 }, user: { id: 888 } } });
+                const headers = route.request().headers();
+                if (headers['x-requested-with'] !== 'XMLHttpRequest' || headers['x-fueldata-version'] !== '1.1' || url.searchParams.get('scope') !== 'ours') return route.fulfill({ status: 403, json: {} });
                 calls.push({ url: url.href, method: route.request().method(), body: route.request().postDataJSON() });
                 if (url.pathname.endsWith('/categories')) return route.fulfill({ json: { count: folders.length, page: 1, pageSize: 200, items: folders } });
                 assert.equal(url.pathname, '/fuelapi/asset/v1/content/assets/query'); assert.equal(route.request().method(), 'POST');
@@ -43,12 +47,12 @@ const root = path.resolve(__dirname, '..');
                 const found = items.filter(item => matches(q.query, item));
                 return route.fulfill({ json: { count: found.length, page: q.page.page, pageSize: 50, items: found.slice((q.page.page - 1) * 50, q.page.page * 50) } });
             }
-            return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<html><head><style>#native-search{width:360px}.form-control{display:block;width:100%;height:32px;box-sizing:border-box}</style><link rel="stylesheet" href="/assets/css/styles.css"><script src="/jquery.js"></script></head><body><div id="native-search"><input type="search" class="form-control dropdown-toggle" placeholder="Search"></div><table><tbody><tr data-flow-id="cb:repeater:list:1001" onclick="window.__nativeOpen++"><td class="contentitem-table-name">Newsletter 000</td></tr></tbody></table><button id="delete" onclick="window.__other++">Delete</button><script src="/assets/js/context.js"></script><script>sfmcfix.context.ready.then(()=>sfmcfix.addJs("contentbuilder/_index"))</script></body></html>' });
+            return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<html><head><style>#native-search{width:360px}.form-control{display:block;width:100%;height:32px;box-sizing:border-box}</style><link rel="stylesheet" href="/assets/css/styles.css"><script src="/jquery.js"></script></head><body><div id="native-search"><input type="search" class="form-control dropdown-toggle" placeholder="Search"></div><table><tbody><tr data-flow-id="cb:repeater:list:1001" onclick="window.__nativeOpen++"><td class="contentitem-table-name">Newsletter 000</td></tr></tbody></table><button id="delete" onclick="window.__other++">Delete</button><script src="/assets/js/components/native-session.js"></script><script src="/assets/js/context.js"></script><script>sfmcfix.context.ready.then(()=>sfmcfix.addJs("contentbuilder/_index"))</script></body></html>' });
         });
         const page = await ctx.newPage(); page.on('pageerror', error => errors.push(error.message));
-        await page.goto('https://content-builder.s50.marketingcloudapps.com/?mid=123#folder/999');
+        await page.goto('https://content-builder.s50.marketingcloudapps.com/#folder/999');
         const trigger = page.getByRole('button', { name: 'Advanced', exact: true }); await trigger.waitFor();
-        if (process.env.SFMCFIX_SEARCH_USE_FUEL) await page.evaluate(() => { window.Fuel = { ajax: options => jQuery.ajax(options) }; });
+        if (process.env.SFMCFIX_SEARCH_USE_FUEL) await page.evaluate(() => { const native = { ajax: options => jQuery.ajax(options) }; window.requirejs = name => name === 'fuel-ajax' ? native : null; window.requirejs.defined = name => name === 'fuel-ajax'; });
         // A route observed inside the native frame is reused for an off-screen
         // result, without asking users to inspect the console or alter URLs.
         await page.evaluate(() => new Promise(resolve => {
@@ -62,6 +66,7 @@ const root = path.resolve(__dirname, '..');
         await trigger.click();
         const dialog = page.locator('#sfmcfix-asset-search'), term = dialog.locator('[name="term"]');
         await dialog.locator('[name="folder"]:enabled').waitFor();
+        assert.equal(await dialog.locator('[data-context]').textContent(), 'BU 123 · s50');
         assert.equal(await page.locator('#native-search > input + #sfmcfix-asset-search-button').count(), 1);
         await term.fill('Newsletter'); await dialog.locator('[name="type"]').selectOption('email');
         await dialog.getByRole('button', { name: 'Cerca', exact: true }).click();
@@ -99,11 +104,22 @@ const root = path.resolve(__dirname, '..');
         forbidden = true; await dialog.getByRole('button', { name: 'Cerca', exact: true }).click();
         await dialog.locator('[data-status]').getByText('HTTP 403', { exact: false }).waitFor();
         assert.equal(await dialog.locator('tbody tr').count(), 0);
+        const report = await page.evaluate(() => sfmcfix.assetSearch.diagnostics());
+        assert.equal(report.context.source, 'session');
+        assert.equal(report.requests.find(r => r.method === 'POST').status, 403);
+        assert.equal(report.requests.find(r => r.method === 'POST').transport, process.env.SFMCFIX_SEARCH_USE_FUEL ? 'AMD:fuel-ajax' : 'fetch');
+        assert.ok(!JSON.stringify(report).includes('Newsletter'));
+        const downloadWait = page.waitForEvent('download');
+        await dialog.getByRole('button', { name: 'Scarica diagnostica ricerca' }).click();
+        const download = await downloadWait;
+        assert.equal(download.suggestedFilename(), 'sfmc-content-builder-diagnostica.json');
+        assert.deepEqual(JSON.parse(fs.readFileSync(await download.path(), 'utf8')).requests, report.requests);
         forbidden = false; bad = true; await dialog.getByRole('button', { name: 'Cerca', exact: true }).click();
         await dialog.locator('[data-status]').getByText('Paginazione', { exact: false }).waitFor(); bad = false;
         slow = { promise: new Promise(resolve => { release = resolve; }) };
         await dialog.getByRole('button', { name: 'Cerca', exact: true }).click(); await dialog.locator('[data-cancel]:visible').waitFor();
-        await page.evaluate(() => { history.replaceState(null, '', '?mid=999#folder/999'); window.dispatchEvent(new Event('sfmcfix:contextchange')); });
+        activeMid = '999';
+        await page.evaluate(() => sfmcfix.context.refresh());
         release(); await dialog.waitFor({ state: 'detached' });
         await trigger.click(); await dialog.locator('[data-context]').getByText('BU 999', { exact: false }).waitFor();
         assert.equal(await dialog.locator('tbody tr').count(), 0);
@@ -117,6 +133,6 @@ const root = path.resolve(__dirname, '..');
         await page.keyboard.press('Escape'); await dialog.waitFor({ state: 'detached' });
         await page.evaluate(() => document.querySelector('#native-search').remove()); await trigger.waitFor({ state: 'detached' });
         assert.equal(await page.evaluate(() => __other), 0); assert.deepEqual(errors, []);
-        console.log('PASS real module chain and supplied search/row markup: global search, filters, full folder paths, 51 results over two pages, native row open, safe text rendering, cancel/errors/context isolation, responsive dialog and launcher cleanup. Only metadata query POST and category GET.');
+        console.log('PASS real module chain and supplied search/row markup: global search, filters, full folder paths, 51 results over two pages, native row open, safe text rendering, cancel/errors/context isolation, responsive dialog and launcher cleanup. Native request headers/scope required, automatic session MID and BU switch, sanitized diagnostic download, metadata query POST and category/context GET.');
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

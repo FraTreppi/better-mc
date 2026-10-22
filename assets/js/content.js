@@ -275,7 +275,7 @@
         /^jbinteractions\./.test(location.hostname);
     if (!supported) return;
 
-    sfmcfix.addJs('context', async () => {
+    sfmcfix.addJs('components/native-session', () => sfmcfix.addJs('context', async () => {
     try { await sfmcfix.context.ready; } catch (error) {
         console.error('SFMC Fixer: inizializzazione contesto fallita', error);
         return;
@@ -333,7 +333,7 @@
     });
 */
 
-    });
+    }));
 
 console.log(`SFMC fixer -- ${location.pathname} --- `);
 

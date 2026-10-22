@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.19 · Autore: Francesco Trepiccioni
+Versione 1.1.20 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -26,7 +26,9 @@ Il **MID** è il numero della Business Unit. Lo **stack**, per esempio `s50`, id
 
 In **Content Builder → Preview and Test**, apri l’icona **Impostazioni SFMC**, accanto a **Test History**. La prima opzione mostra **BU <numero> · <stack>**, oppure **Imposta MID** se il numero non è disponibile.
 
-Se il MID non viene rilevato, scegli **Imposta MID** e inserisci quello della BU selezionata in Salesforce. Al ricaricamento può comparire **Conferma MID <numero>**: verifica il valore prima di confermarlo. Inserire un MID nell’estensione non cambia la BU in Salesforce.
+In Content Builder il MID viene cercato automaticamente nel contesto della sessione Salesforce, all’apertura del modulo e di Advanced, prima della ricerca e tornando nella scheda. Se è disponibile non devi digitarlo a ogni ricaricamento. Un cambio BU rilevato aggiorna il contesto e chiude la ricerca precedente.
+
+Se Salesforce non rende disponibile il MID automatico, scegli **Imposta MID** e inserisci quello della BU selezionata in Salesforce. Al ricaricamento può comparire **Conferma MID <numero>**: verifica il valore prima di confermarlo. Inserire un MID nell’estensione non cambia la BU in Salesforce.
 
 Prima di rendere disponibile la rubrica o di salvare copie SQL, compare una **conferma di accesso ai dati locali**. Controlla dominio, MID e stack e accetta solo se corrispondono al contesto nel quale vuoi lavorare. La conferma vale per quel documento e quella BU; può ricomparire dopo un ricaricamento o passando a un’altra BU. Un’altra pagina non riceve automaticamente l’intero archivio.
 
@@ -57,6 +59,8 @@ Nella libreria di **Content Builder**, accanto al campo **Search**, clicca **Adv
 5. Scorri con **Precedente** e **Successiva**: vengono richiesti fino a 50 risultati per pagina. Ogni riga mostra nome, ID, Customer Key, tipo, percorso della cartella e data di modifica. **Apri** porta al contenuto nella stessa scheda di Content Builder.
 
 **Azzera filtri** ripristina la ricerca globale; premi nuovamente Cerca per eseguirla. **Interrompi** ferma la ricerca in corso. Modificando i filtri, i risultati precedenti vengono rimossi fino alla nuova ricerca. Puoi chiudere il pannello con **Chiudi**, la × o Escape.
+
+Il titolo mostra il MID rilevato dalla sessione. **MID non rilevato** significa che il numero non è disponibile all’estensione: la ricerca usa comunque la BU della sessione Salesforce. Un **HTTP 403** significa che Salesforce ha rifiutato la richiesta; inserire un MID manualmente non concede i permessi mancanti. Riapri Content Builder dal menu Marketing Cloud e riprova. Se l’errore continua, premi **Scarica diagnostica ricerca** e condividi il file per l’assistenza, senza usare la Console. Il rapporto contiene versione, modalità di collegamento, stato HTTP e indicazione del rilevamento MID; non include token, testo cercato, nomi degli asset o record. Non viene inviato automaticamente.
 
 La ricerca riguarda i metadati degli asset: non legge né cerca dentro il testo o l’HTML delle email. Rispetta i contenuti accessibili alla sessione della BU corrente e non cerca automaticamente nelle altre BU. Aprire un risultato non salva né modifica il contenuto.
 
@@ -322,7 +326,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.19**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.20**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

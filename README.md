@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.19
+# SFMC UI Fixer — Multi BU 1.1.20
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -17,7 +17,7 @@ Usa un browser aggiornato; il requisito Chromium minimo è 111. Lo ZIP è per l�
 
 Per aggiornare, sostituisci i file nella stessa cartella e premi **Ricarica** sull’estensione. Poi aggiorna le schede Marketing Cloud. Non serve disinstallarla; mantenere la stessa installazione conserva i suoi salvataggi.
 
-I salvataggi locali sono separati fra Chrome, Edge e i relativi profili: non vengono trasferiti automaticamente. In Edge imposta la BU e la sorgente tester; la DE condivisa può fornire la stessa rubrica a entrambi i browser.
+I salvataggi locali sono separati fra Chrome, Edge e i relativi profili: non vengono trasferiti automaticamente. In Edge verifica la BU rilevata e scegli la sorgente tester; la DE condivisa può fornire la stessa rubrica a entrambi i browser.
 
 ## Funzionalità
 
@@ -39,10 +39,12 @@ Crea in ogni BU **Data Extensions → SFMC_UI_Fixer → tester_content_builder**
 
 ## Sicurezza e dati
 
-La versione 1.1.19 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. Rifiutare non disabilita le altre funzioni.
+La versione 1.1.20 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. Le anteprime bloccano script, navigazione e risorse esterne; le immagini HTTPS richiedono un comando e una conferma espliciti. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
 Queste misure riducono i rischi individuati e non costituiscono una garanzia assoluta. Le operazioni sui record usano la sessione Salesforce e possono modificare dati reali. Le copie locali e i file scaricati non sono cifrati dall’estensione.
 
 Vedi **[Sicurezza e limiti](SICUREZZA.md)** per le protezioni e i rischi residui. La [documentazione tecnica](DOCUMENTATION.md) e la [cronologia](CHANGELOG.md) sono separate dalla guida utente.
+
+La 1.1.20 aggiunge il rilevamento automatico del MID dalla sessione Content Builder e allinea le richieste Advanced a intestazioni e scope nativi Salesforce. Un 403 è distinto dal MID non rilevato; gli errori offrono un download diagnostico senza token, termini cercati o dati degli asset.

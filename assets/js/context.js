@@ -8,6 +8,8 @@
     const pageId = crypto.randomUUID();
     let manualMid = null;
     let manualStack = null;
+    let sessionMid = null;
+    let contextRefresh = null;
     let settings = {};
     let uiSettings = {};
     let lastScope;
@@ -30,8 +32,10 @@
         } catch (_) { /* App model may not be initialized yet. */ }
         for (const source of [window.fuel?.context, window.Fuel?.context, window.App?.context]) {
             for (const key of ['memberId', 'memberID', 'mid', 'businessUnitId']) {
-                const mid = asMid(source?.[key]);
-                if (mid) return mid;
+                try {
+                    const mid = asMid(source?.[key] ?? source?.get?.(key));
+                    if (mid) return mid;
+                } catch (_) { /* App model may be transitioning to another BU. */ }
             }
         }
         const params = new URL(location.href).searchParams;
@@ -75,14 +79,37 @@
     }
 
     function current() {
-        const mid = detectMid() || manualMid;
+        const detected = detectMid();
+        const mid = sessionMid || detected || manualMid;
         const instance = stack();
-        return { mid, stack: instance, persistent: Boolean(mid && instance),
+        return { mid, stack: instance, source: sessionMid ? 'session' : detected ? 'page' : manualMid ? 'manual' : 'unknown', persistent: Boolean(mid && instance),
             scope: `${instance || location.hostname}:${mid || pageId}` };
     }
 
     function scopedKey(key) { return `SFMCFIX:v2:${current().scope}:${key}`; }
     api.context = { current, stackFrom, scopedKey };
+    api.context.refresh = function () {
+        if (contextRefresh) return contextRefresh;
+        contextRefresh = (async () => {
+            if (/^content-builder\./i.test(location.hostname) && api.nativeSession) {
+                // Read the active session afresh; never restore an old customer's
+                // MID from storage or keep a session MID after a failed lookup.
+                sessionMid = asMid(await api.nativeSession.readMid());
+                if (sessionMid) manualMid = null;
+            }
+            const context = current();
+            if (lastScope !== undefined && lastScope !== context.scope) {
+                lastScope = context.scope;
+                settings = {};
+                window.dispatchEvent(new Event('sfmcfix:contextchange'));
+                await loadSettings();
+                window.dispatchEvent(new Event('sfmcfix:preferences'));
+            }
+            renderContext();
+            return current();
+        })().finally(() => { contextRefresh = null; });
+        return contextRefresh;
+    };
     api.uiPreferences = {
         get() { return { hidePreviewIcons: uiSettings.hidePreviewIcons === true }; }
     };
@@ -157,7 +184,8 @@
             settings = result[SETTINGS] || settings;
             window.dispatchEvent(new Event('sfmcfix:preferences'));
         },
-        configureTesters() {
+        async configureTesters() {
+            await api.context.refresh();
             const context = current();
             if (!context.persistent) {
                 alert('Per salvare i destinatari di test, apri Impostazioni SFMC e scegli Imposta MID o Conferma MID per la BU corrente.');
@@ -199,7 +227,8 @@
     }
 
     api.context.configure = async function () {
-        const detected = detectMid();
+        await api.context.refresh();
+        const detected = sessionMid || detectMid();
         if (detected) { alert(`MID rilevato dalla pagina: ${detected}`); return; }
         const hint = rememberedContext();
         const value = prompt('Conferma o inserisci il MID della BU attualmente selezionata in Marketing Cloud. Con lo stesso MID e stack ritrovi i tester già salvati nel browser. Verificalo dopo ogni ricaricamento o cambio BU.', manualMid || hint?.mid || '');
@@ -284,6 +313,7 @@
         }
     }
     api.context.ready = (async () => {
+        await api.context.refresh();
         await Promise.all([loadSettings(), api.storage.getItem(UI_SETTINGS, {}).then(value => { uiSettings = value; }).catch(() => {})]);
         api.storage.onChange(changes => {
             if (changes[SETTINGS]) {
@@ -298,6 +328,11 @@
         });
         window.addEventListener('sfmcfix:preferences', renderContext);
         lastScope = current().scope;
+        window.addEventListener('focus', () => api.context.refresh());
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) api.context.refresh(); });
+        // A BU switch can also happen inside the single-page application.
+        // Refresh only a MID read from the session; explicit page IDs are polled below.
+        setInterval(() => { if (sessionMid && !document.hidden) api.context.refresh(); }, 15000);
         setInterval(() => {
             const scope = current().scope;
             if (scope !== lastScope) {

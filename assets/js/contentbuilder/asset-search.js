@@ -11,12 +11,19 @@
         document: { label: 'Documenti', ids: [11, ...Array.from({ length: 43 }, (_, i) => 101 + i)] }
     };
     let searchJob = null, folderJob = null, folderCache = null;
+    const diagnostics = new Map();
+    const contentType = 'application/json;charset=utf-8;datekind=local';
+    const headers = () => api.nativeSession?.headers() || { Accept: 'application/json', 'Content-Type': contentType,
+        'x-fueldata-version': '1.1', 'X-Requested-With': 'XMLHttpRequest' };
+    function nativeClient() {
+        return api.nativeSession?.client() || (typeof window.Fuel?.ajax === 'function' ? { kind: 'Fuel', ajax: options => window.Fuel.ajax(options) } : null);
+    }
     const abortError = () => Object.assign(new Error('Ricerca interrotta.'), { name: 'AbortError' });
     function check(job) {
         if (job.controller.signal.aborted || job.scope !== api.context.current().scope) throw abortError();
     }
     function job() { return { scope: api.context.current().scope, controller: new AbortController() }; }
-    function nativeRequest(path, options, current) {
+    function nativeRequest(client, path, options, current) {
         return new Promise((resolve, reject) => {
             let xhr;
             const abort = () => {
@@ -28,8 +35,8 @@
             try {
                 // Let the native Fuel client supply its own session headers.
                 // Never read, persist or expose Salesforce access tokens.
-                xhr = window.Fuel.ajax({ url: path, type: options.method, data: options.body, processData: false,
-                    contentType: options.method === 'POST' ? 'application/json' : undefined, dataType: 'json',
+                xhr = client.ajax({ url: path, type: options.method, data: options.body, processData: false,
+                    contentType, headers: headers(), dataType: 'json',
                     useFuel2Token: true, cache: false, timeout: 30000,
                     success: data => complete({ ok: true, json: async () => data }),
                     error: response => complete({ ok: false, status: Number(response?.status) || 0 }) });
@@ -39,14 +46,20 @@
     }
     async function request(path, options, current) {
         check(current);
+        const client = nativeClient();
+        const record = { path: path.split('?')[0], method: options.method, scope: 'ours', transport: client?.kind || 'fetch', status: null };
+        diagnostics.set(record.path, record);
         const timer = setTimeout(() => current.controller.abort(), 30000);
         try {
-            const response = window.Fuel?.ajax ? await nativeRequest(path, options, current) : await fetch(path, { ...options, signal: current.controller.signal,
+            const response = client ? await nativeRequest(client, path, options, current) : await fetch(path, { ...options, signal: current.controller.signal,
                 mode: 'same-origin', credentials: 'same-origin', cache: 'no-store', redirect: 'error',
-                headers: { Accept: 'application/json', ...(options.method === 'POST' ? { 'Content-Type': 'application/json' } : {}) } });
+                headers: headers() });
             check(current);
+            record.status = response.ok ? 200 : Number(response.status) || 0;
             if (!response.ok) {
-                const detail = response.status === 429 ? 'Attendi qualche secondo prima di riprovare.' : 'Verifica la sessione e i permessi della BU corrente.';
+                const detail = response.status === 429 ? 'Attendi qualche secondo prima di riprovare.' : response.status === 403 ?
+                    'Salesforce ha rifiutato la richiesta della sessione attiva. Inserire il MID manualmente non concede l’accesso. Riapri Content Builder dal menu Salesforce e riprova; se persiste, scarica la diagnostica.' :
+                    'Verifica la sessione e i permessi della BU corrente.';
                 throw new Error(`Ricerca Content Builder non disponibile (HTTP ${response.status}). ${detail}`);
             }
             const data = await response.json(); check(current);
@@ -81,12 +94,12 @@
         if (term) {
             if (field === 'id') terms.push(termFilter('id', 'equal', numeric(term, 'ID asset')));
             else {
-                const value = `${mode === 'contains' || mode === 'end' ? '%' : ''}${term}${mode === 'contains' || mode === 'start' ? '%' : ''}`;
-                const filter = property => termFilter(property, mode === 'equal' ? 'equal' : 'like', value);
+                const value = mode === 'end' ? '%' + term : mode === 'start' ? term + '%' : term;
+                const filter = property => termFilter(property, mode === 'equal' ? 'equal' : mode === 'contains' ? 'contains' : 'like', value);
                 terms.push(field === 'both' ? { leftOperand: filter('name'), logicalOperator: 'OR', rightOperand: filter('customerKey') } : filter(field));
             }
         }
-        if (types[type].ids.length) terms.push(termFilter('assetType.id', 'in', types[type].ids));
+        if (types[type].ids.length) terms.push({ property: 'assetType.id', simpleOperator: 'in', values: types[type].ids });
         if (filters.folder) terms.push(termFilter('category.id', 'equal', numeric(filters.folder, 'Cartella')));
         if (filters.from) terms.push(termFilter('modifiedDate', 'greaterThanOrEqual', date(filters.from)));
         if (filters.to) {
@@ -113,8 +126,10 @@
         cancelJob(searchJob);
         const current = searchJob = job();
         try {
+            if (api.context.refresh) await api.context.refresh();
+            check(current);
             // POST /query only reads metadata; no asset create/update/delete endpoint.
-            const raw = await request('/fuelapi/asset/v1/content/assets/query', { method: 'POST', body: JSON.stringify(payload) }, current);
+            const raw = await request('/fuelapi/asset/v1/content/assets/query?scope=ours', { method: 'POST', body: JSON.stringify(payload) }, current);
             const result = collection(raw, page, 50), ids = new Set();
             result.items = result.items.map(asset => {
                 const id = numeric(asset?.id, 'ID asset');
@@ -139,7 +154,7 @@
         current.promise = (async () => {
             const items = [], ids = new Set();
             for (let page = 1; page <= 40; page++) {
-                const data = collection(await request(`/fuelapi/asset/v1/content/categories?$page=${page}&$pageSize=200&$orderBy=id%20ASC`, { method: 'GET' }, current), page, 200);
+                const data = collection(await request(`/fuelapi/asset/v1/content/categories?scope=ours&$page=${page}&$pageSize=200&$orderBy=id%20ASC`, { method: 'GET' }, current), page, 200);
                 if (data.count > 2000) throw new Error('Più di 2000 cartelle: usa la ricerca su tutte le cartelle; il filtro e i percorsi completi non sono disponibili.');
                 for (const folder of data.items) {
                     const id = numeric(folder?.id, 'Cartella');
@@ -158,6 +173,10 @@
     }
     function cancelSearch() { cancelJob(searchJob); searchJob = null; }
     function cancel() { cancelSearch(); cancelJob(folderJob); folderJob = null; }
-    window.addEventListener('sfmcfix:contextchange', () => { cancel(); folderCache = null; });
-    api.assetSearch = { search, folders, cancel, cancelSearch, types };
+    window.addEventListener('sfmcfix:contextchange', () => { cancel(); folderCache = null; diagnostics.clear(); });
+    api.assetSearch = { search, folders, cancel, cancelSearch, types, diagnostics: () => ({
+        feature: 'content-builder-search', version: '1.1.20', date: new Date().toISOString(),
+        context: { source: api.context.current().source || 'unknown', midDetected: Boolean(api.context.current().mid) },
+        requests: Array.from(diagnostics.values(), record => ({ ...record })), headerNames: Object.keys(headers())
+    }) };
 })();
