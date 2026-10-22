@@ -1,8 +1,12 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.17 · 22 ottobre 2026
+Versione 1.1.18 · 22 ottobre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
+
+## Compatibilità con Chrome e Edge
+
+Il pacchetto Manifest V3 usa le API `chrome.*` disponibili anche in Microsoft Edge basato su Chromium. Le verifiche di mittente, documento, contesto BU e accesso allo storage restano le stesse sui due browser. Non vengono aggiunti permessi per Edge. I dati locali appartengono al singolo browser/profilo e non vengono sincronizzati fra Chrome e Edge dall’estensione.
 
 ## Accesso ai salvataggi locali
 
@@ -11,8 +15,8 @@ Prima, una pagina sulla quale era attivo il ponte poteva richiedere tutto lo sto
 Ora:
 
 - Il ponte è attivo solo nei moduli riconosciuti di Contact Builder, Content Builder, Automation Studio, Journey Builder e Query Studio. Non viene attivato su CloudPages, documenti generici o anteprime degli asset.
-- Lo storage Chrome locale e di sessione è limitato ai contesti fidati dell’estensione. I content script passano dal service worker e non leggono direttamente l’archivio.
-- Il service worker verifica identità dell’estensione, URL reale del mittente, scheda e identificativo del documento forniti da Chrome. L’identificativo viene trattato come valore opaco fornito da Chrome, senza imporre un formato UUID. Identificativi assenti o non utilizzabili restano rifiutati; non esiste un ripiego su ID dichiarati dalla pagina, URL o numero del frame.
+- Lo storage locale e di sessione del browser è limitato ai contesti fidati dell’estensione. I content script passano dal service worker e non leggono direttamente l’archivio.
+- Il service worker verifica identità dell’estensione, URL reale del mittente, scheda e identificativo del documento forniti dal browser. L’identificativo viene trattato come valore opaco fornito dal browser, senza imporre un formato UUID. Identificativi assenti o non utilizzabili restano rifiutati; non esiste un ripiego su ID dichiarati dalla pagina, URL o numero del frame.
 - Le pagine non possono elencare l’intero archivio, cancellarlo globalmente, impostare chiavi arbitrarie o eliminare versioni. Le operazioni pericolose dell’archivio SQL sono riservate alla pagina interna dell’estensione.
 - Content Builder riceve soltanto la rubrica della BU autorizzata; Automation Studio può leggere e aggiungere soltanto le versioni del relativo contesto. Una conferma nel mondo isolato del content script autorizza dominio, stack e MID. Lo script della pagina non può sostituire la funzione che mostra questa conferma.
 - L’autorizzazione è associata al documento, conservata nello storage di sessione e limitata nel tempo. Un altro documento o un’altra BU richiedono una nuova conferma. Le notifiche contengono solo la proiezione autorizzata, senza i valori precedenti di altre BU.
@@ -72,6 +76,6 @@ CLONE e MULTI ROWS possono produrre scritture reali nella DE, usando i permessi 
 - **LocalStorage dei moduli.** Cronologie e bozze Query Studio restano nei dati del relativo sito, accessibili agli script di quella stessa origine. La separazione per MID evita il riuso accidentale del contesto, ma non sostituisce la sicurezza del sito. Non inserirvi password, token o altri segreti nelle query.
 - **Sessione Salesforce e dati reali.** Un permesso valido può comunque consentire una modifica sbagliata. Verifica BU, DE, chiavi e valori prima di salvare. L’estensione non può correggere i permessi dell’account o impedire tutte le azioni di un sito già compromesso.
 - **Contenuti e API native.** Le integrazioni dipendono dall’interfaccia Salesforce e possono richiedere manutenzione quando cambia. La protezione del browser e l’autenticazione del tenant restano responsabilità dei rispettivi sistemi.
-- **Distribuzione e aggiornamenti.** Il pacchetto è un’estensione caricata in modalità sviluppatore. Installa versioni provenienti dal repository atteso e mantieni aggiornati Chrome e il sistema operativo. Una distribuzione aziendale tramite Chrome gestito o Chrome Web Store può migliorare controllo delle versioni e provenienza; non è una garanzia automatica di assenza di vulnerabilità.
+- **Distribuzione e aggiornamenti.** Il pacchetto è un’estensione caricata in modalità sviluppatore. Installa versioni provenienti dal repository atteso e mantieni aggiornati il browser e il sistema operativo. Una distribuzione aziendale tramite browser gestiti, Microsoft Edge Add-ons o Chrome Web Store può migliorare controllo delle versioni e provenienza; non è una garanzia automatica di assenza di vulnerabilità.
 
 Per dati che richiedono protezioni ulteriori serve una scelta architetturale: per esempio rinunciare al salvataggio locale del SQL, oppure introdurre un archivio cifrato con una chiave gestita fuori dal codice dell’estensione. Inserire una chiave fissa nel pacchetto non renderebbe sicuro l’archivio.

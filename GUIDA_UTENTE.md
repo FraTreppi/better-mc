@@ -1,20 +1,24 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.17 · Autore: Francesco Trepiccioni
+Versione 1.1.18 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
 ## Installazione e aggiornamento
 
 1. Estrai lo ZIP in una cartella permanente. All’interno deve essere presente il file `manifest.json`.
-2. Apri `chrome://extensions` in Chrome e attiva **Modalità sviluppatore**.
-3. Premi **Carica estensione non pacchettizzata** e seleziona la cartella che contiene `manifest.json`.
+2. In **Microsoft Edge** apri `edge://extensions`; in **Google Chrome** apri `chrome://extensions`. Attiva **Modalità sviluppatore**.
+3. In Edge premi **Carica decompressa**; in Chrome **Carica estensione non pacchettizzata**. Seleziona la cartella che contiene `manifest.json`.
 4. Se hai una vecchia copia dell’estensione attiva, disabilitala per evitare comandi duplicati.
 5. Aggiorna le schede Marketing Cloud già aperte.
 
 Per aggiornare una copia già installata, sostituisci i file nella **stessa cartella**, premi **Ricarica** sulla scheda dell’estensione e aggiorna Marketing Cloud. Evita di disinstallare l’estensione per un normale aggiornamento: la disinstallazione rimuove rubrica e versioni SQL conservate dall’estensione.
 
-Non servono Node, npm, un server o password da inserire nell’estensione. Usa una versione aggiornata di Chrome, almeno 111. Il file ZIP va estratto: non si installa con un doppio clic.
+Lo stesso ZIP è compatibile con **Google Chrome e Microsoft Edge basato su Chromium**. Usa una versione aggiornata del browser; il requisito Chromium minimo è 111. Non servono Node, npm, un server o password da inserire nell’estensione. Il file ZIP va estratto: non si installa con un doppio clic. L’installazione descritta è manuale, in modalità sviluppatore; non richiede l’opzione che consente estensioni da altri store.
+
+I dati locali di Chrome e Edge sono **separati**, anche sullo stesso computer. Installare l’estensione in Edge non importa automaticamente tester locali, cronologie, preferenze o copie SQL da Chrome. Imposta la BU nel nuovo browser e scegli la sorgente tester; se usi la DE `tester_content_builder`, gli stessi contatti possono essere letti da entrambi. Anche il login a Marketing Cloud deve essere effettuato nel browser nel quale lavori.
+
+Se il browser aziendale impedisce l’attivazione della modalità sviluppatore o il caricamento, chiedi all’amministratore IT di autorizzare l’estensione.
 
 ## Business Unit, MID e accesso ai dati locali
 
@@ -36,7 +40,7 @@ Le icone **Impostazioni SFMC** e **Test History** compaiono soltanto in **Previe
 
 Per nascondere completamente entrambe le icone:
 
-1. Clicca l’icona dell’estensione nella barra di Chrome.
+1. Clicca l’icona dell’estensione nella barra del browser.
 2. Nella pagina **Impostazioni e versioni**, disattiva **Mostra le icone Impostazioni SFMC e Test History in Preview and Test**.
 3. Per riattivarle, torna alla stessa pagina e rimetti la spunta.
 
@@ -62,7 +66,7 @@ Predisponi questa struttura in **ciascuna BU** dove vuoi usare i tester. Non ser
 
 4. Aggiungi i contatti dai **Records** della DE oppure importali. Nel pacchetto trovi **esempi/tester_content_builder.csv** con una riga dimostrativa: sostituiscila con i tuoi contatti reali prima dell’importazione.
 5. In **Tester BU**, scegli **Data Extension condivisa: tester_content_builder**. L’estensione verifica nome, External Key, percorso e campi e indica quanti tester ha letto.
-6. Premi **Salva sorgente**. La scelta resta in questo profilo Chrome per quella BU; ogni collega la imposta nel proprio browser.
+6. Premi **Salva sorgente**. La scelta resta in questo profilo browser per quella BU; ogni collega la imposta nel proprio browser.
 
 Nel campo **type a name...** dei destinatari di prova, digita almeno **tre caratteri** di nome, cognome o email. Compaiono fino a cinque suggerimenti alla volta, con nome e indirizzo. Un clic inserisce l’email nei destinatari nativi di Salesforce. I campi Nome e Cognome servono alla ricerca: non sostituiscono la DE e la riga usate da Salesforce per la personalizzazione della preview.
 
@@ -200,7 +204,7 @@ Nella scheda **Activity** dell’automation, accanto alle due date del **Run Log
 
 - Clicca il pulsante: passa a **ON** e il primo aggiornamento parte dopo cinque secondi. Seguono aggiornamenti ogni cinque secondi.
 - Cliccalo di nuovo: torna a **OFF** e interrompe gli aggiornamenti automatici. Una richiesta già partita può completarsi.
-- Viene azionato lo stesso pulsante refresh nativo sulla destra, mantenendo date e filtro di stato selezionati. La scheda Chrome non viene ricaricata.
+- Viene azionato lo stesso pulsante refresh nativo sulla destra, mantenendo date e filtro di stato selezionati. La scheda del browser non viene ricaricata.
 - Se il comando nativo è disabilitato o una richiesta di refresh osservata è ancora in corso, quel giro viene saltato.
 
 Il pulsante rimane attivo anche se Salesforce ricostruisce il Run Log dopo un aggiornamento. Quando il Run Log non è visibile, i clic automatici sono sospesi; tornando al Run Log della stessa automation riprendono. Aprendo un’altra automation, cambiando BU, chiudendo o ricaricando la scheda, l’automatismo si disattiva: va riacceso con un clic.
@@ -231,7 +235,7 @@ Le copie sono organizzate per attività e data di modifica. Non rappresentano tu
 
 ## Impostazioni e versioni SQL
 
-Clicca l’icona dell’estensione nella barra di Chrome per aprire **Impostazioni e versioni**.
+Clicca l’icona dell’estensione nella barra del browser per aprire **Impostazioni e versioni**.
 
 - Cerca per nome attività, MID o stack.
 - Espandi un gruppo per vedere le versioni disponibili.
@@ -302,7 +306,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **chrome://extensions** mostri la versione **1.1.17**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.18**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.
@@ -314,7 +318,7 @@ Non serve disinstallare l’estensione o cancellare i dati locali. Il messaggio 
 
 | Dati | Dove si trovano |
 | --- | --- |
-| Rubrica locale, scelta della sorgente tester e copie SQL delle Query Activity | Archivio locale dell’estensione nel profilo Chrome, organizzato per stack e MID. |
+| Rubrica locale, scelta della sorgente tester e copie SQL delle Query Activity | Archivio locale dell’estensione nel profilo del browser, organizzato per stack e MID. |
 | Rubrica DE condivisa | Record in Salesforce; copia temporanea in memoria nella scheda, per cinque minuti. |
 | DE recenti, automation recenti, Test History e bozze Query Studio | Dati locali del sito/modulo nel profilo browser; temporanei se manca un contesto completo. |
 | Scelta di mostrare le due icone | Impostazione generale dell’estensione per quel profilo. |

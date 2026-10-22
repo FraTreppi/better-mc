@@ -1,3 +1,9 @@
+# 1.1.18 — 22 ottobre 2026
+
+- Pacchetto unico esplicitamente supportato su Google Chrome e Microsoft Edge basato su Chromium. Aggiornate descrizione e istruzioni di download, installazione manuale da edge://extensions, aggiornamento e separazione dei salvataggi locali fra browser.
+- Confermate su Microsoft Edge ufficiale le API native del service worker, l’accesso protetto allo storage, l’identità dei documenti, i salvataggi tester per BU e le notifiche alle pagine. Aggiunta una verifica ripetibile del pacchetto realmente caricato, senza simulare le API dell’estensione o modificare policy del browser.
+- Messaggio relativo all’identità del documento reso indipendente dal nome del browser. Permessi e controlli di sicurezza invariati. Guida utente Markdown e PDF aggiornata.
+
 # 1.1.17 — 22 ottobre 2026
 
 - Aggiunto Auto refresh 5s ON/OFF nella barra del Run Log in Automation Studio, accanto alle date. Aziona il refresh nativo ogni cinque secondi senza ricaricare la scheda.

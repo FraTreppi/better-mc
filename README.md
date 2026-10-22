@@ -1,16 +1,23 @@
-# SFMC UI Fixer — Multi BU 1.1.17
+# SFMC UI Fixer — Multi BU 1.1.18
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
-[Scarica il progetto](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-ui-fixer-multi-bu-diagnostica.zip)
+[Scarica lo ZIP per Chrome e Microsoft Edge](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-ui-fixer-multi-bu-diagnostica.zip)
 
 La **[Guida utente](GUIDA_UTENTE.md)**, disponibile anche come **[PDF](GUIDA_UTENTE.pdf)**, descrive tutte le funzionalità e come usarle: installazione, configurazione delle BU, rubrica tester, cronologie, Tracking Test, strumenti DE, Automation Studio, Query Studio e Journey Builder.
 
 ## Installazione e aggiornamento
 
-Estrai lo ZIP, apri `chrome://extensions`, attiva Modalità sviluppatore e scegli **Carica estensione non pacchettizzata** sulla cartella contenente `manifest.json`. Richiede Chrome 111 o successivo.
+Lo stesso ZIP funziona su **Google Chrome e Microsoft Edge basato su Chromium**. Estrailo in una cartella permanente, poi:
+
+- **Edge:** apri `edge://extensions`, attiva **Modalità sviluppatore**, premi **Carica decompressa** e seleziona la cartella contenente `manifest.json`.
+- **Chrome:** apri `chrome://extensions`, attiva **Modalità sviluppatore** e scegli **Carica estensione non pacchettizzata** sulla stessa cartella.
+
+Usa un browser aggiornato; il requisito Chromium minimo è 111. Lo ZIP è per l’installazione manuale in modalità sviluppatore: non è una pubblicazione su Microsoft Edge Add-ons o Chrome Web Store.
 
 Per aggiornare, sostituisci i file nella stessa cartella e premi **Ricarica** sull’estensione. Poi aggiorna le schede Marketing Cloud. Non serve disinstallarla; mantenere la stessa installazione conserva i suoi salvataggi.
+
+I salvataggi locali sono separati fra Chrome, Edge e i relativi profili: non vengono trasferiti automaticamente. In Edge imposta la BU e la sorgente tester; la DE condivisa può fornire la stessa rubrica a entrambi i browser.
 
 ## Funzionalità
 
@@ -31,7 +38,7 @@ Crea in ogni BU **Data Extensions → SFMC_UI_Fixer → tester_content_builder**
 
 ## Sicurezza e dati
 
-La versione 1.1.17 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. Rifiutare non disabilita le altre funzioni.
+La versione 1.1.18 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. Le anteprime bloccano script, navigazione e risorse esterne; le immagini HTTPS richiedono un comando e una conferma espliciti. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 

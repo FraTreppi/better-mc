@@ -1,7 +1,7 @@
 // Privileged storage stays in the extension. Page scripts receive only an
 // explicitly approved BU view, never the full archive or a network proxy.
 'use strict';
-const VERSION = '1.1.17';
+const VERSION = '1.1.18';
 function failure(code, message) { return Object.assign(new Error(message), { code }); }
 const SETTINGS = 'SFMCFIX---SETTINGS-V2';
 const UI = 'SFMCFIX---UI-PREFERENCES';
@@ -64,11 +64,11 @@ function source(sender) {
     if (sender.url === chrome.runtime.getURL('assets/html/activity-versioning.html')) return { internal: true };
     const page = pageRole(sender.url);
     if (!page) throw failure('DOCUMENT_MODULE', 'Il documento non appartiene a un modulo Salesforce supportato. Riapri il modulo dal menu Marketing Cloud.');
-    // Chrome supplies this identifier: treat it as opaque, never derive or
+    // The browser supplies this identifier: treat it as opaque, never derive or
     // replace it with a page-provided value, URL, tab ID or frame ID.
     if (typeof sender.documentId !== 'string' || !sender.documentId.length || sender.documentId.length > 128 ||
         /[\s\u0000-\u001f\u007f]/.test(sender.documentId) || forbidden(sender.documentId)) {
-        throw failure('DOCUMENT_ID', 'Chrome non ha fornito un identificativo documento utilizzabile. Aggiorna il browser e ricarica l’estensione e la scheda Marketing Cloud.');
+        throw failure('DOCUMENT_ID', 'Il browser non ha fornito un identificativo documento utilizzabile. Aggiorna il browser e ricarica l’estensione e la scheda Marketing Cloud.');
     }
     if (!Number.isInteger(sender.tab?.id) || sender.tab.id < 0) throw failure('DOCUMENT_TAB', 'Scheda del documento non riconosciuta. Riapri Marketing Cloud in una scheda normale.');
     return { ...page, id: sender.documentId, tabId: sender.tab.id };

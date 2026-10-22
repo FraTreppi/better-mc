@@ -193,13 +193,13 @@ Il `localStorage` non equivale a un archivio protetto o a un backup centralizzat
 
 ## 9. Installazione e distribuzione
 
-Per provarla ora: estrai `dist/sfmc-ui-fixer-multi-bu-diagnostica.zip`, apri `chrome://extensions`, attiva Modalità sviluppatore, scegli Carica estensione non pacchettizzata e seleziona la cartella estratta contenente `manifest.json`. Disabilita l'originale se era già installata, poi ricarica Marketing Cloud.
+Per provarla ora su Chrome o Microsoft Edge: estrai `dist/sfmc-ui-fixer-multi-bu-diagnostica.zip`, apri `chrome://extensions` in Chrome o `edge://extensions` in Edge, attiva Modalità sviluppatore e scegli Carica estensione non pacchettizzata (Chrome) o Carica decompressa (Edge). Seleziona la cartella estratta contenente `manifest.json`. Disabilita l'originale se era già installata, poi ricarica Marketing Cloud.
 
 Per una distribuzione ordinaria con **Aggiungi a Chrome** serve il Chrome Web Store: account sviluppatore, scheda dell'estensione, descrizioni dei dati/permessi, materiali richiesti dallo store e revisione Google. Il pacchetto ZIP è il sorgente da caricare, non un'installazione automatica già pubblicata. In aziende con Chrome gestito l'amministratore può valutare le policy di distribuzione.
 
 Questa distinzione è prevista dalla [documentazione ufficiale Chrome sulla distribuzione](https://developer.chrome.com/docs/extensions/how-to/distribute). L'installazione di sviluppo è descritta nel [tutorial ufficiale](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world).
 
-Non è stata effettuata una pubblicazione né modificata la configurazione di Chrome dell'utente.
+Per la distribuzione ordinaria su Microsoft Edge è disponibile Microsoft Edge Add-ons, con account sviluppatore e revisione dello store. Non è stata effettuata una pubblicazione su alcuno store né modificata la configurazione del browser dell’utente. Il pacchetto condiviso usa le API `chrome.*` supportate da entrambi i browser; non richiede un manifest Edge separato. I dati locali non si trasferiscono automaticamente fra browser o profili.
 
 ## 10. Verifiche eseguite e collaudo ancora necessario
 
@@ -241,3 +241,10 @@ La compatibilità universale e il collegamento Email Studio non possono essere d
 L’estensione non richiede una build o dipendenze npm. Modifica i sorgenti, ricarica l’estensione dalla pagina Estensioni e aggiorna le pagine Marketing Cloud aperte. Il distribuibile aggiornato si trova in `dist/sfmc-ui-fixer-multi-bu-diagnostica.zip`, con `manifest.json` alla radice.
 
 Il pacchetto caricato originariamente non includeva i file `tests/extension.test.cjs` e `scripts/package_extension.py` citati nella documentazione precedente: quei comandi non sono disponibili in questo checkout. I controlli descritti sopra sono stati eseguiti durante lo sviluppo. La guida di collaudo Markdown e PDF descrive le prove da eseguire sul tenant.
+
+
+## Compatibilità Edge dalla versione 1.1.18
+
+È stato caricato il pacchetto estratto sul browser ufficiale Microsoft Edge 155.0.4283.62 per Linux, con le API native dell’estensione: service worker, storage locale e di sessione con accesso protetto, identificativi documento nativi, consenso nel content script isolato, salvataggio e rilettura dei tester della singola BU, pagina interna delle impostazioni e notifiche dirette al documento. Sono riuscite sullo stesso Edge anche le verifiche browser della rubrica DE, del download CSV di 100.000 record e del refresh automatico del Run Log. Le pagine Salesforce della verifica sono simulate; non è una sessione autenticata nel tenant né una prova su ogni sistema operativo.
+
+La verifica ripetibile è `tests/extension.browser.cjs`, con Playwright disponibile e Microsoft Edge installato. Per scegliere un eseguibile specifico imposta `SFMCFIX_CHROMIUM_PATH`; per un’installazione Playwright esterna al progetto imposta `SFMCFIX_PLAYWRIGHT_MODULE`. Per esempio: `SFMCFIX_CHROMIUM_PATH=/percorso/msedge node tests/extension.browser.cjs`. Il test usa un profilo temporaneo ed elimina soltanto quel profilo al termine. Se le policy impediscono le estensioni di sviluppo, la prova resta bloccata: il test non modifica le policy. Anche le verifiche browser CSV, sorgente tester e Run Log accettano lo stesso percorso del browser.
