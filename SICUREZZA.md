@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.14 · 22 ottobre 2026
+Versione 1.1.15 · 22 ottobre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -50,7 +50,9 @@ Implementazione: [anteprime](assets/js/contentbuilder/previewandtest.js), [Query
 
 ## File, cronologie e scritture su Salesforce
 
-Il CSV usa una copia della risposta della pagina corrente, associata a DE, contesto BU e richiesta. Una nuova lettura invalida la copia precedente; errori, pagine vuote e risposte superate non la riattivano. L’URL temporaneo del download viene revocato dopo l’avvio, evitando di trattenere vecchi file in memoria.
+Il CSV completo esegue soltanto GET della DE selezionata, sulla stessa origine e con la sessione corrente. Non usa i filtri della griglia, un proxy del worker o credenziali aggiuntive. Il lavoro resta associato a GUID e contesto BU: cambi DE/BU ed annullamento interrompono le richieste e non avviano un download parziale.
+
+Le risposte vengono validate rispetto a conteggio e schema, con controllo delle chiavi primarie ripetute quando presenti. Le pagine vengono convertite in Blob CSV e mantenute nell’ordine corretto; non viene conservata l’intera DE come lista di oggetti JSON, né salvata nello storage dell’estensione. Al termine vengono verificati nuovamente schema e conteggio. La lettura non è transazionale: una modifica che conserva il totale e non genera duplicati può non essere rilevata. L’URL temporaneo del download viene revocato dopo l’avvio e i riferimenti ai blocchi vengono rilasciati.
 
 I CSV neutralizzano i valori con prefissi interpretabili come formule, oltre a gestire separatori e virgolette. Questa protezione può far importare numeri negativi come testo e non sostituisce le impostazioni del programma che apre il file.
 

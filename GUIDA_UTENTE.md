@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.14 · Autore: Francesco Trepiccioni
+Versione 1.1.15 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -167,15 +167,20 @@ I campi chiave e quelli obbligatori vengono evidenziati. La validazione controll
 
 ### CSV
 
-Il pulsante **CSV** scarica i record della **sola pagina caricata**, usando il separatore **|**. La dimensione totale della DE non cambia il numero di righe esportate: se la pagina contiene 50 record, il file contiene quei 50 record. Per esportare l’intera DE usa il comando nativo **Export**.
+Il pulsante **CSV** scarica **tutti i record salvati nella DE corrente**, anche se sono distribuiti su molte pagine. Per esempio, una DE con **100.000 record** viene letta dalla prima all’ultima pagina e produce un unico file con tutti i 100.000 record e l’intestazione dei campi.
 
-1. Apri **Records** e scegli pagina, quantità di righe ed eventuale ricerca o ordinamento tramite i controlli Salesforce.
-2. Attendi il caricamento dei record. Il pulsante CSV rimane disabilitato durante la richiesta, dopo un errore o quando la pagina è vuota.
-3. Passa sul pulsante per vedere quanti record della pagina sono pronti, poi premi **CSV**.
+1. Apri **Records** della DE che vuoi scaricare.
+2. Premi **CSV**. La pagina selezionata, la quantità di righe visibili e i filtri della griglia non limitano il contenuto del file.
+3. Segui l’avanzamento sotto la barra dei comandi, per esempio **Letti 34.600 / 100.000 record**. Il pulsante CSV resta disabilitato mentre il lavoro è in corso.
+4. Attendi il messaggio **Download CSV avviato** e il file nella cartella dei download del browser. Puoi interrompere prima con **Annulla CSV**.
 
-Il nome del file indica l’identificativo della DE, la pagina quando disponibile, il numero di righe e la data tecnica del download. Cambiare DE, BU o pagina richiede una nuova risposta valida: non viene riutilizzato il file della vista precedente. Se i record erano già caricati prima dell’attivazione dell’estensione e il CSV resta disabilitato, passa a **Properties** e poi torna a **Records**.
+La lettura usa la sessione e i permessi della BU attiva e non modifica i record. Il file viene preparato per blocchi, senza tenere tutti i record JSON in un’unica lista. Una DE vuota produce un CSV con la sola intestazione. Il nome del file contiene l’identificativo della DE, il totale dei record e la data tecnica del download.
 
-Il file usa UTF-8 per conservare gli accenti. Virgolette, separatori contenuti nei valori e ritorni a capo vengono conservati nel formato CSV. I valori che potrebbero essere interpretati come formule da un foglio di calcolo ricevono un apostrofo iniziale; anche un numero negativo può quindi essere importato come testo. Il file contiene dati della DE e resta nella cartella dei download scelta dal browser.
+Se cambi DE o BU o esci da Records durante il lavoro, l’esportazione viene annullata. Puoi invece spostarti tra le pagine della stessa griglia: il download continua a leggere l’intera DE. Errori, pagine incomplete e variazioni rilevate nei dati interrompono il lavoro con un messaggio; il file viene scaricato soltanto dopo il completamento delle letture e dei controlli finali. Dopo aver risolto l’errore puoi premere nuovamente CSV per ripartire da zero.
+
+Per un risultato coerente, esegui il download quando importazioni, query e aggiornamenti della DE sono fermi. La lettura avviene in più richieste e non blocca la DE: le verifiche rilevano variazioni del totale, dello schema e chiavi primarie ripetute, ma non garantiscono una fotografia immutabile dei dati. Tempo e dimensione del download dipendono anche dalla connessione e dal contenuto dei campi.
+
+Il file usa **UTF-8** e il separatore **|**. Accenti, virgolette, separatori contenuti nei valori e ritorni a capo vengono conservati nel formato CSV. I valori che potrebbero essere interpretati come formule da un foglio di calcolo ricevono un apostrofo iniziale; anche un numero negativo può quindi essere importato come testo. In Excel importa gli identificativi lunghi o con zeri iniziali come **Testo**. Il CSV contiene dati della DE e resta nella cartella dei download scelta dal browser.
 
 ### Analisi SMS e URL media
 
@@ -282,7 +287,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **chrome://extensions** mostri la versione **1.1.14**.
+1. Controlla che la scheda su **chrome://extensions** mostri la versione **1.1.15**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

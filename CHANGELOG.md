@@ -1,3 +1,11 @@
+# 1.1.15 — 22 ottobre 2026
+
+- CSV ora esporta l’intera DE selezionata, senza limitarsi alla pagina caricata e senza ereditare filtri della griglia. Lettura paginata di tutti i record, anche 100.000, con adattamento alla dimensione effettiva restituita dal server.
+- Avanzamento leggibile, annullamento e blocco del secondo avvio. Cambio DE/BU o uscita da Records annullano il lavoro; le pagine della stessa DE possono essere navigate durante l’esportazione.
+- Fino a tre letture contemporanee con ordine di uscita preservato, timeout e tentativi limitati per errori temporanei e rate limit. Blocchi CSV in Blob senza accumulare tutti gli oggetti JSON, conservazione di UTF-8 e protezione dalle formule.
+- Validazione di schema, totale, pagine complete e chiavi primarie uniche; controlli finali e download soltanto a lettura completata. Una DE vuota produce le intestazioni. Nessun limite aggiunto di 1000 o 100.000 record e nessuna scrittura nella DE.
+- Aggiornate guida Markdown/PDF e regressioni per esportazione completa, 100.000 record, annullamento, cambi contesto, schema e conteggio modificati, errori ed assenza di file parziali.
+
 # 1.1.14 — 22 ottobre 2026
 
 - CSV della pagina corrente separato dalla cache globale dei metadati DE e associato a GUID, BU e singola richiesta. Una nuova richiesta o un cambio contesto invalidano subito i dati; risposte tardive, fuori ordine, errori e pagine vuote non recuperano la copia precedente.
