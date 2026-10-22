@@ -1,3 +1,10 @@
+# 1.1.16 — 22 ottobre 2026
+
+- Corretta la lettura della rubrica DE quando Salesforce restituisce i campi Email/Nome/Cognome in minuscolo o con maiuscole diverse dai nomi dichiarati nello schema. Gestiti anche i record suddivisi in keys/values.
+- La sorgente DE accetta Nome e Cognome testuali fino a 4000 caratteri, senza escludere un contatto valido per il precedente limite di 250 caratteri. Limiti e validazione della rubrica locale restano invariati.
+- Le esclusioni indicano motivo e conteggio: Email mancante o non valida, nomi non validi, formato non riconosciuto o campi ambigui. Nessun valore personale nei messaggi. Copie identiche dello stesso campo vengono riunite; valori in conflitto non vengono risolti scegliendo un indirizzo arbitrariamente.
+- Salva sorgente resta disabilitato se tutte le righe presenti sono inutilizzabili; una DE realmente vuota resta configurabile. Aggiornate guida e regressioni su lettura, ricerca e selezione dei tester senza invii.
+
 # 1.1.15 — 22 ottobre 2026
 
 - CSV ora esporta l’intera DE selezionata, senza limitarsi alla pagina caricata e senza ereditare filtri della griglia. Lettura paginata di tutti i record, anche 100.000, con adattamento alla dimensione effettiva restituita dal server.

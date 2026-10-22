@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.15 · Autore: Francesco Trepiccioni
+Versione 1.1.16 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -56,8 +56,8 @@ Predisponi questa struttura in **ciascuna BU** dove vuoi usare i tester. Non ser
 
 | Campo | Configurazione |
 | --- | --- |
-| Nome | Text, lunghezza 100, Nullable. |
-| Cognome | Text, lunghezza 100, Nullable. |
+| Nome | Text, lunghezza consigliata 100, Nullable. Sono accettati anche campi più lunghi, fino a 4000 caratteri. |
+| Cognome | Text, lunghezza consigliata 100, Nullable. Sono accettati anche campi più lunghi, fino a 4000 caratteri. |
 | Email | EmailAddress, lunghezza 254, Primary Key, obbligatorio. |
 
 4. Aggiungi i contatti dai **Records** della DE oppure importali. Nel pacchetto trovi **esempi/tester_content_builder.csv** con una riga dimostrativa: sostituiscila con i tuoi contatti reali prima dell’importazione.
@@ -68,7 +68,9 @@ Nel campo **type a name...** dei destinatari di prova, digita almeno **tre carat
 
 Per aggiungere, modificare o rimuovere tester condivisi, modifica i record in Salesforce. I colleghi con i permessi necessari sulla stessa DE vedono gli aggiornamenti alla successiva lettura. I contatti vengono conservati **solo in memoria per cinque minuti**; riapri **Tester BU → Verifica e carica DE** per rileggerli subito. L’estensione non crea la cartella o la DE e non scrive né cancella i suoi record.
 
-La rubrica ammette fino a **1000 righe**. Le email non valide vengono escluse e segnalate nel conteggio; gli indirizzi duplicati compaiono una volta sola. Una DE vuota è valida. Se DE, percorso o schema non corrispondono, i permessi mancano o la lettura supera il limite, compare un messaggio e non viene usata una lista parziale né la rubrica locale in sostituzione. La ricerca usa la sessione della BU attiva; confermare un MID non cambia cliente. Un cambio contesto svuota i suggerimenti e interrompe le letture in corso.
+La rubrica ammette fino a **1000 righe**. I record con email mancanti, non valide o campi ambigui vengono esclusi: il pannello indica quanti e per quale motivo, senza riportarne i valori. Se tutte le righe risultano non utilizzabili, correggi il problema e premi **Verifica e carica DE** prima di salvare la sorgente. La lettura gestisce anche i nomi restituiti dall’API in minuscolo o con maiuscole diverse; mantieni nello schema della DE i nomi Nome, Cognome ed Email indicati sopra.
+
+Gli indirizzi duplicati compaiono una volta sola. Una DE vuota è valida. Se DE, percorso o schema non corrispondono, i permessi mancano o la lettura supera il limite, compare un messaggio e non viene usata una lista parziale né la rubrica locale in sostituzione. La ricerca usa la sessione della BU attiva; confermare un MID non cambia cliente. Un cambio contesto svuota i suggerimenti e interrompe le letture in corso.
 
 ### Rubrica locale del browser
 
@@ -287,7 +289,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **chrome://extensions** mostri la versione **1.1.15**.
+1. Controlla che la scheda su **chrome://extensions** mostri la versione **1.1.16**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

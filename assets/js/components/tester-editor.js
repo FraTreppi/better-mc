@@ -73,8 +73,14 @@
                 if (!api.testerSource) throw new Error('Ricarica la scheda Marketing Cloud per attivare la sorgente DE.');
                 const result = await api.testerSource.list({ source: 'de', refresh });
                 if (generation !== loadGeneration || source.value !== 'de' || api.context.current().scope !== context.scope) return;
-                deReady = true;
-                deStatus.textContent = `${result.testers.length} tester disponibili. ${result.invalid ? `${result.invalid} righe non valide escluse. ` : ''}Premi Salva sorgente per usarli. I dati vengono riletti dopo cinque minuti o con Verifica e carica DE.`;
+                deReady = result.testers.length > 0 || result.invalid === 0;
+                const reasons = { missingEmail: 'campo Email non trovato nella risposta', invalidEmail: 'Email vuota, non valida o di tipo errato',
+                    invalidNames: 'Nome/Cognome non testuali o troppo lunghi', ambiguousFields: 'campi duplicati o ambigui', invalidFormat: 'formato record non riconosciuto' };
+                const details = Object.entries(result.invalidReasons || {}).filter(([, count]) => count > 0)
+                    .map(([reason, count]) => `${count}: ${reasons[reason] || 'record non valido'}`).join('; ');
+                deStatus.textContent = `${result.testers.length} tester disponibili. ${result.invalid ? `${result.invalid} righe escluse${details ? ` (${details})` : ''}. ` : ''}${deReady ?
+                    'Premi Salva sorgente per usarli. I dati vengono riletti dopo cinque minuti o con Verifica e carica DE.' :
+                    'Nessun tester utilizzabile: verifica i Records e premi Verifica e carica DE.'}`;
                 deLink.href = api.links.contactBuilder(result.id);
                 deLink.hidden = false;
             } catch (error) {

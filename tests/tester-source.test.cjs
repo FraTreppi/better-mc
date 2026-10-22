@@ -81,3 +81,41 @@ test('a late response from the previous BU cannot populate contacts or cache', a
     assert.equal(data.scope, 's50:999');
     assert.equal(f.calls.filter(c => c.target.includes('/category/0')).length, 2);
 });
+
+test('reads declared Email/Nome/Cognome when Salesforce returns lowercase, mixed-case or keys/values attributes', async () => {
+    const f = fixture({ records: [
+        { email: 'one@example.com', nome: 'Uno', cognome: 'Tester' },
+        { EMAIL: ' two@example.com ', NoMe: 'Due', COGNOME: 'Tester' },
+        { keys: { email: 'three@example.com' }, values: { nome: 'Tre', cognome: 'Tester' } },
+        { Keys: { Email: 'four@example.com' }, Values: { Nome: 'Quattro', Cognome: 'Tester' } },
+        { email: 'long@example.com', nome: 'N'.repeat(400), cognome: null },
+        { Email: 'same@example.com', keys: { email: 'same@example.com' }, values: { Nome: 'Same' } }
+    ] });
+    const result = await f.source.list();
+    assert.equal(result.testers.length, 6);
+    assert.equal(result.invalid, 0);
+    assert.deepEqual(clone(result.testers.slice(0, 4)), [
+        ['Tester', 'Uno', 'one@example.com'], ['Tester', 'Due', 'two@example.com'],
+        ['Tester', 'Tre', 'three@example.com'], ['Tester', 'Quattro', 'four@example.com']
+    ]);
+    assert.equal(result.testers[4][1].length, 400);
+});
+
+test('reports why records are excluded without leaking their values or accepting ambiguous email fields', async () => {
+    const f = fixture({ records: [
+        { email: 'not-email', nome: 'PRIVATE_NAME' },
+        { Email: 'one@example.com', email: 'other@example.com' },
+        { keys: { Email: 'one@example.com' }, values: { email: 'other@example.com' } },
+        { nome: 'PRIVATE_NAME' },
+        { email: 'valid@example.com', nome: { secret: 'DO_NOT_EXPOSE' } },
+        { email: 'valid@example.com', nome: 'N'.repeat(4001) },
+        null
+    ] });
+    const result = await f.source.list();
+    assert.equal(result.testers.length, 0);
+    assert.equal(result.invalid, 7);
+    assert.deepEqual(clone(result.invalidReasons), { missingEmail: 1, invalidEmail: 1, invalidNames: 2, ambiguousFields: 2, invalidFormat: 1 });
+    assert.ok(!JSON.stringify(result).includes('PRIVATE_NAME'));
+    assert.ok(!JSON.stringify(result).includes('DO_NOT_EXPOSE'));
+    assert.ok(!JSON.stringify(result).includes('other@example.com'));
+});

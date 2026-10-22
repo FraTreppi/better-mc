@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.15 · 22 ottobre 2026
+Versione 1.1.16 · 22 ottobre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -36,7 +36,7 @@ Non è presente un backend di telemetria dell’estensione. Le immagini esterne 
 
 La sorgente opzionale `tester_content_builder` esegue soltanto GET relativi alla stessa origine Content Builder, con la sessione corrente, senza un proxy dell’estensione. Nome ed External Key sono fissi; la cartella deve essere figlia diretta della radice locale Data Extensions e lo schema viene verificato prima dei record. Non legge automaticamente DE condivise, di altri stack o una DE con nome simile. Non richiede un Installed Package, credenziali aggiuntive né scritture in Salesforce.
 
-I dati letti vengono proiettati sui tre campi previsti, limitati a 1000 righe, validati e conservati solo in memoria per cinque minuti. La scelta della sorgente viene salvata per BU; la vecchia rubrica locale non viene eliminata. Cambi contesto interrompono le richieste e svuotano i suggerimenti; gli errori non attivano un ripiego silenzioso sulla rubrica locale. I destinatari scelti possono comunque comparire nello storico locale degli invii di prova. Le chiamate usano API interne Salesforce: disponibilità e autorizzazioni dipendono dal tenant.
+I dati letti vengono proiettati sui tre campi previsti, limitati a 1000 righe, validati e conservati solo in memoria per cinque minuti. I nomi dei campi nei record sono confrontati senza distinguere maiuscole e minuscole; sono riconosciute anche le raccolte Salesforce keys/values, senza cercare ricorsivamente indirizzi in altri metadati. Copie identiche dello stesso campo vengono riunite; valori in conflitto vengono esclusi. Nome e Cognome della sorgente DE ammettono fino a 4000 caratteri; il limite della rubrica locale resta invariato. Le motivazioni delle righe escluse sono soltanto categorie e conteggi, senza dati personali nei messaggi. La scelta della sorgente viene salvata per BU; la vecchia rubrica locale non viene eliminata. Cambi contesto interrompono le richieste e svuotano i suggerimenti; gli errori non attivano un ripiego silenzioso sulla rubrica locale. I destinatari scelti possono comunque comparire nello storico locale degli invii di prova. Le chiamate usano API interne Salesforce: disponibilità e autorizzazioni dipendono dal tenant.
 
 ## Contenuti mostrati nell’interfaccia
 

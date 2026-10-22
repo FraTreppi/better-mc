@@ -96,18 +96,43 @@
         // Endpoint and flat item shape used by the native DE records collection.
         const records = await pages(`/fuelapi/internal/v1/customObjectData/${de.id}/`, 200, 1000);
         const contacts = new Map();
-        let invalid = 0;
-        for (const row of records) {
-            if (!row || typeof row.Email !== 'string' || !emailPattern.test(row.Email.trim()) || row.Email.trim().length > 254 ||
-                ![row.Nome, row.Cognome].every(value => value == null || (typeof value === 'string' && value.length <= 250))) {
-                invalid++;
-                continue;
+        const invalidReasons = { missingEmail: 0, invalidEmail: 0, invalidNames: 0, ambiguousFields: 0, invalidFormat: 0 };
+        // Metadata preserves the declared names, while record endpoints can
+        // lowercase them. Rowsets can also split the PK and other attributes
+        // into keys/values. Read only these three fields, without guessing or
+        // recursively searching unrelated metadata for an email address.
+        function values(row) {
+            if (!row || typeof row !== 'object' || Array.isArray(row)) return { issue: 'invalidFormat' };
+            const result = new Map();
+            let ambiguous = false;
+            function collect(part) {
+                for (const [key, value] of Object.entries(part)) {
+                    const field = key.toLowerCase();
+                    if (!['email', 'nome', 'cognome'].includes(field)) continue;
+                    if (result.has(field) && result.get(field) !== value) ambiguous = true;
+                    result.set(field, value);
+                }
             }
-            const email = row.Email.trim();
-            contacts.set(email.toLowerCase(), [(row.Cognome || '').trim(), (row.Nome || '').trim(), email]);
+            collect(row);
+            for (const [key, part] of Object.entries(row)) {
+                if (['keys', 'values'].includes(key.toLowerCase()) && part && typeof part === 'object' && !Array.isArray(part)) collect(part);
+            }
+            if (ambiguous) return { issue: 'ambiguousFields' };
+            if (!result.has('email')) return { issue: 'missingEmail' };
+            const email = result.get('email');
+            if (typeof email !== 'string' || !emailPattern.test(email.trim()) || email.trim().length > 254) return { issue: 'invalidEmail' };
+            const first = result.get('nome'), last = result.get('cognome');
+            if (![first, last].every(value => value == null || (typeof value === 'string' && value.length <= 4000))) return { issue: 'invalidNames' };
+            return { email: email.trim(), tester: [(last || '').trim(), (first || '').trim(), email.trim()] };
         }
+        for (const row of records) {
+            const entry = values(row);
+            if (entry.issue) invalidReasons[entry.issue]++;
+            else contacts.set(entry.email.toLowerCase(), entry.tester);
+        }
+        const invalid = Object.values(invalidReasons).reduce((sum, count) => sum + count, 0);
         checkContext();
-        return { testers: Array.from(contacts.values()), invalid, id: de.id, scope: context.scope, loaded: Date.now() };
+        return { testers: Array.from(contacts.values()), invalid, invalidReasons, id: de.id, scope: context.scope, loaded: Date.now() };
     }
 
     api.testerSource = {
