@@ -1,3 +1,10 @@
+# 1.1.19 — 22 ottobre 2026
+
+- Aggiunta ricerca Advanced accanto al campo Search di Content Builder. Cerca per nome, Customer Key o ID in tutte le cartelle della BU corrente, con corrispondenza testuale, tipi di asset, cartella specifica, date UTC di ultima modifica e ordinamento.
+- Risultati paginati fino a 50 elementi, percorsi cartelle in memoria e apertura nella stessa scheda tramite riga nativa o percorso interno degli asset. Riconosciuti campo Search e righe Content Builder forniti dall’utente; nessuna operazione nel cestino.
+- Lettura dei metadati tramite query asset e categorie della stessa origine, con client Fuel quando disponibile. Interruzione, timeout, errori espliciti e protezione dalle risposte obsolete al cambio filtri o BU; nessun nuovo permesso o salvataggio persistente.
+- Aggiunte verifiche della query, del client nativo e dell’interfaccia su Chromium/Edge; estesa la prova del pacchetto realmente caricato. Aggiornate guida Markdown/PDF e documentazione di sicurezza.
+
 # 1.1.18 — 22 ottobre 2026
 
 - Pacchetto unico esplicitamente supportato su Google Chrome e Microsoft Edge basato su Chromium. Aggiornate descrizione e istruzioni di download, installazione manuale da edge://extensions, aggiornamento e separazione dei salvataggi locali fra browser.

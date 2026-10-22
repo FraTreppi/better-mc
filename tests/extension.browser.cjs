@@ -32,7 +32,12 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
         await ctx.route('https://**/*', route => {
             const url = new URL(route.request().url());
             if (url.pathname === '/jquery.js') return route.fulfill({ contentType: 'application/javascript', body: jquery });
-            return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<html><head><script src="/jquery.js"></script></head><body><main id="preview-panel"><div class="test-send-recipients-tab-content"><div class="test-send-recipients-pillbox"><input class="pillbox-add-item"></div></div></main><button>Send Test</button></body></html>' });
+            if (url.pathname === '/fuelapi/asset/v1/content/categories') return route.fulfill({ json: { count: 2, page: 1, pageSize: 200, items: [{ id: 10, parentId: 0, name: 'Content Builder' }, { id: 20, parentId: 10, name: 'Campagne' }] } });
+            if (url.pathname === '/fuelapi/asset/v1/content/assets/query') {
+                assert.equal(route.request().method(), 'POST');
+                return route.fulfill({ json: { count: 1, page: 1, pageSize: 50, items: [{ id: 1001, name: 'Newsletter', customerKey: 'mail-key', assetType: { id: 208, name: 'htmlemail' }, category: { id: 20, name: 'Campagne' } }] } });
+            }
+            return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<html><head><script src="/jquery.js"></script></head><body><div style="width:360px"><input type="search" class="form-control dropdown-toggle" placeholder="Search"></div><main id="preview-panel"><div class="test-send-recipients-tab-content"><div class="test-send-recipients-pillbox"><input class="pillbox-add-item"></div></div></main><button>Send Test</button></body></html>' });
         });
         const page = await ctx.newPage(); watch(page);
         let grants = 0;
@@ -69,8 +74,16 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
         await page.locator('.previewandtest-toolbox').waitFor({ state: 'visible' });
         const savedUI = await worker.evaluate(async UI => (await chrome.storage.local.get(UI))[UI], UI);
         assert.equal(savedUI.hidePreviewIcons, false);
+        await editor.getByRole('button', { name: 'Annulla', exact: true }).click(); await editor.waitFor({ state: 'detached' });
+        await page.getByRole('button', { name: 'Advanced', exact: true }).click();
+        const search = page.locator('#sfmcfix-asset-search');
+        await search.locator('[name="term"]').fill('Newsletter');
+        await search.getByRole('button', { name: 'Cerca', exact: true }).click();
+        await search.locator('[data-status]').getByText('1–1 di 1 risultati.', { exact: true }).waitFor();
+        assert.ok((await search.locator('tbody').textContent()).includes('Newsletter'));
+        await search.getByRole('button', { name: 'Chiudi', exact: true }).click(); await search.waitFor({ state: 'detached' });
         assert.deepEqual(errors, []); assert.deepEqual(consoleErrors, []);
-        console.log(`PASS real extension ${manifest.version}: service worker, protected local/session APIs, isolated consent with native document IDs, scoped tester save/reload, other BU preserved, internal settings, live document notifications and Tracking Test visibility.`);
+        console.log(`PASS real extension ${manifest.version}: service worker, protected local/session APIs, isolated consent with native document IDs, scoped tester save/reload, other BU preserved, internal settings, live document notifications Tracking Test visibility and Advanced metadata search through real extension resources.`);
     } finally {
         if (ctx) await ctx.close();
         fs.rmSync(profile, { recursive: true, force: true });

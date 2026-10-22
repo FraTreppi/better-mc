@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.18 · 22 ottobre 2026
+Versione 1.1.19 · 22 ottobre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -39,6 +39,12 @@ Non è presente un backend di telemetria dell’estensione. Le immagini esterne 
 ## Aggiornamento del Run Log
 
 L’automatismo è disattivato all’apertura e aziona ogni cinque secondi soltanto l’unico refresh riconosciuto nel Run Log accanto alle due date. Usa la gestione nativa di Salesforce, senza introdurre endpoint, permessi o salvataggi aggiuntivi. Non aziona Run Once, Save o Delete. Si sospende quando il Run Log non è visibile e si disattiva cambiando automation o contesto BU. Le richieste jQuery avviate dal clic riconosciuto vengono osservate soltanto per attenderne il completamento, senza leggerne le risposte o modificarle. Il riconoscimento dipende dal DOM dell’interfaccia nativa.
+
+## Ricerca Advanced in Content Builder
+
+La ricerca usa soltanto la query di lettura `POST /fuelapi/asset/v1/content/assets/query` e l’elenco cartelle `GET /fuelapi/asset/v1/content/categories`, sulla stessa origine del modulo. Se disponibile, il client Fuel nativo fornisce la propria gestione della sessione; in alternativa vengono usate richieste fetch della stessa origine. Non vengono letti o conservati token. Il POST contiene una query sui metadati e non crea, modifica o elimina asset. Non sono aggiunti permessi né un proxy del worker.
+
+Le risposte vengono ridotte ai metadati necessari per un massimo di 50 risultati per pagina. HTML, testo delle email e thumbnail non vengono richiesti né visualizzati. Nomi, chiavi e percorsi sono inseriti con textContent; le destinazioni interne si basano su ID numerici validati. Il clic su una riga nativa già presente viene riutilizzato quando disponibile. Filtri, risultati e modelli dei percorsi nativi rimangono nella scheda; soltanto le cartelle hanno una cache in memoria di cinque minuti, limitata a 2000 voci e separata per contesto. Chiusura e cambio BU interrompono le richieste; le risposte obsolete non possono riempire un nuovo pannello. La funzione non modifica lo storage dell’estensione né introduce azioni sul cestino.
 
 ## Rubrica DE condivisa
 
