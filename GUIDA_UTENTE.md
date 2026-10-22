@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.13 · Autore: Francesco Trepiccioni
+Versione 1.1.14 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -167,9 +167,15 @@ I campi chiave e quelli obbligatori vengono evidenziati. La validazione controll
 
 ### CSV
 
-Il pulsante **CSV** scarica i record già caricati nella pagina corrente, usando il separatore **|**. Non scarica automaticamente l’intera DE: per quella operazione usa l’esportazione nativa di Salesforce.
+Il pulsante **CSV** scarica i record della **sola pagina caricata**, usando il separatore **|**. La dimensione totale della DE non cambia il numero di righe esportate: se la pagina contiene 50 record, il file contiene quei 50 record. Per esportare l’intera DE usa il comando nativo **Export**.
 
-Virgolette e ritorni a capo vengono conservati nel formato CSV. I valori che potrebbero essere interpretati come formule da un foglio di calcolo ricevono un apostrofo iniziale; anche un numero negativo può quindi essere importato come testo. Il file contiene dati della DE e resta nella cartella dei download scelta dal browser.
+1. Apri **Records** e scegli pagina, quantità di righe ed eventuale ricerca o ordinamento tramite i controlli Salesforce.
+2. Attendi il caricamento dei record. Il pulsante CSV rimane disabilitato durante la richiesta, dopo un errore o quando la pagina è vuota.
+3. Passa sul pulsante per vedere quanti record della pagina sono pronti, poi premi **CSV**.
+
+Il nome del file indica l’identificativo della DE, la pagina quando disponibile, il numero di righe e la data tecnica del download. Cambiare DE, BU o pagina richiede una nuova risposta valida: non viene riutilizzato il file della vista precedente. Se i record erano già caricati prima dell’attivazione dell’estensione e il CSV resta disabilitato, passa a **Properties** e poi torna a **Records**.
+
+Il file usa UTF-8 per conservare gli accenti. Virgolette, separatori contenuti nei valori e ritorni a capo vengono conservati nel formato CSV. I valori che potrebbero essere interpretati come formule da un foglio di calcolo ricevono un apostrofo iniziale; anche un numero negativo può quindi essere importato come testo. Il file contiene dati della DE e resta nella cartella dei download scelta dal browser.
 
 ### Analisi SMS e URL media
 
@@ -276,7 +282,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **chrome://extensions** mostri la versione **1.1.13**.
+1. Controlla che la scheda su **chrome://extensions** mostri la versione **1.1.14**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

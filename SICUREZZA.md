@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.13 · 22 ottobre 2026
+Versione 1.1.14 · 22 ottobre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -49,6 +49,8 @@ Le pagine interne privilegiate dell’estensione non sono più esposte come riso
 Implementazione: [anteprime](assets/js/contentbuilder/previewandtest.js), [Query Studio](assets/js/querystudio/_index.js), [Automation Studio](assets/js/automation/_index.js), [manifest](manifest.json).
 
 ## File, cronologie e scritture su Salesforce
+
+Il CSV usa una copia della risposta della pagina corrente, associata a DE, contesto BU e richiesta. Una nuova lettura invalida la copia precedente; errori, pagine vuote e risposte superate non la riattivano. L’URL temporaneo del download viene revocato dopo l’avvio, evitando di trattenere vecchi file in memoria.
 
 I CSV neutralizzano i valori con prefissi interpretabili come formule, oltre a gestire separatori e virgolette. Questa protezione può far importare numeri negativi come testo e non sostituisce le impostazioni del programma che apre il file.
 

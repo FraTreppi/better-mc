@@ -1,3 +1,11 @@
+# 1.1.14 — 22 ottobre 2026
+
+- CSV della pagina corrente separato dalla cache globale dei metadati DE e associato a GUID, BU e singola richiesta. Una nuova richiesta o un cambio contesto invalidano subito i dati; risposte tardive, fuori ordine, errori e pagine vuote non recuperano la copia precedente.
+- Cattura dei record tramite prefilter e Deferred jQuery, anche con global:false e percorsi API con maiuscole/minuscole diverse. Copia dei valori prima della formattazione nativa per la griglia; gestione dei campi presenti soltanto in alcune righe.
+- Pulsante disabilitato finché la pagina non è disponibile e coerente con il selettore nativo; tooltip con il numero effettivo di righe esportabili, indipendente dal conteggio totale della DE. Nome file con GUID, pagina e numero di righe.
+- CSV UTF-8 con BOM, costruzione in blocchi, mantenimento delle protezioni contro formule e dei caratteri speciali. Revoca degli URL Blob dopo il download per liberare le risorse tra esportazioni.
+- Aggiunta regressione browser con richieste concorrenti, errori, navigazione A→B→A, cambio BU, risposte senza eventi globali, pagine da DE grandi e carichi di molte righe. Guida utente aggiornata senza risultati di collaudo.
+
 # 1.1.13 — 22 ottobre 2026
 
 - Il documentId fornito da Chrome viene trattato come identificativo opaco, senza presumere un formato UUID. Restano obbligatori mittente dell’estensione, modulo supportato, scheda valida e identità del documento; nessun ripiego su identificativi dichiarati dalla pagina o sul frame.

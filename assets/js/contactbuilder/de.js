@@ -379,45 +379,159 @@
         fields: [],
     };
 
-    var storeRecords = function(e, res, xhr, _data) {
-        const routeId = location.hash.match(/#admin\/data-extension\/([^/]+)/)?.[1];
-        if (!routeId || !xhr.url.toLowerCase().includes(routeId.toLowerCase())) return;
+    // A CSV belongs to one completed grid request, not to the global DE metadata.
+    const csvRequests = new WeakMap();
+    let csvIdentity = null;
+    let csvEpoch = 0;
+    let csvSequence = 0;
+    let csvStatus = 'waiting';
+    let csvPage = null;
+    const deIdPattern = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 
-        if(xhr.url.includes(`/contactsmeta/fuelapi/internal/v1/CustomObjectData/`)) {
-            currentDEData.records = _data.items || [];
-        } else if(xhr.url.includes(`/contactsmeta/fuelapi/internal/v1/customobjects/`)) {
-            if(xhr.url.includes(`/fields`)) {
-                currentDEData.fieldCount = _data.fieldCount;
-                currentDEData.fields = _data.fields;   
-            } else {
-                currentDEData = {...currentDEData, ..._data};
-            }
+    function csvContext() {
+        const match = location.hash.match(new RegExp('^#admin/data-extension/(' + deIdPattern + ')/(records)(?:/|$)', 'i'));
+        return match ? { id: match[1].toLowerCase(), scope: sfmcfix.context.current().scope } : null;
+    }
+    function syncCsvContext() {
+        const context = csvContext();
+        const identity = context ? `${context.scope}/${context.id}` : null;
+        if (identity !== csvIdentity) {
+            csvIdentity = identity;
+            csvEpoch++;
+            csvSequence++;
+            csvPage = null;
+            csvStatus = 'waiting';
+        }
+        return context;
+    }
+    function nativeDeRequest(options) {
+        try {
+            const url = new URL(options.url, location.href);
+            if (url.origin !== location.origin) return null;
+            const match = url.pathname.match(new RegExp('^/contactsmeta/fuelapi/internal/v1/(customobjectdata|customobjects)/(' + deIdPattern + ')(/fields)?/?$', 'i'));
+            if (!match || (match[1].toLowerCase() === 'customobjectdata' && match[3])) return null;
+            return { id: match[2].toLowerCase(), records: match[1].toLowerCase() === 'customobjectdata', fields: Boolean(match[3]), url };
+        } catch (_) { return null; }
+    }
+    function csvReady() {
+        syncCsvContext();
+        if (csvStatus !== 'ready' || !csvPage?.rows.length) return false;
+        const input = document.querySelector('#dataExtension .repeater-pagination .repeater-secondaryPaging');
+        const visiblePage = Number(input?.value);
+        return !(visiblePage > 0 && csvPage.page > 0 && visiblePage !== csvPage.page);
+    }
+    function updateCsvButton() {
+        const ready = csvReady();
+        const messages = {
+            waiting: 'CSV non pronto: attendi i record. Se erano già caricati prima dell’estensione, riapri la scheda Records.',
+            loading: 'Caricamento della pagina in corso: il CSV precedente non è disponibile.',
+            error: 'Lettura dei record non riuscita: ricarica la pagina dei record prima di esportare.',
+            empty: 'La pagina caricata non contiene record da esportare.'
+        };
+        $('#axportascsv').prop('disabled', !ready).attr({
+            title: ready ? `Scarica i ${csvPage.rows.length} record della sola pagina caricata.` :
+                messages[csvStatus] || 'Attendi il caricamento della pagina selezionata.',
+            'aria-busy': String(csvStatus === 'loading'),
+            'data-record-count': String(ready ? csvPage.rows.length : 0)
+        });
+    }
+    function storeRecords(e, response, options, data) {
+        const request = nativeDeRequest(options);
+        if (!request || request.records || !data || typeof data !== 'object') return;
+        const id = location.hash.match(new RegExp('^#admin/data-extension/(' + deIdPattern + ')(?:/|$)', 'i'))?.[1].toLowerCase();
+        const owner = csvRequests.get(response);
+        if (request.id !== id || (owner && owner.scope !== sfmcfix.context.current().scope)) return;
+        if (request.fields) {
+            currentDEData.fieldCount = data.fieldCount;
+            currentDEData.fields = Array.isArray(data.fields) ? data.fields : [];
+        } else {
+            // Metadata must not overwrite the independently owned CSV rows.
+            const { records, ...metadata } = data;
+            currentDEData = { ...currentDEData, ...metadata, records: [] };
         }
     }
+    function observeDeRequest(options, originalOptions, xhr) {
+        const request = nativeDeRequest(options);
+        if (!request) return;
+        const context = syncCsvContext();
+        csvRequests.set(xhr, { scope: sfmcfix.context.current().scope });
+        if (!request.records || request.id !== context?.id || String(options.type || options.method || 'GET').toUpperCase() !== 'GET') return;
+        const ticket = { epoch: csvEpoch, sequence: ++csvSequence, ...context };
+        csvPage = null;
+        csvStatus = 'loading';
+        updateCsvButton();
+        const isCurrent = () => {
+            const now = syncCsvContext();
+            return now?.id === ticket.id && now.scope === ticket.scope && ticket.epoch === csvEpoch && ticket.sequence === csvSequence;
+        };
+        // Deferred callbacks also see requests with global:false, and run before
+        // native success handlers format/escape the response for the grid.
+        xhr.done(data => {
+            if (!isCurrent()) return;
+            if (!Array.isArray(data?.items) || data.items.some(row => !row || typeof row !== 'object' || Array.isArray(row) ||
+                Object.values(row).some(value => value !== null && !['string', 'number', 'boolean', 'undefined'].includes(typeof value)))) {
+                csvStatus = 'error';
+                updateCsvButton();
+                return;
+            }
+            const rows = data.items.map(row => Object.fromEntries(Object.entries(row)));
+            const names = new Set();
+            for (const row of rows) for (const key of Object.keys(row)) names.add(key);
+            const columns = Array.from(names);
+            const params = new URLSearchParams(typeof options.data === 'string' ? options.data : options.data || {});
+            const page = Number(request.url.searchParams.get('$page') || params.get('$page'));
+            csvPage = { ...ticket, rows, columns, page: Number.isInteger(page) && page > 0 ? page : null };
+            csvStatus = rows.length ? 'ready' : 'empty';
+            updateCsvButton();
+        });
+        xhr.fail(() => {
+            if (!isCurrent()) return;
+            csvPage = null;
+            csvStatus = 'error';
+            updateCsvButton();
+        });
+        xhr.always(() => queueMicrotask(() => {
+            // The native success handler can update its page selector after
+            // our snapshot. Recheck once the complete callback stack finishes.
+            if (isCurrent()) updateCsvButton();
+        }));
+    }
 
-    var exportRexcordsAsCsv = function() {
-        if(currentDEData?.records?.length) {
-            const csv = value => {
-                let text = String(value ?? '');
-                // Quoting alone does not prevent spreadsheet formula execution.
-                if (/^[\s\u0000-\u001f]*[=+@-]/.test(text)) text = "'" + text;
-                return `"${text.replaceAll('"', '""')}"`;
-            };
-            let headline = Object.keys(currentDEData?.records[0]).map((field) => {
-                const ff = currentDEData?.fields?.find((f) => f.name.toLowerCase() === field.toLowerCase());
-                return csv(ff?.name || field);
-            }).join('|') + '\r\n';
-            let values = currentDEData?.records.map((row) => Object.keys(currentDEData.records[0]).map(key => csv(row[key])).join('|')).join('\r\n');
-            var a = document.createElement("a");
-            var file = new Blob([headline+values], {type: 'text/csv'});
-            a.href = URL.createObjectURL(file);
-            a.download = `dataextension-view-${new Date().getTime()}.csv`;
-            a.click();
-
-            setTimeout(() => {
-                $(a).remove();
-            },5000);
+    var exportRexcordsAsCsv = function(event) {
+        event?.preventDefault();
+        if (!csvReady()) {
+            updateCsvButton();
+            sfmcfix.notificationLogger('error', null, 'CSV non disponibile: attendi o ricarica i record della pagina corrente.');
+            return false;
         }
+        const snapshot = csvPage;
+        const csv = value => {
+            let text = String(value ?? '');
+            if (/^[\s\u0000-\u001f]*[=+@-]/.test(text)) text = "'" + text;
+            return `"${text.replaceAll('"', '""')}"`;
+        };
+        // Build bounded chunks; do not allocate one enormous joined string or
+        // recompute all columns for every row. BOM preserves accents in Excel.
+        const parts = ['\ufeff', snapshot.columns.map(csv).join('|') + '\r\n'];
+        let chunk = '';
+        for (const row of snapshot.rows) {
+            chunk += snapshot.columns.map(key => csv(row[key])).join('|') + '\r\n';
+            if (chunk.length >= 256 * 1024) { parts.push(chunk); chunk = ''; }
+        }
+        if (chunk) parts.push(chunk);
+        const file = new Blob(parts, { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(file);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `dataextension-${snapshot.id}-page-${snapshot.page || 'view'}-rows-${snapshot.rows.length}-${Date.now()}.csv`;
+        anchor.hidden = true;
+        document.body.appendChild(anchor);
+        try { anchor.click(); }
+        finally {
+            anchor.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }
+        return false;
     }
 
     var moveFast = function() {
@@ -448,6 +562,8 @@
         const scope = sfmcfix.context.current().scope;
         if (recordsScope !== scope || window.currentDEData?.id !== routeId) window.currentDEData = { records: [], fields: [], fieldCount: 0 };
         recordsScope = scope;
+        syncCsvContext();
+        updateCsvButton();
 
 
         $(document).off('focus','.editableInput.form-control:not(.wrapped)', focusListener);
@@ -539,6 +655,8 @@
                     }
                 }
 
+                updateCsvButton();
+
                 const $pager = $('#dataExtension .repeater-pagination');
                 if($pager.length) {
                     if(!$pager.find('.repeater-last').length) $pager.find('.repeater-next').after(`<button type="button" class="btn btn-default btn-sm btn-navigate-fast repeater-last"><span class="glyphicon glyphicon-chevron-right"></span><span class="glyphicon glyphicon-chevron-right"></span><span class="sr-only">Last Page</span></button>`);
@@ -587,6 +705,7 @@
 
     sfmcfix.retryjQ (() => {
         $ = window.jQuery;
+        $.ajaxPrefilter(observeDeRequest);
         $(document).on('click','[data-action="navigate-to-folder"]', function() {
             const catid = $(this).data('categoryid');
             const obj = {
