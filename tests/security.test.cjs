@@ -7,7 +7,7 @@ const SETTINGS = 'SFMCFIX---SETTINGS-V2', UI = 'SFMCFIX---UI-PREFERENCES';
 const bucket = scope => `SFMCFIX:v2:${scope}:SFMCFIX---ACTIVITYVERSIONING`;
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const clone = v => JSON.parse(JSON.stringify(v));
-function workerFixture() {
+function workerFixture(options = {}) {
     const state = { local: { [SETTINGS]: { 's50:123': { testers: [['Rossi', 'Mario', 'mario@example.com']] },
         's50:999': { testers: [['PRIVATE_OTHER_BU', '', 'other@example.com']] } },
         [UI]: { hidePreviewIcons: false, secret: 'PRIVATE_UI_FIELD' },
@@ -18,7 +18,7 @@ function workerFixture() {
     let notify = () => {};
     const storage = {};
     for (const area of ['local', 'session']) storage[area] = {
-        setAccessLevel: async options => access.push([area, options.accessLevel]),
+        setAccessLevel: options.failAccess ? () => { throw Error('Native API unavailable'); } : async options => access.push([area, options.accessLevel]),
         get: (keys, cb) => cb(keys == null ? clone(state[area]) : Object.fromEntries(keys.filter(k => state[area][k] !== undefined).map(k => [k, clone(state[area][k])]))),
         set: (items, cb) => {
             const patch = {};
@@ -107,7 +107,7 @@ test('Chrome document IDs with 32 hex digits can authorize only their own BU', a
     assert.equal((await w.request(sender, 'authorize', {}, 's50:123')).ok, true);
     assert.equal((await w.request(sender, 'get', { keys: [SETTINGS] }, 's50:123')).ok, true);
     assert.equal((await w.request(sender, 'get', { keys: [SETTINGS] }, 's50:999')).ok, false);
-    for (const documentId of ['', '---'.repeat(12), 'g'.repeat(32), 'a'.repeat(31), 'a'.repeat(33)]) {
+    for (const documentId of ['', null, 123, ' ', 'bad\nID', '__proto__', 'constructor', 'a'.repeat(129)]) {
         assert.equal((await w.request({ ...sender, documentId }, 'register', {})).ok, false);
     }
     const original = clone(w.state.local[SETTINGS]['s50:123'].testers);
@@ -116,4 +116,31 @@ test('Chrome document IDs with 32 hex digits can authorize only their own BU', a
     assert.deepEqual(w.state.local[SETTINGS]['s50:123'].testers, original);
     assert.equal((await w.request(sender, 'merge', { items: { [SETTINGS]: { 's50:123': { testerSource: 'https://arbitrary.invalid/' } } } }, 's50:123')).ok, false);
     assert.equal(w.state.local[SETTINGS]['s50:999'].testerSource, 'local');
+});
+
+test('opaque Chrome identity, module errors and mixed extension versions are handled explicitly', async () => {
+    const w = workerFixture();
+    const sender = { ...w.from('https://content-builder.s50.marketingcloudapps.com/'), documentId: 'opaque-document-token-from-chrome' };
+    const version = JSON.parse(read('manifest.json')).version;
+    const registered = await w.request(sender, 'register', {});
+    assert.equal(registered.ok, true);
+    assert.equal(registered.version, version);
+    assert.equal((await w.request(sender, 'authorize', {}, 's50:123')).ok, true);
+    assert.equal((await w.request(sender, 'get', { keys: [SETTINGS] }, 's50:123')).ok, true);
+    assert.equal((await w.request({ ...sender, documentId: 'another-Chrome-document' }, 'get', { keys: [SETTINGS] }, 's50:123')).ok, false);
+    assert.equal((await w.request({ ...sender, documentId: undefined }, 'register', {})).code, 'DOCUMENT_ID');
+    const shell = { ...sender, url: 'https://mc.s50.exacttarget.com/cloud/#app/Contact%20Builder' };
+    assert.equal((await w.request(shell, 'register', {})).code, 'DOCUMENT_MODULE');
+    const outdated = await w.send({ __sfmcfixStorage: true, clientVersion: '1.1.12', action: 'register' }, sender);
+    assert.equal(outdated.ok, false); assert.equal(outdated.code, 'VERSION_MISMATCH');
+    for (const file of ['assets/js/background.js', 'assets/js/loader.js']) assert.ok(read(file).includes(`const VERSION = '${version}';`));
+});
+
+test('a synchronous storage protection failure still returns a fail-closed error', async () => {
+    const w = workerFixture({ failAccess: true });
+    const sender = w.from('https://content-builder.s50.marketingcloudapps.com/');
+    const response = await w.request(sender, 'register', {});
+    assert.equal(response.ok, false);
+    assert.equal(response.code, 'STORAGE_INIT');
+    assert.ok(!JSON.stringify(response).includes('mario@example.com'));
 });

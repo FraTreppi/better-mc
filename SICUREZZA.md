@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.12 · 22 ottobre 2026
+Versione 1.1.13 · 22 ottobre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -12,7 +12,7 @@ Ora:
 
 - Il ponte è attivo solo nei moduli riconosciuti di Contact Builder, Content Builder, Automation Studio, Journey Builder e Query Studio. Non viene attivato su CloudPages, documenti generici o anteprime degli asset.
 - Lo storage Chrome locale e di sessione è limitato ai contesti fidati dell’estensione. I content script passano dal service worker e non leggono direttamente l’archivio.
-- Il service worker verifica identità dell’estensione, URL reale del mittente, scheda e identificativo del documento forniti da Chrome. Accetta il formato Chrome di 32 cifre esadecimali e il formato UUID con trattini; gli identificativi malformati restano rifiutati.
+- Il service worker verifica identità dell’estensione, URL reale del mittente, scheda e identificativo del documento forniti da Chrome. L’identificativo viene trattato come valore opaco fornito da Chrome, senza imporre un formato UUID. Identificativi assenti o non utilizzabili restano rifiutati; non esiste un ripiego su ID dichiarati dalla pagina, URL o numero del frame.
 - Le pagine non possono elencare l’intero archivio, cancellarlo globalmente, impostare chiavi arbitrarie o eliminare versioni. Le operazioni pericolose dell’archivio SQL sono riservate alla pagina interna dell’estensione.
 - Content Builder riceve soltanto la rubrica della BU autorizzata; Automation Studio può leggere e aggiungere soltanto le versioni del relativo contesto. Una conferma nel mondo isolato del content script autorizza dominio, stack e MID. Lo script della pagina non può sostituire la funzione che mostra questa conferma.
 - L’autorizzazione è associata al documento, conservata nello storage di sessione e limitata nel tempo. Un altro documento o un’altra BU richiedono una nuova conferma. Le notifiche contengono solo la proiezione autorizzata, senza i valori precedenti di altre BU.

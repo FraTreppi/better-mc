@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.12 · Autore: Francesco Trepiccioni
+Versione 1.1.13 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -271,6 +271,18 @@ Per raccogliere informazioni su un problema di navigazione:
 Il file `sfmc-email-studio-diagnostica.json` contiene percorsi e metadati di navigazione; può includere identificativi tecnici come MID e GUID. Non raccoglie i record della DE. Il rapporto non viene inviato automaticamente.
 
 Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più specifica: `sfmc-tracking-diagnostica.json`. Anche questo file viene creato solo quando premi il download.
+
+## Errori dopo un aggiornamento
+
+Se compare un errore di collegamento, di versione o di registrazione del documento:
+
+1. Controlla che la scheda su **chrome://extensions** mostri la versione **1.1.13**.
+2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
+3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
+4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.
+5. Riapri il modulo e riprova la funzione. Se compare una nuova segnalazione, leggi il codice e il testo completo: indicano collegamento interrotto, versioni diverse, modulo non riconosciuto, identificativo documento assente o archivio non inizializzato.
+
+Non serve disinstallare l’estensione o cancellare i dati locali. Il messaggio di registrazione mostra la versione e il percorso del documento che ha fallito, senza query string, fragment, record o credenziali.
 
 ## Dove rimangono i salvataggi
 

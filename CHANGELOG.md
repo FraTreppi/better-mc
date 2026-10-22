@@ -1,3 +1,10 @@
+# 1.1.13 — 22 ottobre 2026
+
+- Il documentId fornito da Chrome viene trattato come identificativo opaco, senza presumere un formato UUID. Restano obbligatori mittente dell’estensione, modulo supportato, scheda valida e identità del documento; nessun ripiego su identificativi dichiarati dalla pagina o sul frame.
+- Loader e worker verificano la propria versione per riconoscere aggiornamenti incompleti e schede con script precedenti. Gli errori di connessione indicano di ricaricare le schede dopo l’estensione.
+- La registrazione non nasconde più la causa: gli errori distinguono mittente, modulo, identità documento, scheda, archivio e versione. Mostrano versione e percorso effettivo, senza URL di sessione o record.
+- Gestita anche un’eccezione sincrona all’avvio dello storage protetto, mantenendo una risposta esplicita e l’accesso bloccato. Aggiunte istruzioni per distinguere vecchie segnalazioni conservate da Chrome dagli errori nuovi.
+
 # 1.1.12 — 22 ottobre 2026
 
 - Corretto il rifiuto “Documento non autorizzato” causato dal controllo che accettava solo identificativi documento con trattini. Sono accettati gli identificativi Chrome di 32 cifre esadecimali, mantenendo controllo del mittente, documento, modulo, stack e BU.

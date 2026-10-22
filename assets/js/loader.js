@@ -9,15 +9,22 @@
         /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/contactsmeta\/admin\.html$/i.test(location.pathname) ? 'contact' :
         /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/AutomationStudioFuel3(?:\/|$)/i.test(location.pathname) ? 'automation' : null;
     if (location.protocol !== 'https:' || !role) return;
+    const VERSION = '1.1.13';
     const CHANNEL = 'sfmcfix-storage';
     let approvedScope = null;
     let authorization;
     let lastDeniedScope = null;
     const send = message => new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ __sfmcfixStorage: true, ...message }, response => {
-            if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
-            response?.ok ? resolve(response.result) : reject(new Error(response?.error || 'Storage non disponibile.'));
-        });
+        function fail(code, message) { reject(new Error(`[${code}] ${message}`)); }
+        try {
+            chrome.runtime.sendMessage({ __sfmcfixStorage: true, ...message, clientVersion: VERSION }, response => {
+                if (chrome.runtime.lastError) return fail('EXTENSION_CONNECTION', 'Collegamento all’estensione interrotto. Dopo aver premuto Ricarica sull’estensione, ricarica tutte le schede Marketing Cloud.');
+                if (response?.version !== VERSION) return fail('VERSION_MISMATCH', `Il worker e la scheda non usano la stessa versione (${VERSION}). Sostituisci tutti i file, premi Ricarica sull’estensione e poi ricarica tutte le schede Marketing Cloud.`);
+                response.ok ? resolve(response.result) : fail(response.code || 'STORAGE_REQUEST', response.error || 'Storage non disponibile.');
+            });
+        } catch (_) {
+            fail('EXTENSION_CONTEXT', 'La scheda è collegata a una vecchia istanza dell’estensione. Ricarica tutte le schede Marketing Cloud.');
+        }
     });
     async function approve(scope) {
         if (!['content', 'automation'].includes(role) || typeof scope !== 'string' ||
@@ -75,7 +82,8 @@
         if (bucket && role === 'automation' && changes[bucket]) visible[bucket] = changes[bucket];
         if (Object.keys(visible).length) window.postMessage({ source: CHANNEL, direction: 'change', changes: visible }, location.origin);
     });
-    send({ action: 'register' }).catch(() => console.error('SFMC Fixer: registrazione del documento non riuscita.'));
+    send({ action: 'register' }).catch(error => console.error(
+        `SFMC Fixer ${VERSION}: registrazione non riuscita. ${error.message} Documento: ${location.origin}${location.pathname}`));
     const config = document.createElement('script');
     config.id = 'sfmc-fixer-config';
     config.type = 'application/json';

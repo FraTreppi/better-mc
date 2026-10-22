@@ -1,6 +1,8 @@
 // Privileged storage stays in the extension. Page scripts receive only an
 // explicitly approved BU view, never the full archive or a network proxy.
 'use strict';
+const VERSION = '1.1.13';
+function failure(code, message) { return Object.assign(new Error(message), { code }); }
 const SETTINGS = 'SFMCFIX---SETTINGS-V2';
 const UI = 'SFMCFIX---UI-PREFERENCES';
 const VERSIONS = 'SFMCFIX---ACTIVITYVERSIONING';
@@ -19,8 +21,8 @@ const read = (area, keys) => new Promise((resolve, reject) => chrome.storage[are
     chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve(items)));
 const write = (area, items) => new Promise((resolve, reject) => chrome.storage[area].set(items, () =>
     chrome.runtime.lastError ? reject(new Error(chrome.runtime.lastError.message)) : resolve(true)));
-const initialized = Promise.all(['local', 'session'].map(area =>
-    chrome.storage[area].setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' }))).then(() => enqueue(async () => {
+const initialized = Promise.resolve().then(() => Promise.all(['local', 'session'].map(area =>
+    chrome.storage[area].setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' })))).then(() => enqueue(async () => {
         const all = await read('local', null);
         const cleaned = {};
         for (const [key, value] of Object.entries(all)) {
@@ -41,7 +43,7 @@ const initialized = Promise.all(['local', 'session'].map(area =>
         }
         if (Object.keys(cleaned).length) await write('local', cleaned);
     }));
-initialized.catch(() => console.error('SFMC Fixer: inizializzazione dello storage protetto non riuscita. Accesso dalla pagina bloccato.'));
+initialized.catch(() => console.error('SFMC Fixer [STORAGE_INIT]: archivio protetto non inizializzato. Ricarica l’estensione e tutte le schede Marketing Cloud.'));
 function pageRole(value) {
     try {
         const url = new URL(value);
@@ -58,10 +60,17 @@ function pageRole(value) {
     } catch (_) { return null; }
 }
 function source(sender) {
-    if (sender.id !== chrome.runtime.id) throw new Error('Mittente non autorizzato.');
+    if (sender.id !== chrome.runtime.id) throw failure('SENDER', 'Mittente non autorizzato.');
     if (sender.url === chrome.runtime.getURL('assets/html/activity-versioning.html')) return { internal: true };
     const page = pageRole(sender.url);
-    if (!page || !/^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(sender.documentId || '') || !Number.isInteger(sender.tab?.id)) throw new Error('Documento non autorizzato.');
+    if (!page) throw failure('DOCUMENT_MODULE', 'Il documento non appartiene a un modulo Salesforce supportato. Riapri il modulo dal menu Marketing Cloud.');
+    // Chrome supplies this identifier: treat it as opaque, never derive or
+    // replace it with a page-provided value, URL, tab ID or frame ID.
+    if (typeof sender.documentId !== 'string' || !sender.documentId.length || sender.documentId.length > 128 ||
+        /[\s\u0000-\u001f\u007f]/.test(sender.documentId) || forbidden(sender.documentId)) {
+        throw failure('DOCUMENT_ID', 'Chrome non ha fornito un identificativo documento utilizzabile. Aggiorna il browser e ricarica l’estensione e la scheda Marketing Cloud.');
+    }
+    if (!Number.isInteger(sender.tab?.id) || sender.tab.id < 0) throw failure('DOCUMENT_TAB', 'Scheda del documento non riconosciuta. Riapri Marketing Cloud in una scheda normale.');
     return { ...page, id: sender.documentId, tabId: sender.tab.id };
 }
 async function registerDocument(caller, scope) {
@@ -201,11 +210,14 @@ async function internalStorage(action, payload) {
 chrome.runtime.onMessage.addListener((msg, sender, respond) => {
     if (!msg?.__sfmcfixStorage && !msg?.__sfmcfixFetch) return;
     (async () => {
-        await initialized;
+        try { await initialized; }
+        catch (_) { throw failure('STORAGE_INIT', 'Archivio protetto non inizializzato. Ricarica l’estensione e tutte le schede Marketing Cloud.'); }
+        if (msg.clientVersion && msg.clientVersion !== VERSION) throw failure('VERSION_MISMATCH', 'La scheda usa una versione precedente del loader. Ricarica tutte le schede Marketing Cloud dopo l’estensione.');
         if (msg.__sfmcfixFetch) throw new Error('Il proxy di rete generico è stato rimosso.');
         const caller = source(sender);
         return caller.internal ? internalStorage(msg.action, msg.payload) : pageStorage(caller, msg.action, msg.payload, msg.scope);
-    })().then(result => respond({ ok: true, result })).catch(error => respond({ ok: false, error: error.message }));
+    })().then(result => respond({ ok: true, result, version: VERSION })).catch(error =>
+        respond({ ok: false, error: error.message, code: error.code || 'STORAGE_REQUEST', version: VERSION }));
     return true;
 });
 // Notify each registered document of its own projection only. Content scripts
