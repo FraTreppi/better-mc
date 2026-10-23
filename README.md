@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.20
+# SFMC UI Fixer — Multi BU 1.1.21
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -39,7 +39,7 @@ Crea in ogni BU **Data Extensions → SFMC_UI_Fixer → tester_content_builder**
 
 ## Sicurezza e dati
 
-La versione 1.1.20 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. Rifiutare non disabilita le altre funzioni.
+La versione 1.1.21 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. Le anteprime bloccano script, navigazione e risorse esterne; le immagini HTTPS richiedono un comando e una conferma espliciti. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
@@ -47,4 +47,4 @@ Queste misure riducono i rischi individuati e non costituiscono una garanzia ass
 
 Vedi **[Sicurezza e limiti](SICUREZZA.md)** per le protezioni e i rischi residui. La [documentazione tecnica](DOCUMENTATION.md) e la [cronologia](CHANGELOG.md) sono separate dalla guida utente.
 
-La 1.1.20 aggiunge il rilevamento automatico del MID dalla sessione Content Builder e allinea le richieste Advanced a intestazioni e scope nativi Salesforce. Un 403 è distinto dal MID non rilevato; gli errori offrono un download diagnostico senza token, termini cercati o dati degli asset.
+La 1.1.21 collega Advanced alla gestione AJAX della pagina, anche quando non esiste un oggetto Fuel pubblico. La ricerca mantiene configurazione e controlli nativi della sessione, con MID automatico e diagnostica scaricabile senza token o dati degli asset.

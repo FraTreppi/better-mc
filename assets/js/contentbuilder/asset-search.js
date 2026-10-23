@@ -16,7 +16,8 @@
     const headers = () => api.nativeSession?.headers() || { Accept: 'application/json', 'Content-Type': contentType,
         'x-fueldata-version': '1.1', 'X-Requested-With': 'XMLHttpRequest' };
     function nativeClient() {
-        return api.nativeSession?.client() || (typeof window.Fuel?.ajax === 'function' ? { kind: 'Fuel', ajax: options => window.Fuel.ajax(options) } : null);
+        return api.nativeSession?.client() || (typeof window.Fuel?.ajax === 'function' ? { kind: 'Fuel', ajax: options => window.Fuel.ajax(options) } :
+            typeof window.jQuery?.ajax === 'function' ? { kind: 'jQuery', ajax: options => window.jQuery.ajax(options) } : null);
     }
     const abortError = () => Object.assign(new Error('Ricerca interrotta.'), { name: 'AbortError' });
     function check(job) {
@@ -47,8 +48,11 @@
     async function request(path, options, current) {
         check(current);
         const client = nativeClient();
-        const record = { path: path.split('?')[0], method: options.method, scope: 'ours', transport: client?.kind || 'fetch', status: null };
+        const record = { path: path.split('?')[0], method: options.method, scope: 'ours', transport: client?.kind || (options.method === 'POST' ? 'unavailable' : 'fetch'), status: null };
         diagnostics.set(record.path, record);
+        if (options.method === 'POST' && !client) {
+            throw new Error('Ricerca Content Builder non disponibile: il client della pagina non è ancora pronto. Attendi il caricamento della libreria e riapri Advanced.');
+        }
         const timer = setTimeout(() => current.controller.abort(), 30000);
         try {
             const response = client ? await nativeRequest(client, path, options, current) : await fetch(path, { ...options, signal: current.controller.signal,
@@ -58,7 +62,7 @@
             record.status = response.ok ? 200 : Number(response.status) || 0;
             if (!response.ok) {
                 const detail = response.status === 429 ? 'Attendi qualche secondo prima di riprovare.' : response.status === 403 ?
-                    'Salesforce ha rifiutato la richiesta della sessione attiva. Inserire il MID manualmente non concede l’accesso. Riapri Content Builder dal menu Salesforce e riprova; se persiste, scarica la diagnostica.' :
+                    'Salesforce ha rifiutato la ricerca tramite il client della pagina. Scarica la diagnostica ricerca per verificare il collegamento e le autorizzazioni.' :
                     'Verifica la sessione e i permessi della BU corrente.';
                 throw new Error(`Ricerca Content Builder non disponibile (HTTP ${response.status}). ${detail}`);
             }
@@ -175,7 +179,7 @@
     function cancel() { cancelSearch(); cancelJob(folderJob); folderJob = null; }
     window.addEventListener('sfmcfix:contextchange', () => { cancel(); folderCache = null; diagnostics.clear(); });
     api.assetSearch = { search, folders, cancel, cancelSearch, types, diagnostics: () => ({
-        feature: 'content-builder-search', version: '1.1.20', date: new Date().toISOString(),
+        feature: 'content-builder-search', version: '1.1.21', date: new Date().toISOString(),
         context: { source: api.context.current().source || 'unknown', midDetected: Boolean(api.context.current().mid) },
         requests: Array.from(diagnostics.values(), record => ({ ...record })), headerNames: Object.keys(headers())
     }) };

@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.20 · Autore: Francesco Trepiccioni
+Versione 1.1.21 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -60,7 +60,7 @@ Nella libreria di **Content Builder**, accanto al campo **Search**, clicca **Adv
 
 **Azzera filtri** ripristina la ricerca globale; premi nuovamente Cerca per eseguirla. **Interrompi** ferma la ricerca in corso. Modificando i filtri, i risultati precedenti vengono rimossi fino alla nuova ricerca. Puoi chiudere il pannello con **Chiudi**, la × o Escape.
 
-Il titolo mostra il MID rilevato dalla sessione. **MID non rilevato** significa che il numero non è disponibile all’estensione: la ricerca usa comunque la BU della sessione Salesforce. Un **HTTP 403** significa che Salesforce ha rifiutato la richiesta; inserire un MID manualmente non concede i permessi mancanti. Riapri Content Builder dal menu Marketing Cloud e riprova. Se l’errore continua, premi **Scarica diagnostica ricerca** e condividi il file per l’assistenza, senza usare la Console. Il rapporto contiene versione, modalità di collegamento, stato HTTP e indicazione del rilevamento MID; non include token, testo cercato, nomi degli asset o record. Non viene inviato automaticamente.
+Il titolo mostra il MID rilevato dalla sessione. **MID non rilevato** significa che il numero non è disponibile all’estensione: la ricerca usa comunque la BU della sessione Salesforce. La ricerca usa la gestione AJAX della pagina Salesforce. Se il client non è ancora disponibile, attendi il caricamento della libreria e riapri Advanced. Un **HTTP 403** significa che Salesforce ha rifiutato la richiesta e può comparire anche con il MID corretto: il codice, da solo, non dimostra che manchino i permessi della BU. Non serve correggere un MID già rilevato correttamente. Se l’errore continua, premi **Scarica diagnostica ricerca** e condividi il file per l’assistenza, senza usare la Console. Il rapporto contiene versione, modalità di collegamento, stato HTTP e indicazione del rilevamento MID; non include token, testo cercato, nomi degli asset o record. Non viene inviato automaticamente.
 
 La ricerca riguarda i metadati degli asset: non legge né cerca dentro il testo o l’HTML delle email. Rispetta i contenuti accessibili alla sessione della BU corrente e non cerca automaticamente nelle altre BU. Aprire un risultato non salva né modifica il contenuto.
 
@@ -326,7 +326,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.20**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.21**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

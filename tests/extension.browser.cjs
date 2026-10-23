@@ -32,16 +32,21 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
         await ctx.route('https://**/*', route => {
             const url = new URL(route.request().url());
             if (url.pathname === '/fuelapi/platform/v1/tokenContext') return route.fulfill({ json: { organization: { id: 123, enterpriseId: 777 }, user: { id: 888 } } });
+            if (url.pathname === '/native-session-fixture.js') return route.fulfill({ contentType: 'application/javascript', body: `
+                jQuery.ajaxSetup({ beforeSend: function(xhr) { xhr.setRequestHeader('X-Fixture-Before-Send', 'configured'); } });
+                jQuery.ajaxPrefilter(function(options, original, xhr) { if (options.useFuel2Token) xhr.setRequestHeader('X-Fixture-Native-Session', 'configured'); });
+            ` });
             if (url.pathname === '/jquery.js') return route.fulfill({ contentType: 'application/javascript', body: jquery });
             if (url.pathname === '/fuelapi/asset/v1/content/categories') return route.fulfill({ json: { count: 2, page: 1, pageSize: 200, items: [{ id: 10, parentId: 0, name: 'Content Builder' }, { id: 20, parentId: 10, name: 'Campagne' }] } });
             if (url.pathname === '/fuelapi/asset/v1/content/assets/query') {
+                if (['x-fixture-before-send', 'x-fixture-native-session'].some(key => route.request().headers()[key] !== 'configured')) return route.fulfill({ status: 403, json: {} });
                 assert.equal(route.request().method(), 'POST');
                 assert.equal(url.searchParams.get('scope'), 'ours');
                 assert.equal(route.request().headers()['x-requested-with'], 'XMLHttpRequest');
                 assert.equal(route.request().headers()['x-fueldata-version'], '1.1');
                 return route.fulfill({ json: { count: 1, page: 1, pageSize: 50, items: [{ id: 1001, name: 'Newsletter', customerKey: 'mail-key', assetType: { id: 208, name: 'htmlemail' }, category: { id: 20, name: 'Campagne' } }] } });
             }
-            return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<html><head><script src="/jquery.js"></script></head><body><div style="width:360px"><input type="search" class="form-control dropdown-toggle" placeholder="Search"></div><main id="preview-panel"><div class="test-send-recipients-tab-content"><div class="test-send-recipients-pillbox"><input class="pillbox-add-item"></div></div></main><button>Send Test</button></body></html>' });
+            return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<html><head><script src="/jquery.js"></script><script src="/native-session-fixture.js"></script></head><body><div style="width:360px"><input type="search" class="form-control dropdown-toggle" placeholder="Search"></div><main id="preview-panel"><div class="test-send-recipients-tab-content"><div class="test-send-recipients-pillbox"><input class="pillbox-add-item"></div></div></main><button>Send Test</button></body></html>' });
         });
         const page = await ctx.newPage(); watch(page);
         let grants = 0;
@@ -86,9 +91,12 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
         await search.getByRole('button', { name: 'Cerca', exact: true }).click();
         await search.locator('[data-status]').getByText('1–1 di 1 risultati.', { exact: true }).waitFor();
         assert.ok((await search.locator('tbody').textContent()).includes('Newsletter'));
+        const report = await page.evaluate(() => sfmcfix.assetSearch.diagnostics());
+        assert.equal(report.requests.find(request => request.method === 'POST').transport, 'jQuery');
+        assert.equal(report.requests.find(request => request.method === 'POST').status, 200);
         await search.getByRole('button', { name: 'Chiudi', exact: true }).click(); await search.waitFor({ state: 'detached' });
         assert.deepEqual(errors, []); assert.deepEqual(consoleErrors, []);
-        console.log(`PASS real extension ${manifest.version}: service worker, protected local/session APIs, isolated consent with native document IDs, scoped tester save/reload, other BU preserved, internal settings, live document notifications Tracking Test visibility and Advanced metadata search through real extension resources.`);
+        console.log(`PASS real extension ${manifest.version}: service worker, protected local/session APIs, isolated consent with native document IDs, scoped tester save/reload, other BU preserved, internal settings, live document notifications Tracking Test visibility and Advanced metadata search through configured jQuery beforeSend/prefilters and real extension resources.`);
     } finally {
         if (ctx) await ctx.close();
         fs.rmSync(profile, { recursive: true, force: true });

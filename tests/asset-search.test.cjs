@@ -5,7 +5,7 @@ function fixture(intercept) {
     let scope = 's50:123';
     const events = new EventTarget(), calls = [], api = { context: { current: () => ({ scope }) } };
     const window = { sfmcfix: api, addEventListener: events.addEventListener.bind(events) };
-    vm.runInNewContext(source, { window, AbortController, setTimeout, clearTimeout, Date, fetch: async (url, options) => {
+    const sandbox = { window, AbortController, setTimeout, clearTimeout, Date, fetch: async (url, options) => {
         calls.push({ url, options });
         assert.ok(url.startsWith('/fuelapi/asset/v1/content/'));
         assert.equal(options.mode, 'same-origin'); assert.equal(options.credentials, 'same-origin'); assert.equal(options.redirect, 'error');
@@ -15,7 +15,15 @@ function fixture(intercept) {
         assert.ok(options.method === 'GET' && url.startsWith('/fuelapi/asset/v1/content/categories?') || options.method === 'POST' && url === '/fuelapi/asset/v1/content/assets/query?scope=ours');
         if (intercept) { const answer = await intercept(url, options); if (answer) return answer; }
         return { ok: true, json: async () => url.includes('/categories?') ? { items: [{ id: 10, parentId: 0, name: 'Content Builder' }, { id: 20, parentId: 10, name: 'Campagne' }], count: 2, page: 1, pageSize: 200 } : { items: [asset()], count: 1, page: JSON.parse(options.body).page.page, pageSize: 50 } };
-    } });
+    } };
+    window.jQuery = { ajax: options => {
+        const controller = new AbortController();
+        sandbox.fetch(options.url, { method: options.type, body: options.data, headers: options.headers, signal: controller.signal,
+            mode: 'same-origin', credentials: 'same-origin', cache: 'no-store', redirect: 'error' })
+            .then(async response => response.ok ? options.success(await response.json()) : options.error(response), error => options.error({ status: 0 }));
+        return { abort: () => controller.abort() };
+    } };
+    vm.runInNewContext(source, sandbox);
     return { window, api: api.assetSearch, calls, change: () => { scope = 's50:999'; events.dispatchEvent(new Event('sfmcfix:contextchange')); } };
 }
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -87,4 +95,13 @@ test('folder pagination follows the server page size even when it is smaller tha
         return { ok: true, json: async () => ({ count: 250, page, pageSize: 50, items: Array.from({ length: 50 }, (_, i) => ({ id: (page - 1) * 50 + i + 1, parentId: 0, name: 'Folder ' + i })) }) };
     });
     assert.equal((await f.api.folders()).length, 250); assert.equal(f.calls.length, 5);
+});
+
+
+test('query POST never uses bare fetch when the native client is unavailable', async () => {
+    const f = fixture(); delete f.window.jQuery;
+    await assert.rejects(f.api.search({ term: 'Newsletter' }), /client della pagina/);
+    assert.equal(f.calls.length, 0);
+    assert.equal(f.api.diagnostics().requests[0].transport, 'unavailable');
+    await f.api.folders(); assert.equal(f.calls.length, 1); // Read-only GET may still work.
 });

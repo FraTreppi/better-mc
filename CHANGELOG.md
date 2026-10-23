@@ -1,3 +1,10 @@
+# 1.1.21 — 23 ottobre 2026
+
+- Corretta la scelta del client per Advanced quando Fuel non è esposto: riconosciuti Backbone.ajax e jQuery.ajax della pagina e i relativi moduli AMD già inizializzati. Conservati ajaxSetup, prefilter, beforeSend e opzione useFuel2Token della gestione nativa.
+- La query POST non usa più fetch diretto. Se il client nativo non è disponibile viene segnalato senza inviare la POST; un 403 nativo non genera tentativi con un altro client. MID automatico e isolamento delle risposte restano attivi.
+- Riprodotto il caso della diagnostica: MID riconosciuto, GET cartelle 200 e POST fetch 403. Aggiunte verifiche browser che richiedono la configurazione AJAX della pagina per accettare la ricerca, compreso il pacchetto realmente caricato in Edge.
+- Aggiornati messaggio 403, diagnostica e guida Markdown/PDF per distinguere il numero MID dal collegamento della ricerca. Nessun nuovo permesso, proxy o dato di sessione esportato.
+
 # 1.1.20 — 22 ottobre 2026
 
 - Richieste Advanced allineate al codice nativo Salesforce fornito: scope ours, intestazioni AJAX/versione dati e Content-Type nativo; operatore contains e array values per i tipi. Riconosciuto anche il client fuel-ajax AMD già inizializzato.

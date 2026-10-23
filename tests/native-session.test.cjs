@@ -83,3 +83,27 @@ test('a successful automatic lookup retires an earlier manual MID', async () => 
     f.setResponse({}); await f.api.context.refresh();
     assert.equal(f.api.context.current().mid, null);
 });
+
+
+test('Content Builder collections use the configured Backbone/jQuery pipeline even without a Fuel facade', async () => {
+    const f = fixture(), calls = [];
+    const jquery = { ajax(options) { assert.equal(this, jquery); calls.push(options); options.success({ organization: { id: 123 } }); } };
+    const backbone = { ajax(options) { assert.equal(this, backbone); return jquery.ajax(options); } };
+    f.window.jQuery = jquery;
+    assert.equal(f.api.nativeSession.client().kind, 'jQuery');
+    assert.equal(await f.api.nativeSession.readMid(), '123');
+    f.window.Backbone = backbone;
+    assert.equal(f.api.nativeSession.client().kind, 'Backbone');
+    assert.equal(await f.api.nativeSession.readMid(), '123');
+    delete f.window.Backbone; delete f.window.jQuery;
+    const modules = { backbone, jquery };
+    f.window.requirejs = name => modules[name];
+    f.window.requirejs.defined = name => Boolean(modules[name]);
+    assert.equal(f.api.nativeSession.client().kind, 'AMD:backbone');
+    assert.equal(await f.api.nativeSession.readMid(), '123');
+    delete modules.backbone;
+    assert.equal(f.api.nativeSession.client().kind, 'AMD:jquery');
+    assert.equal(await f.api.nativeSession.readMid(), '123');
+    assert.equal(calls.length, 4); assert.equal(f.calls.length, 0);
+    assert.ok(calls.every(options => options.useFuel2Token));
+});
