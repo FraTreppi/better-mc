@@ -7,18 +7,18 @@
         return { Accept: 'application/json', 'Content-Type': contentType,
             'x-fueldata-version': '1.1', 'X-Requested-With': 'XMLHttpRequest' };
     }
+    // Only resolve modules the native app has already initialized.
+    function defined(name) {
+        for (const loader of [window.requirejs, window.require]) {
+            if (typeof loader !== 'function' || typeof loader.defined !== 'function') continue;
+            try { if (loader.defined(name)) return loader(name); }
+            catch (_) { /* The module may be unavailable during navigation. */ }
+        }
+        return null;
+    }
+    function backbone() { return window.Backbone || defined('backbone'); }
     function client() {
         if (typeof window.Fuel?.ajax === 'function') return { kind: 'Fuel', ajax: options => window.Fuel.ajax(options) };
-        // Only resolve modules the native app has already initialized. Do not
-        // load scripts, inspect module registries or extract session tokens.
-        function defined(name) {
-            for (const loader of [window.requirejs, window.require]) {
-                if (typeof loader !== 'function' || typeof loader.defined !== 'function') continue;
-                try { if (loader.defined(name)) return loader(name); }
-                catch (_) { /* The module may be unavailable during navigation. */ }
-            }
-            return null;
-        }
         const fuel = defined('fuel-ajax');
         if (typeof fuel?.ajax === 'function') return { kind: 'AMD:fuel-ajax', ajax: options => fuel.ajax(options) };
         if (typeof fuel === 'function') return { kind: 'AMD:fuel-ajax', ajax: options => fuel(options) };
@@ -63,5 +63,5 @@
         } catch (_) { return null; }
         finally { clearTimeout(timer); }
     }
-    api.nativeSession = { client, headers, contentType, readMid };
+    api.nativeSession = { client, headers, contentType, readMid, backbone };
 })();

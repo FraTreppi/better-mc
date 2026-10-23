@@ -4,18 +4,9 @@
     if (api.openAssetSearch) return;
     const buttonId = 'sfmcfix-asset-search-button', dialogId = 'sfmcfix-asset-search';
     let mountTimer = null, mountedAnchor = null, opening = false;
-    const nativeRoutes = new Map();
-    function kind(typeId) { return Object.entries(api.assetSearch.types).find(([name, type]) => name !== 'all' && type.ids.includes(typeId))?.[0] || String(typeId); }
-    function rememberNativeRoute() {
-        const asset = api.temp?.lastloadedasset;
-        if (!Number.isSafeInteger(Number(asset?.id)) || Number(asset.id) < 1) return;
-        const match = location.hash.match(/^(#\/?asset\/)(\d+)((?:\/[a-z][a-z0-9-]*)*\/?)$/i);
-        if (match && Number(match[2]) === Number(asset.id)) nativeRoutes.set(kind(Number(asset.assetType?.id)), { prefix: match[1], suffix: match[3] });
-    }
     function visible(element) { return Boolean(element?.isConnected && element.getClientRects().length && getComputedStyle(element).visibility !== 'hidden'); }
     function mount() {
         mountTimer = null;
-        rememberNativeRoute();
         const inputs = Array.from(document.querySelectorAll('input[type="search"].form-control.dropdown-toggle'))
             .filter(input => input.placeholder.toLowerCase() === 'search' && visible(input) && !input.closest('dialog, .modal, #preview-panel'));
         const existing = document.getElementById(buttonId);
@@ -46,17 +37,13 @@
             return [folder.id, parts.join(' / ')];
         }));
     }
-    function openAsset(asset) {
-        const row = document.querySelector(`[data-flow-id="cb:repeater:list:${asset.id}"]`);
-        if (visible(row)) { (row.querySelector('.contentitem-table-name, [data-content-field="name"]') || row).click(); return; }
-        const route = nativeRoutes.get(kind(asset.typeId));
-        // Content Builder handles its asset route inside this module frame.
-        // Prefer a route observed during native navigation when available.
-        location.hash = route ? `${route.prefix}${asset.id}${route.suffix}` : `asset/${asset.id}${kind(asset.typeId) === 'email' ? '/email' : ''}`;
-    }
     api.openAssetSearch = async function () {
         const existing = document.getElementById(dialogId);
-        if (existing) { existing.querySelector('input')?.focus(); return; }
+        if (existing) {
+            if (!existing.open) existing.dispatchEvent(new Event('sfmcfix:cancel-open'));
+            else existing.querySelector('input')?.focus();
+            return;
+        }
         if (opening) return;
         const openRoute = location.href;
         opening = true;
@@ -92,7 +79,7 @@
         for (const [value, type] of Object.entries(api.assetSearch.types)) {
             const option = document.createElement('option'); option.value = value; option.textContent = type.label; $('[name="type"]').append(option);
         }
-        let paths = new Map(), result = null, filters = null, generation = 0, busy = false, closed = false;
+        let paths = new Map(), result = null, filters = null, generation = 0, busy = false, closed = false, openingController = null;
         function paging() {
             $('[data-prev]').disabled = busy || !result || result.page <= 1;
             $('[data-next]').disabled = busy || !result || result.page * result.pageSize >= result.count;
@@ -114,9 +101,23 @@
                 cell(Number.isFinite(modified.getTime()) ? modified.toLocaleString('it-IT') : '—');
                 const action = cell(''), button = document.createElement('button');
                 button.type = 'button'; button.textContent = 'Apri'; button.setAttribute('aria-label', `Apri ${asset.name}`);
-                button.onclick = () => {
-                    if (!stillCurrent(generation)) { dialog.close(); return; }
-                    dialog.close(); openAsset(asset);
+                button.onclick = async () => {
+                    if (openingController || !stillCurrent(generation)) return;
+                    const value = generation, controller = openingController = new AbortController();
+                    button.disabled = true; status.textContent = 'Apertura del contenuto…';
+                    dialog.close(); // Release native modal inertness before dispatching the app's click/router.
+                    try {
+                        await api.assetNavigation.open(asset, { signal: controller.signal, scope: context.scope });
+                        if (stillCurrent(value)) dispose();
+                    } catch (error) {
+                        if (!stillCurrent(value)) return;
+                        if (!dialog.open) dialog.showModal();
+                        status.textContent = error.name === 'AbortError' ? 'Apertura interrotta. I risultati sono conservati.' : error.message;
+                        $('[data-diagnostics]').hidden = false;
+                    } finally {
+                        if (openingController === controller) openingController = null;
+                        button.disabled = false;
+                    }
                 };
                 action.append(button); body.append(row);
             }
@@ -154,14 +155,19 @@
             dialog.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
         };
         dialog.querySelectorAll('[data-close]').forEach(button => { button.onclick = () => dialog.close(); });
-        const changeContext = () => { if (context.scope !== api.context.current().scope) dialog.close(); };
-        const changeRoute = () => dialog.close();
+        const changeContext = () => { if (context.scope !== api.context.current().scope) dispose(); };
+        const changeRoute = () => { if (!openingController) dialog.close(); };
         window.addEventListener('sfmcfix:contextchange', changeContext); window.addEventListener('hashchange', changeRoute);
-        dialog.addEventListener('close', () => {
-            closed = true; generation++; api.assetSearch.cancel();
+        function dispose() {
+            if (closed) return;
+            closed = true; generation++; openingController?.abort(); api.assetSearch.cancel();
             window.removeEventListener('sfmcfix:contextchange', changeContext); window.removeEventListener('hashchange', changeRoute);
-            dialog.remove(); if (previousFocus?.isConnected) previousFocus.focus();
-        }, { once: true });
+            dialog.remove(); if (previousFocus?.isConnected && visible(previousFocus)) previousFocus.focus();
+        }
+        dialog.addEventListener('sfmcfix:cancel-open', () => openingController?.abort());
+        dialog.addEventListener('close', () => {
+            if (!openingController && !dialog.open) dispose();
+        });
         document.body.append(dialog); dialog.showModal(); $('[name="term"]').focus();
         api.assetSearch.folders().then(folders => {
             if (closed || context.scope !== api.context.current().scope) return;
@@ -180,7 +186,6 @@
     };
     const observer = new MutationObserver(scheduleMount);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
-    window.addEventListener('hashchange', () => { rememberNativeRoute(); scheduleMount(); });
-    window.addEventListener('sfmcfix:contextchange', () => nativeRoutes.clear());
+    window.addEventListener('hashchange', scheduleMount);
     mount();
 })();

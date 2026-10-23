@@ -9,7 +9,7 @@
         /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/contactsmeta\/admin\.html$/i.test(location.pathname) ? 'contact' :
         /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/AutomationStudioFuel3(?:\/|$)/i.test(location.pathname) ? 'automation' : null;
     if (location.protocol !== 'https:' || !role) return;
-    const VERSION = '1.1.21';
+    const VERSION = '1.1.22';
     const CHANNEL = 'sfmcfix-storage';
     let approvedScope = null;
     let authorization;

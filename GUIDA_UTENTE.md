@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.21 · Autore: Francesco Trepiccioni
+Versione 1.1.22 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -56,7 +56,9 @@ Nella libreria di **Content Builder**, accanto al campo **Search**, clicca **Adv
 2. Per il testo scegli **Contiene**, **Inizia con**, **Finisce con** o **Uguale a**. Servono almeno tre caratteri, tranne per la corrispondenza esatta e l’ID.
 3. Puoi restringere per **Tipo di contenuto**, **Cartella** e intervallo di **ultima modifica**. Le date dei filtri sono in UTC; il giorno finale è incluso. Una cartella selezionata cerca soltanto al suo interno; per includere tutte le sottocartelle lascia **Tutte le cartelle e sottocartelle**.
 4. Scegli l’ordinamento per ultima modifica, nome A–Z o creazione più recente e premi **Cerca**, oppure Invio. Senza testo o filtri vengono elencati tutti gli asset accessibili della BU.
-5. Scorri con **Precedente** e **Successiva**: vengono richiesti fino a 50 risultati per pagina. Ogni riga mostra nome, ID, Customer Key, tipo, percorso della cartella e data di modifica. **Apri** porta al contenuto nella stessa scheda di Content Builder.
+5. Scorri con **Precedente** e **Successiva**: vengono richiesti fino a 50 risultati per pagina. Ogni riga mostra nome, ID, Customer Key, tipo, percorso della cartella e data di modifica. **Apri** usa la riga nativa già caricata oppure la navigazione registrata da Content Builder per portarti al contenuto nella stessa scheda.
+
+Durante l’apertura il pannello si chiude temporaneamente. Se Content Builder non conferma il contenuto entro otto secondi, oppure il collegamento nativo non viene riconosciuto, il pannello torna con **filtri e risultati conservati** e un messaggio. Puoi riprovare o premere **Scarica diagnostica ricerca**. Se l’apertura è in corso e il pulsante Advanced è ancora disponibile, cliccarlo nuovamente interrompe l’attesa e ripristina il pannello.
 
 **Azzera filtri** ripristina la ricerca globale; premi nuovamente Cerca per eseguirla. **Interrompi** ferma la ricerca in corso. Modificando i filtri, i risultati precedenti vengono rimossi fino alla nuova ricerca. Puoi chiudere il pannello con **Chiudi**, la × o Escape.
 
@@ -326,7 +328,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.21**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.22**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

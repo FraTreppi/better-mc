@@ -37,6 +37,7 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
                 jQuery.ajaxPrefilter(function(options, original, xhr) { if (options.useFuel2Token) xhr.setRequestHeader('X-Fixture-Native-Session', 'configured'); });
             ` });
             if (url.pathname === '/jquery.js') return route.fulfill({ contentType: 'application/javascript', body: jquery });
+            if (url.pathname === '/fuelapi/asset/v1/content/assets/1001') return route.fulfill({ json: { id: 1001, name: 'Newsletter', assetType: { id: 208, name: 'htmlemail' } } });
             if (url.pathname === '/fuelapi/asset/v1/content/categories') return route.fulfill({ json: { count: 2, page: 1, pageSize: 200, items: [{ id: 10, parentId: 0, name: 'Content Builder' }, { id: 20, parentId: 10, name: 'Campagne' }] } });
             if (url.pathname === '/fuelapi/asset/v1/content/assets/query') {
                 if (['x-fixture-before-send', 'x-fixture-native-session'].some(key => route.request().headers()[key] !== 'configured')) return route.fulfill({ status: 403, json: {} });
@@ -46,7 +47,7 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
                 assert.equal(route.request().headers()['x-fueldata-version'], '1.1');
                 return route.fulfill({ json: { count: 1, page: 1, pageSize: 50, items: [{ id: 1001, name: 'Newsletter', customerKey: 'mail-key', assetType: { id: 208, name: 'htmlemail' }, category: { id: 20, name: 'Campagne' } }] } });
             }
-            return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<html><head><script src="/jquery.js"></script><script src="/native-session-fixture.js"></script></head><body><div style="width:360px"><input type="search" class="form-control dropdown-toggle" placeholder="Search"></div><main id="preview-panel"><div class="test-send-recipients-tab-content"><div class="test-send-recipients-pillbox"><input class="pillbox-add-item"></div></div></main><button>Send Test</button></body></html>' });
+            return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<html><head><script src="/jquery.js"></script><script src="/native-session-fixture.js"></script></head><body><div style="width:360px"><input type="search" class="form-control dropdown-toggle" placeholder="Search"></div><table><tbody><tr data-flow-id="cb:repeater:list:1001" onclick="jQuery.ajax({url: &quot;/fuelapi/asset/v1/content/assets/1001&quot;, type: &quot;GET&quot;, useFuel2Token: true, success: function() { document.getElementById(&quot;native-opened&quot;).textContent = &quot;Newsletter aperta&quot;; }})"><td class="contentitem-table-name">Newsletter</td></tr></tbody></table><div id="native-opened"></div><main id="preview-panel"><div class="test-send-recipients-tab-content"><div class="test-send-recipients-pillbox"><input class="pillbox-add-item"></div></div></main><button>Send Test</button></body></html>' });
         });
         const page = await ctx.newPage(); watch(page);
         let grants = 0;
@@ -94,7 +95,10 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
         const report = await page.evaluate(() => sfmcfix.assetSearch.diagnostics());
         assert.equal(report.requests.find(request => request.method === 'POST').transport, 'jQuery');
         assert.equal(report.requests.find(request => request.method === 'POST').status, 200);
-        await search.getByRole('button', { name: 'Chiudi', exact: true }).click(); await search.waitFor({ state: 'detached' });
+        await search.getByRole('button', { name: 'Apri Newsletter', exact: true }).click();
+        await page.locator('#native-opened').getByText('Newsletter aperta', { exact: true }).waitFor();
+        await search.waitFor({ state: 'detached' });
+        assert.equal(await page.evaluate(() => sfmcfix.assetNavigation.diagnostics().result), 'confirmed');
         assert.deepEqual(errors, []); assert.deepEqual(consoleErrors, []);
         console.log(`PASS real extension ${manifest.version}: service worker, protected local/session APIs, isolated consent with native document IDs, scoped tester save/reload, other BU preserved, internal settings, live document notifications Tracking Test visibility and Advanced metadata search through configured jQuery beforeSend/prefilters and real extension resources.`);
     } finally {

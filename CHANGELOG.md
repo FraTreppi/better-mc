@@ -1,3 +1,10 @@
+# 1.1.22 — 23 ottobre 2026
+
+- Corretto Apri sui risultati Advanced fuori dalla griglia: la navigazione viene risolta e invocata attraverso i gestori registrati da Content Builder, anche con pushState e hashchange disattivato. Eliminata l’assegnazione di hash ipotizzati.
+- Conferma dell’asset caricato tramite evento dei metadati, oppure cambio di vista con quello stesso asset in cache. Aperture non riconosciute o senza conferma ripristinano pannello, filtri e risultati. Cambio BU e annullamento invalidano le conferme tardive.
+- Diagnostica estesa con metodo/esito e schemi statici di navigazione limitati e ripuliti dei numeri, senza ID o nomi degli asset. Nessun nuovo permesso o proxy.
+- Verifiche con Backbone reale per risultato fuori pagina, apertura a freddo, cache, rotta assente, comando senza effetto e ripristino. Aggiunte le sole librerie MIT nei fixture di test, separate dai componenti eseguiti dall’estensione. Guida Markdown/PDF aggiornata.
+
 # 1.1.21 — 23 ottobre 2026
 
 - Corretta la scelta del client per Advanced quando Fuel non è esposto: riconosciuti Backbone.ajax e jQuery.ajax della pagina e i relativi moduli AMD già inizializzati. Conservati ajaxSetup, prefilter, beforeSend e opzione useFuel2Token della gestione nativa.
