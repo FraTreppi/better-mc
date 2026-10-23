@@ -1,12 +1,14 @@
 // Privileged storage stays in the extension. Page scripts receive only an
 // explicitly approved BU view, never the full archive or a network proxy.
 'use strict';
-const VERSION = '1.1.22';
+const VERSION = '1.1.23';
 function failure(code, message) { return Object.assign(new Error(message), { code }); }
 const SETTINGS = 'SFMCFIX---SETTINGS-V2';
 const UI = 'SFMCFIX---UI-PREFERENCES';
 const VERSIONS = 'SFMCFIX---ACTIVITYVERSIONING';
 const DOCUMENTS = 'SFMCFIX---DOCUMENT-GRANTS';
+const APPROVALS = 'SFMCFIX---SESSION-APPROVALS';
+const ACCESS_LIFETIME = 12 * 60 * 60 * 1000;
 const forbidden = key => ['__proto__', 'constructor', 'prototype'].includes(key);
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const scopeParts = value => typeof value === 'string' && /^(s\d+):(\d{1,15})$/.test(value) && Number(value.split(':')[1]) > 0 ? value.split(':') : null;
@@ -56,7 +58,7 @@ function pageRole(value) {
         else if (stack && /^jbinteractions\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host)) role = 'journey';
         else if (stack && /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/contactsmeta\/admin\.html$/i.test(url.pathname)) role = 'contact';
         else if (stack && /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/AutomationStudioFuel3(?:\/|$)/i.test(url.pathname)) role = 'automation';
-        return role ? { role, stack, page: url.origin + url.pathname } : null;
+        return role ? { role, stack, origin: url.origin, page: url.origin + url.pathname } : null;
     } catch (_) { return null; }
 }
 function source(sender) {
@@ -73,17 +75,56 @@ function source(sender) {
     if (!Number.isInteger(sender.tab?.id) || sender.tab.id < 0) throw failure('DOCUMENT_TAB', 'Scheda del documento non riconosciuta. Riapri Marketing Cloud in una scheda normale.');
     return { ...page, id: sender.documentId, tabId: sender.tab.id };
 }
-async function registerDocument(caller, scope) {
+function documentGrant(caller, scope, expiresAt) {
+    return { page: caller.page, role: caller.role, stack: caller.stack || null, tabId: caller.tabId,
+        scope: scope || null, expiresAt: expiresAt || null, touched: Date.now() };
+}
+function recentDocuments(docs) {
+    return Object.fromEntries(Object.entries(docs).filter(([, d]) => Date.now() - d.touched < ACCESS_LIFETIME)
+        .sort((a, b) => b[1].touched - a[1].touched).slice(0, 200));
+}
+function approvalKey(caller, scope) { return `${caller.origin}|${caller.role}|${scope}`; }
+async function registerDocument(caller) {
     return enqueue(async () => {
         const docs = (await read('session', [DOCUMENTS]))[DOCUMENTS] || {};
         const previous = docs[caller.id];
-        const grant = { page: caller.page, role: caller.role, stack: caller.stack || null, tabId: caller.tabId,
-            scope: scope || (previous?.page === caller.page ? previous.scope : null), touched: Date.now() };
+        const keep = previous?.page === caller.page && previous.role === caller.role && previous.tabId === caller.tabId && previous.expiresAt > Date.now();
+        const grant = documentGrant(caller, keep ? previous.scope : null, keep ? previous.expiresAt : null);
         docs[caller.id] = grant;
-        const recent = Object.fromEntries(Object.entries(docs).filter(([, d]) => Date.now() - d.touched < 12 * 60 * 60 * 1000)
-            .sort((a, b) => b[1].touched - a[1].touched).slice(0, 200));
-        await write('session', { [DOCUMENTS]: recent });
+        await write('session', { [DOCUMENTS]: recentDocuments(docs) });
         return grant;
+    });
+}
+async function localAccess(caller, action, scope) {
+    const parts = scopeParts(scope);
+    if (!['content', 'automation'].includes(caller.role) || !parts || parts[0] !== caller.stack) throw new Error('Contesto non autorizzabile.');
+    return enqueue(async () => {
+        const state = await read('session', [APPROVALS, DOCUMENTS]), now = Date.now(), key = approvalKey(caller, scope);
+        const approvals = Object.fromEntries(Object.entries(state[APPROVALS] || {}).filter(([, entry]) => entry.expiresAt > now));
+        let entry = approvals[key];
+        if (action === 'requestAccess') {
+            if (entry?.decision === 'denied') return { state: 'denied' };
+            if (entry?.decision === 'pending' && entry.documentId !== caller.id) return { state: 'waiting' };
+            if (entry?.decision !== 'allowed') {
+                entry = { decision: 'pending', documentId: caller.id, expiresAt: now + 120000 };
+            }
+        } else entry = { decision: action === 'authorize' ? 'allowed' : 'denied', expiresAt: now + ACCESS_LIFETIME };
+        approvals[key] = entry;
+        const patch = { [APPROVALS]: Object.fromEntries([[key, entry], ...Object.entries(approvals).filter(([k]) => k !== key)
+            .sort((a, b) => b[1].expiresAt - a[1].expiresAt).slice(0, 199)]) };
+        if (entry.decision === 'allowed') {
+            const docs = state[DOCUMENTS] || {};
+            docs[caller.id] = documentGrant(caller, scope, entry.expiresAt);
+            patch[DOCUMENTS] = recentDocuments(docs);
+        }
+        if (entry.decision === 'denied') {
+            const docs = state[DOCUMENTS] || {};
+            patch[DOCUMENTS] = Object.fromEntries(Object.entries(docs).map(([id, grant]) =>
+                grant.scope === scope && grant.role === caller.role && grant.page.startsWith(caller.origin + '/') ?
+                    [id, { ...grant, scope: null, expiresAt: null }] : [id, grant]));
+        }
+        await write('session', patch);
+        return { state: entry.decision === 'allowed' ? 'granted' : entry.decision === 'denied' ? 'denied' : 'ask' };
     });
 }
 function testers(value) {
@@ -130,19 +171,15 @@ async function grantFor(caller, scope) {
     const parts = scopeParts(scope);
     if (!parts || parts[0] !== caller.stack) throw new Error('Stack o MID non validi per questa pagina.');
     const grant = (await read('session', [DOCUMENTS]))[DOCUMENTS]?.[caller.id];
-    if (!grant || grant.page !== caller.page || grant.scope !== scope || Date.now() - grant.touched >= 12 * 60 * 60 * 1000) {
-        throw new Error('Accesso ai dati di questa BU non autorizzato. Riapri il modulo e conferma l’accesso.');
+    if (!grant || grant.page !== caller.page || grant.role !== caller.role || grant.tabId !== caller.tabId || grant.scope !== scope ||
+        !Number.isFinite(grant.expiresAt) || Date.now() >= grant.expiresAt) {
+        throw failure('LOCAL_ACCESS_REQUIRED', 'Accesso locale da autorizzare per questa BU.');
     }
     return grant;
 }
 async function pageStorage(caller, action, payload, scope) {
     if (action === 'register') { await registerDocument(caller); return true; }
-    if (action === 'authorize') {
-        const parts = scopeParts(scope);
-        if (!['content', 'automation'].includes(caller.role) || !parts || parts[0] !== caller.stack) throw new Error('Contesto non autorizzabile.');
-        await registerDocument(caller, scope);
-        return true;
-    }
+    if (['requestAccess', 'authorize', 'denyAccess'].includes(action)) return localAccess(caller, action, scope);
     if (!['get', 'merge'].includes(action) || !plain(payload)) throw new Error('Operazione non consentita alla pagina.');
     const keys = action === 'get' ? payload.keys : Object.keys(payload.items || {});
     if (!Array.isArray(keys) || keys.length !== 1 || typeof keys[0] !== 'string') throw new Error('Richiedi una sola chiave autorizzata.');
@@ -186,6 +223,17 @@ async function pageStorage(caller, action, payload, scope) {
     throw new Error('Chiave non autorizzata per questo modulo.');
 }
 async function internalStorage(action, payload) {
+    if (action === 'resetLocalAccess') {
+        const docs = await enqueue(async () => {
+            const docs = (await read('session', [DOCUMENTS]))[DOCUMENTS] || {};
+            await write('session', { [APPROVALS]: {}, [DOCUMENTS]: Object.fromEntries(Object.entries(docs)
+                .map(([id, grant]) => [id, { ...grant, scope: null, expiresAt: null }])) });
+            return docs;
+        });
+        await Promise.allSettled(Object.entries(docs).filter(([, grant]) => ['content', 'automation'].includes(grant.role)).map(([documentId, grant]) =>
+            chrome.tabs.sendMessage(grant.tabId, { __sfmcfixLocalAccessReset: true }, { documentId })));
+        return true;
+    }
     if (action === 'merge' && plain(payload?.items) && Object.keys(payload.items).length === 1 && plain(payload.items[UI]) &&
         Object.keys(payload.items[UI]).every(k => k === 'hidePreviewIcons') && typeof payload.items[UI].hidePreviewIcons === 'boolean') {
         const value = uiView(payload.items[UI]);
@@ -226,12 +274,13 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     read('session', [DOCUMENTS]).then(async result => {
         for (const [documentId, grant] of Object.entries(result[DOCUMENTS] || {})) {
-            if (Date.now() - grant.touched >= 12 * 60 * 60 * 1000) continue;
+            if (Date.now() - grant.touched >= ACCESS_LIFETIME) continue;
             const visible = {};
             if (changes[UI]) visible[UI] = { newValue: uiView(changes[UI].newValue) };
-            if (grant.scope && grant.role === 'content' && changes[SETTINGS]) visible[SETTINGS] = {
+            const active = Number.isFinite(grant.expiresAt) && grant.expiresAt > Date.now();
+            if (active && grant.scope && grant.role === 'content' && changes[SETTINGS]) visible[SETTINGS] = {
                 newValue: preferencesView(changes[SETTINGS].newValue, grant.scope) };
-            const bucket = grant.scope && versionBucket(grant.scope);
+            const bucket = active && grant.scope && versionBucket(grant.scope);
             if (bucket && grant.role === 'automation' && changes[bucket]) visible[bucket] = { newValue: versionsView(changes[bucket].newValue, grant.scope) };
             if (!Object.keys(visible).length) continue;
             try { await chrome.tabs.sendMessage(grant.tabId, { __sfmcfixStorageChange: true, changes: visible }, { documentId }); }

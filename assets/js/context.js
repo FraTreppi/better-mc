@@ -15,6 +15,7 @@
     let lastScope;
     let settingsError = null;
     let settingsLoading = false;
+    let settingsNeedReload = false;
     let settingsGeneration = 0;
 
     function asMid(value) {
@@ -186,6 +187,7 @@
         },
         async configureTesters() {
             await api.context.refresh();
+            if (settingsNeedReload) await loadSettings();
             const context = current();
             if (!context.persistent) {
                 alert('Per salvare i destinatari di test, apri Impostazioni SFMC e scegli Imposta MID o Conferma MID per la BU corrente.');
@@ -295,6 +297,7 @@
     };
 
     async function loadSettings() {
+        settingsNeedReload = false;
         const generation = ++settingsGeneration;
         const context = current();
         settings = {};
@@ -317,6 +320,7 @@
         await Promise.all([loadSettings(), api.storage.getItem(UI_SETTINGS, {}).then(value => { uiSettings = value; }).catch(() => {})]);
         api.storage.onChange(changes => {
             if (changes[SETTINGS]) {
+                if (changes[SETTINGS].accessReset) { settingsNeedReload = true; settingsGeneration++; settingsError = null; settingsLoading = false; }
                 const scope = current().scope;
                 settings = { [scope]: changes[SETTINGS].newValue?.[scope] || {} };
                 window.dispatchEvent(new Event('sfmcfix:preferences'));

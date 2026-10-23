@@ -1,3 +1,9 @@
+# 1.1.23 — 23 ottobre 2026
+
+- Corrette le conferme ripetute di accesso ai dati locali quando Salesforce ricrea il documento Content Builder. Consenso e rifiuto vengono ricordati per origine esatta, modulo, stack e MID nello storage di sessione protetto, fino a 12 ore dalla scelta.
+- Ogni nuovo documento mantiene la propria autorizzazione verificata dal worker; il rinnovo non estende la scadenza. Le richieste concorrenti condividono la prima conferma e un’altra BU richiede una scelta separata.
+- Aggiunto nella pagina privata dell’estensione il comando Ripristina le conferme di accesso locale. Invalida le scelte e le autorizzazioni aperte senza cancellare rubriche e copie SQL. Guida Markdown/PDF aggiornata; nessun nuovo permesso.
+
 # 1.1.22 — 23 ottobre 2026
 
 - Corretto Apri sui risultati Advanced fuori dalla griglia: la navigazione viene risolta e invocata attraverso i gestori registrati da Content Builder, anche con pushState e hashchange disattivato. Eliminata l’assegnazione di hash ipotizzati.

@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.22 · Autore: Francesco Trepiccioni
+Versione 1.1.23 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -30,9 +30,9 @@ In Content Builder il MID viene cercato automaticamente nel contesto della sessi
 
 Se Salesforce non rende disponibile il MID automatico, scegli **Imposta MID** e inserisci quello della BU selezionata in Salesforce. Al ricaricamento può comparire **Conferma MID <numero>**: verifica il valore prima di confermarlo. Inserire un MID nell’estensione non cambia la BU in Salesforce.
 
-Prima di rendere disponibile la rubrica o di salvare copie SQL, compare una **conferma di accesso ai dati locali**. Controlla dominio, MID e stack e accetta solo se corrispondono al contesto nel quale vuoi lavorare. La conferma vale per quel documento e quella BU; può ricomparire dopo un ricaricamento o passando a un’altra BU. Un’altra pagina non riceve automaticamente l’intero archivio.
+Prima di rendere disponibile la rubrica o di salvare copie SQL, compare una **conferma di accesso ai dati locali**. Controlla dominio, MID e stack e accetta solo se corrispondono al contesto nel quale vuoi lavorare. La scelta viene ricordata per **dominio, modulo e BU durante la sessione del browser, fino a 12 ore**. Se esci da Content Builder e rientri, ricarichi o apri un’altra scheda sullo stesso dominio e sulla stessa BU, non devi ripetere l’OK. Una BU, un dominio o un modulo diverso richiedono una propria conferma; tornare a una BU già autorizzata riutilizza la scelta. Chiudere il browser, ricaricare l’estensione o raggiungere la scadenza può richiedere una nuova conferma. Ogni pagina riceve soltanto i dati autorizzati della BU richiesta.
 
-Se rifiuti, rubrica e salvataggio SQL restano bloccati in quel documento. Puoi continuare a usare i collegamenti e gli altri strumenti; per riprovare l’accesso locale, ricarica il modulo. Questa conferma non è un accesso a Salesforce e non verifica da sola quale BU sia selezionata nel tenant.
+Anche il rifiuto viene ricordato nello stesso ambito e per lo stesso periodo, per evitare domande ripetute. Puoi continuare a usare i collegamenti e gli altri strumenti. Per cambiare scelta prima della scadenza, clicca l’icona dell’estensione e premi **Ripristina le conferme di accesso locale** nella pagina delle impostazioni: la domanda verrà riproposta al prossimo utilizzo dei dati locali. Il comando azzera tutte le scelte della sessione e conserva rubrica e versioni SQL salvate. Questa conferma non è un accesso a Salesforce e non verifica da sola quale BU sia selezionata nel tenant.
 
 Senza MID e stack riconosciuti, le cronologie del modulo rimangono temporanee. Il salvataggio persistente delle versioni SQL richiede un contesto completo.
 
@@ -328,7 +328,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.22**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.23**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

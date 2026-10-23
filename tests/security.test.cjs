@@ -14,6 +14,8 @@ function workerFixture(options = {}) {
         [bucket('s50:123')]: { original: { queryText: 'SELECT 1', accessToken: 'DO_NOT_EXPOSE_TOKEN' } },
         [bucket('s50:999')]: { original: { queryText: 'PRIVATE_OTHER_SQL' } }
     }, session: {} };
+    let clock = Date.now();
+    class Clock extends Date { static now() { return clock; } }
     const listeners = [], changes = [], access = [], messages = [];
     let notify = () => {};
     const storage = {};
@@ -31,7 +33,7 @@ function workerFixture(options = {}) {
     };
     storage.onChanged = { addListener: cb => changes.push(cb) };
     const extension = 'chrome-extension://security-fixture/';
-    const context = vm.createContext({ URL, console, chrome: {
+    const context = vm.createContext({ URL, console, Date: Clock, chrome: {
         runtime: { id: 'security-fixture', getURL: p => extension + p, onMessage: { addListener: cb => listeners.push(cb) } },
         storage, tabs: { sendMessage: async (tab, message, options) => { messages.push(clone({ tab, message, options })); await notify(message, options.documentId); }, create: () => {} },
         action: { onClicked: { addListener: () => {} } }
@@ -42,7 +44,7 @@ function workerFixture(options = {}) {
     });
     const from = (url, number = 1) => ({ id: 'security-fixture', url, documentId: id(number), frameId: 0, tab: { id: number } });
     const request = (sender, action, payload, scope) => send({ __sfmcfixStorage: true, action, payload, scope }, sender);
-    return { state, access, messages, send, from, request, extension, setNotify: callback => { notify = callback; } };
+    return { state, access, messages, send, from, request, extension, advance: ms => { clock += ms; }, emit: patch => changes.forEach(listener => listener(patch, 'local')), setNotify: callback => { notify = callback; } };
 }
 test('page storage is limited to an explicitly authorized document, module and BU', async () => {
     const w = workerFixture();
@@ -94,7 +96,7 @@ test('privileged pages are private and network permissions remain limited', () =
     assert.ok(!manifest.host_permissions.some(value => value.includes('sfmc-content.com')));
     const patterns = manifest.web_accessible_resources.flatMap(entry => entry.resources);
     const accessible = file => patterns.some(pattern => new RegExp('^' + pattern.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$').test(file));
-    for (const file of ['assets/js/background.js', 'assets/js/loader.js', 'assets/js/activity-versioning.js', 'assets/html/activity-versioning.html', 'assets/html/email-studio-diagnostics.html']) assert.equal(accessible(file), false, file);
+    for (const file of ['assets/js/background.js', 'assets/js/loader.js', 'assets/js/activity-versioning.js', 'assets/js/local-access-settings.js', 'assets/html/activity-versioning.html', 'assets/html/email-studio-diagnostics.html']) assert.equal(accessible(file), false, file);
     for (const file of ['assets/js/content.js', 'assets/js/context.js', 'assets/js/components/tester-editor.js', 'assets/html/modals/dem-preview.html']) assert.equal(accessible(file), true, file);
     assert.ok(manifest.content_security_policy.extension_pages.includes("frame-ancestors 'none'"));
     assert.ok(manifest.content_security_policy.extension_pages.includes("script-src 'self'"));
@@ -143,4 +145,77 @@ test('a synchronous storage protection failure still returns a fail-closed error
     assert.equal(response.ok, false);
     assert.equal(response.code, 'STORAGE_INIT');
     assert.ok(!JSON.stringify(response).includes('mario@example.com'));
+});
+
+const APPROVALS = 'SFMCFIX---SESSION-APPROVALS', DOCUMENTS = 'SFMCFIX---DOCUMENT-GRANTS';
+const lifetime = 12 * 60 * 60 * 1000;
+test('session consent resumes for new documents and tabs, isolated by origin, module and BU', async () => {
+    const w = workerFixture(), url = 'https://content-builder.s50.marketingcloudapps.com/';
+    const first = w.from(url), next = w.from(url, 2);
+    const access = (sender, scope) => w.request(sender, 'requestAccess', {}, scope);
+    assert.equal((await access(first, 's50:123')).result.state, 'ask');
+    assert.equal((await access(next, 's50:123')).result.state, 'waiting');
+    assert.equal((await w.request(first, 'authorize', {}, 's50:123')).result.state, 'granted');
+    const expiry = Object.values(w.state.session[APPROVALS])[0].expiresAt;
+    w.advance(1000);
+    // A remembered decision still needs a fresh binding to the browser document.
+    assert.equal((await w.request(next, 'get', { keys: [SETTINGS] }, 's50:123')).code, 'LOCAL_ACCESS_REQUIRED');
+    assert.equal((await access(next, 's50:123')).result.state, 'granted');
+    assert.equal((await w.request(next, 'get', { keys: [SETTINGS] }, 's50:123')).ok, true);
+    assert.equal((await w.request({ ...next, tab: { id: 999 } }, 'get', { keys: [SETTINGS] }, 's50:123')).ok, false);
+    assert.equal(w.state.session[DOCUMENTS][next.documentId].expiresAt, expiry);
+    assert.equal((await access(next, 's50:999')).result.state, 'ask');
+    for (const [otherURL, scope] of [
+        ['https://content-builder.s50.exacttarget.com/', 's50:123'],
+        ['https://content-builder.s10.marketingcloudapps.com/', 's10:123'],
+        ['https://mc.s50.marketingcloudapps.com/AutomationStudioFuel3/', 's50:123']
+    ]) assert.equal((await access(w.from(otherURL, 3), scope)).result.state, 'ask');
+    assert.equal((await access(next, 's10:123')).ok, false);
+    // Re-registering a document cannot extend the absolute decision expiry.
+    assert.equal((await w.request(first, 'register', {})).ok, true);
+    assert.equal(w.state.session[DOCUMENTS][first.documentId].expiresAt, expiry);
+    w.advance(lifetime - 1002);
+    await w.request(first, 'register', {});
+    w.advance(3);
+    assert.equal((await w.request(first, 'get', { keys: [SETTINGS] }, 's50:123')).code, 'LOCAL_ACCESS_REQUIRED');
+    assert.equal((await access(first, 's50:123')).result.state, 'ask');
+    const count = w.messages.length;
+    w.emit({ [SETTINGS]: { newValue: clone(w.state.local[SETTINGS]) }, [UI]: { newValue: { hidePreviewIcons: true } } });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(w.messages.length > count); // Recent document still receives nonsensitive UI changes.
+    assert.ok(w.messages.slice(count).every(sent => !sent.message.changes[SETTINGS]));
+});
+
+test('denials persist through new documents, expire, and reset only from private settings', async () => {
+    const w = workerFixture(), url = 'https://content-builder.s50.marketingcloudapps.com/';
+    const first = w.from(url), next = w.from(url, 2), denied = w.from(url, 3);
+    const internal = { id: 'security-fixture', url: w.extension + 'assets/html/activity-versioning.html' };
+    for (const doc of [first, next, denied]) await w.request(doc, 'register', {});
+    await w.request(first, 'authorize', {}, 's50:123');
+    await w.request(next, 'requestAccess', {}, 's50:123');
+    await w.request(denied, 'denyAccess', {}, 's50:123');
+    assert.equal((await w.request(next, 'requestAccess', {}, 's50:123')).result.state, 'denied');
+    assert.equal((await w.request(first, 'get', { keys: [SETTINGS] }, 's50:123')).ok, false);
+    assert.equal((await w.request(first, 'resetLocalAccess', {})).ok, false);
+    const local = clone(w.state.local);
+    assert.equal((await w.request(internal, 'resetLocalAccess')).ok, true);
+    assert.deepEqual(w.state.local, local);
+    assert.deepEqual(w.state.session[APPROVALS], {});
+    assert.ok(Object.values(w.state.session[DOCUMENTS]).every(grant => grant.scope === null && grant.expiresAt === null));
+    assert.deepEqual(w.messages.filter(sent => sent.message.__sfmcfixLocalAccessReset).map(sent => sent.options.documentId).sort(),
+        [first, next, denied].map(doc => doc.documentId).sort());
+    assert.equal((await w.request(next, 'requestAccess', {}, 's50:123')).result.state, 'ask');
+    await w.request(next, 'denyAccess', {}, 's50:123');
+    w.advance(lifetime + 1);
+    assert.equal((await w.request(next, 'requestAccess', {}, 's50:123')).result.state, 'ask');
+});
+
+test('an abandoned confirmation expires without unlocking data or blocking another document forever', async () => {
+    const w = workerFixture(), url = 'https://content-builder.s50.marketingcloudapps.com/';
+    const first = w.from(url), next = w.from(url, 2);
+    assert.equal((await w.request(first, 'requestAccess', {}, 's50:123')).result.state, 'ask');
+    assert.equal((await w.request(next, 'requestAccess', {}, 's50:123')).result.state, 'waiting');
+    assert.equal((await w.request(next, 'get', { keys: [SETTINGS] }, 's50:123')).ok, false);
+    w.advance(120001);
+    assert.equal((await w.request(next, 'requestAccess', {}, 's50:123')).result.state, 'ask');
 });

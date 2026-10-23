@@ -268,6 +268,12 @@
     <p id="interface-status" role="status" aria-live="polite"></p>
   </section>
 
+  <section class="interface-settings" aria-label="Autorizzazioni ai dati locali">
+    <p>Le conferme per i dati locali sono ricordate per dominio, modulo e BU durante questa sessione del browser, fino a 12 ore.</p>
+    <button class="btn btn-outline" id="reset-local-access" type="button">Ripristina le conferme di accesso locale</button>
+    <p id="local-access-status" role="status" aria-live="polite">La rubrica e le versioni salvate vengono conservate.</p>
+  </section>
+
   <div class="toolbar">
     <input type="search" id="search" placeholder="Filtra per activity, MID o stack…" autocomplete="off">
     <button class="btn btn-success" id="btn-export-all">Esporta storico JSON</button>
@@ -287,5 +293,6 @@
 
   <script src="../js/activity-versioning.js"></script>
   <script src="../js/interface-preferences.js"></script>
+  <script src="../js/local-access-settings.js"></script>
 </body>
 </html>
