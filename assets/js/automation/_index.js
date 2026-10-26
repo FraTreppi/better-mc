@@ -28,7 +28,6 @@
             name: autom.name
         });
         sfmcfix.local.setItem(STORAGEID, JSON.stringify(aHistory));
-        window.sfmcfix.notificationLogger('info',null,`Automation aggiunta alle viste recentemente`)
     }
     
     const storeAdditionalData = function(obj) {

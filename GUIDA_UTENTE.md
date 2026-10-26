@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.23 · Autore: Francesco Trepiccioni
+Versione 1.1.24 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -235,7 +235,7 @@ Il pulsante compare solo se vengono riconosciuti il Run Log, le due date e un un
 
 ### Automation recenti e collegamenti
 
-**Last Viewed Automations** mostra fino a dieci automation visitate. Clicca il nome per riaprirne una; **Clear** cancella solo la lista locale.
+**Last Viewed Automations** mostra fino a dieci automation visitate. Clicca il nome per riaprirne una; **Clear** cancella solo la lista locale. Si aggiorna senza banner, anche passando tra Activity e Workflow.
 
 Nel menu delle attività del canvas può comparire **View**, che apre il dettaglio dell’attività in una nuova scheda quando Salesforce ne fornisce l’identificativo. Il collegamento della DE target apre il dettaglio in Contact Builder.
 
@@ -328,7 +328,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.23**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.24**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

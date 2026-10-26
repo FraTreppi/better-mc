@@ -1,3 +1,7 @@
+# 1.1.24 — 26 ottobre 2026
+
+- Rimosso il banner automatico «Automation aggiunta alle viste recentemente», emesso a ogni aggiornamento dei dati e cambio tab Activity/Workflow. La cronologia delle ultime dieci automation continua ad aggiornarsi.
+
 # 1.1.23 — 23 ottobre 2026
 
 - Corrette le conferme ripetute di accesso ai dati locali quando Salesforce ricrea il documento Content Builder. Consenso e rifiuto vengono ricordati per origine esatta, modulo, stack e MID nello storage di sessione protetto, fino a 12 ore dalla scelta.
