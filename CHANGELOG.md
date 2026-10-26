@@ -1,3 +1,10 @@
+# 1.1.25 — 26 ottobre 2026
+
+- Le DE usate in una preview riuscita vengono ricordate anche senza Send Test. I recenti della BU restano disponibili cambiando email o template; recuperati anche i riferimenti validi nello storico degli invii esistente.
+- Rinominate le cartelle virtuali in DE recenti · questa email e DE recenti · questa BU. Otto DE distinte per elenco, con deduplicazione prima del limite e riferimenti di massimo 60 giorni; nessun valore dei record nel nuovo storico.
+- Corretto Load More: scorciatoie aggiunte soltanto alla prima pagina della radice, senza cambiare pagina, dimensione e link nativi; totale coerente nelle pagine successive.
+- Letture metadati con sessione AJAX nativa, cache breve, richieste condivise, timeout e invalidazione per BU/email/abort. DE eliminate escluse; errori completati invece di lasciare il selettore in attesa. Guida Markdown/PDF aggiornata.
+
 # 1.1.24 — 26 ottobre 2026
 
 - Rimosso il banner automatico «Automation aggiunta alle viste recentemente», emesso a ogni aggiornamento dei dati e cambio tab Activity/Workflow. La cronologia delle ultime dieci automation continua ad aggiornarsi.

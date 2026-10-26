@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.24 · Autore: Francesco Trepiccioni
+Versione 1.1.25 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -122,12 +122,14 @@ Se il tentativo usava una DE con una riga selezionata, il comando **Preview** ge
 
 L’anteprima disattiva script, moduli e collegamenti dell’email. Le immagini esterne sono bloccate inizialmente. **Carica immagini esterne** permette di abilitarle per quella sola anteprima, dopo una conferma: i server delle immagini possono registrare la richiesta. Generando una nuova anteprima, la scelta riparte dalle immagini bloccate.
 
-Nel selettore delle DE per la preview possono comparire due cartelle virtuali:
+Nel selettore delle DE per la preview trovi due cartelle virtuali con scopi diversi:
 
-- **DEM - Recently used**: DE usate nei tentativi di prova dell’email corrente.
-- **Recently used**: DE utilizzate nei tentativi più recenti.
+- **DE recenti · questa email**: DE usate nelle preview riuscite e nei tentativi di invio dell’email corrente. Aprendo un’altra email questa lista può essere vuota.
+- **DE recenti · questa BU**: le ultime DE usate nella BU, disponibili anche dopo aver cambiato email o template.
 
-Compaiono quando l’estensione riconosce la radice del selettore. Sono scorciatoie dell’interfaccia e non creano cartelle reali in Salesforce.
+Una preview riuscita con un record selezionato ricorda la DE senza richiedere un invio di test. Ogni elenco mostra al massimo otto DE distinte, dalla più recente, per gli ultimi 60 giorni; vengono recuperati anche i riferimenti nello storico locale degli invii già esistente. I recenti della preview salvano solo identificativi e data d’uso, senza i valori dei record.
+
+Le due scorciatoie compaiono una sola volta alla radice riconosciuta del selettore, anche premendo **Load More**. Non creano cartelle reali in Salesforce. Restano separate per BU e browser/profilo; se il MID non è rilevato, rimangono temporanee nella scheda. Le DE eliminate vengono escluse e un errore di lettura o di permessi viene gestito dal selettore.
 
 ## Tracking Test
 
@@ -328,7 +330,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.24**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.25**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

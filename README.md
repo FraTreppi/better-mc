@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.24
+# SFMC UI Fixer — Multi BU 1.1.25
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -39,7 +39,7 @@ Crea in ogni BU **Data Extensions → SFMC_UI_Fixer → tester_content_builder**
 
 ## Sicurezza e dati
 
-La versione 1.1.24 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
+La versione 1.1.25 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. Le anteprime bloccano script, navigazione e risorse esterne; le immagini HTTPS richiedono un comando e una conferma espliciti. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
@@ -47,4 +47,4 @@ Queste misure riducono i rischi individuati e non costituiscono una garanzia ass
 
 Vedi **[Sicurezza e limiti](SICUREZZA.md)** per le protezioni e i rischi residui. La [documentazione tecnica](DOCUMENTATION.md) e la [cronologia](CHANGELOG.md) sono separate dalla guida utente.
 
-La 1.1.24 elimina il banner automatico di aggiunta alle automation recenti, che si ripeteva passando tra Activity e Workflow. La cronologia continua ad aggiornarsi.
+La 1.1.25 corregge le DE recenti in Preview and Test: registra anche le preview riuscite senza invio e conserva i riferimenti dopo il cambio email. Le due scorciatoie distinguono email e BU e non si duplicano con Load More.

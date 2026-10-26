@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.24 · 26 ottobre 2026
+Versione 1.1.25 · 26 ottobre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -36,6 +36,10 @@ Le richieste operative delle funzioni attive usano gli endpoint Salesforce del m
 Il dominio `*.sfmc-content.com` è stato eliminato dai permessi. I pattern Salesforce rimasti devono coprire stack diversi, ma il loader applica anche i controlli su host e percorsi dei moduli. Query Studio resta un’applicazione sul dominio separato `querystudio.herokuapp.com`, necessario per la relativa integrazione.
 
 Non è presente un backend di telemetria dell’estensione. Le immagini esterne di un’email sono un’eccezione esplicita: possono essere caricate solo con il comando e la conferma descritti nella guida.
+
+## DE recenti di Preview and Test
+
+Le preview native riuscite vengono osservate senza leggerne il rendering o i record: il nuovo storico conserva solo GUID della DE, ID email/asset e data d’uso, nello storage del sito già separato per stack/MID. Fino a 200 associazioni, con otto DE distinte per elenco; quelle più vecchie di 60 giorni sono ignorate e scartate al successivo salvataggio; i riferimenti compatibili ai test precedenti vengono recuperati dallo storico esistente senza copiarne destinatari o contenuti. Le scritture di questo storico non inviano email. Le cartelle virtuali leggono i metadati delle sole DE identificate, sulla stessa origine, tramite il client AJAX nativo o GET fetch con credenziali same-origin; non richiedono record. Cache dei metadati di 30 secondi e richieste concorrenti condivise sono limitate alla BU corrente. Cambio BU invalida la cache e le letture pendenti; abort e cambio email impediscono la consegna di risultati obsoleti. Permessi negati o risposte non valide completano la richiesta con errore, mentre 404/410 escludono le DE mancanti. Nessun nuovo permesso o proxy.
 
 ## Aggiornamento del Run Log
 

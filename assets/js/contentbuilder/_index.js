@@ -13,7 +13,8 @@
     }
 
     const init = function() {
-        sfmcfix.addJs('contentbuilder/tester-source', () => sfmcfix.addJs('contentbuilder/previewandtest'));
+        sfmcfix.addJs('contentbuilder/recent-preview-des', () =>
+            sfmcfix.addJs('contentbuilder/tester-source', () => sfmcfix.addJs('contentbuilder/previewandtest')));
         sfmcfix.addCss('contentbuilder/previewandtest');
         sfmcfix.addCss('contentbuilder/advanced-search');
         sfmcfix.addJs('contentbuilder/asset-search', () => sfmcfix.addJs('contentbuilder/asset-navigation', () => sfmcfix.addJs('contentbuilder/advanced-search')));

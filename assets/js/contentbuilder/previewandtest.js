@@ -229,6 +229,7 @@
             const testsendlogs = sfmcfix.local.getItem("testsendlogs") || '[]';
             let testsendlogsArray = JSON.parse(testsendlogs).map(safeLog).filter(Boolean);
             const _data = JSON.parse(options.data);
+            sfmcfix.recentPreviewDEs?.rememberSend(_data);
             let _overrides = {logdate:new Date(),uuid:crypto.randomUUID(), version:1};
             if(sfmcfix.temp?.currentasset?.legacyData?.legacyId === _data?.emailID) {
                 _overrides.name = sfmcfix.temp.currentasset.name;
@@ -243,107 +244,6 @@
             console.log("SFMC Fixer -- ",e);
         }
     }
-    sfmcfix.ajax.transport['/999999999/children'] = function(options) {
-        /* CARTELLE */
-        return {
-            send: function(headers, completeCallback) {
-                completeCallback(200, 'success', { json: {"count":0,"page":1,"pageSize":25,"links":{},"items":[]} }, '');
-            },
-            abort: function() {}
-        };
-    }
-    sfmcfix.ajax.transport['/999999990/children'] = function(options) {
-        /* CARTELLE */
-        return {
-            send: function(headers, completeCallback) {
-                completeCallback(200, 'success', { json: {"count":0,"page":1,"pageSize":25,"links":{},"items":[]} }, '');
-            },
-            abort: function() {}
-        };
-    }
-    sfmcfix.ajax.transport["/customobjects/category/999999999?"] = function(options) {
-        return {
-            send : function(headers, completeCallback){
-                const testsendlogs = sfmcfix.local.getItem("testsendlogs") || '[]';
-                const testsendlogsArray = JSON.parse(testsendlogs).map(safeLog).filter(Boolean);
-                const current = sfmcfix.temp.currentasset;
-                if(current?.id && testsendlogsArray?.length) {
-                    const tests = [...new Set(testsendlogsArray.filter((test) => test.emailID && (test.emailID == current.id || test.emailID == current.legacyData?.legacyId) && test.dataSource?.type === 'DataExtension' && !!test.dataSource.id).map((test) => test.dataSource.id))];
-                    Promise.all(tests.map(
-                        (deId) => fetch(`/fuelapi/data-internal/v1/customobjects/${deId}`).then((response) => response.json())
-                    )).then((items) => {
-                        completeCallback(200, 'success', { json: {
-                            count: items?.length || 0,
-                            page: 1,
-                            pageSize: 25,
-                            links: {},
-                            items: items || []
-                        } }, '');
-                    });
-                } else {
-                    completeCallback(200, 'not found', { json: {
-                        count: 0,
-                        page: 1,
-                        pageSize: 25,
-                        links: {},
-                        items: []
-                    } }, '');
-                }
-            },
-            abord : function(){}
-        }
-    }
-    sfmcfix.ajax.transport["/customobjects/category/999999990?"] = function(options) {
-        return {
-            send : function(headers, completeCallback){
-                const testsendlogs = sfmcfix.local.getItem("testsendlogs") || '[]';
-                const testsendlogsArray = JSON.parse(testsendlogs).map(safeLog).filter(Boolean);
-                const current = sfmcfix.temp.currentasset;
-                if(current?.id && testsendlogsArray?.length) {
-                    const tests = [...new Set(testsendlogsArray.filter(test => test.dataSource?.type === 'DataExtension' && test.dataSource.id).slice(-8).reverse().map((test) => test.dataSource.id))];
-                    Promise.all(tests.map(
-                        (deId) => fetch(`/fuelapi/data-internal/v1/customobjects/${deId}`).then((response) => response.json())
-                    )).then((items) => {
-                        completeCallback(200, 'success', { json: {
-                            count: items?.length || 0,
-                            page: 1,
-                            pageSize: 25,
-                            links: {},
-                            items: items || []
-                        } }, '');
-                    });
-                } else {
-                    completeCallback(200, 'not found', { json: {
-                        count: 0,
-                        page: 1,
-                        pageSize: 25,
-                        links: {},
-                        items: []
-                    } }, '');
-                }
-            },
-            abord : function(){}
-        }
-    }
-    sfmcfix.ajax.success['/fuelapi/platform-internal/v1/categories/'] = function(data, b, c, options) {
-        const url = new URL(options.url, location.href);
-        if (!/\/categories\/\d+\/children$/.test(url.pathname) || !Array.isArray(data.items)) return;
-        // Find the actual DE root in the response; never assume a customer-specific folder ID.
-        const root = data.items.find(item => item.categoryType === 'dataextension' &&
-            (Number(item.parentId) === 0 || item.isRoot === true));
-        if (root) sfmcfix.temp.deRootCategoryId = root.id;
-        const parent = url.pathname.match(/categories\/(\d+)\/children$/)?.[1];
-        if (!parent || String(sfmcfix.temp.deRootCategoryId) !== parent) return;
-        const folders = [[999999999, 'DEM - Recently used'], [999999990, 'Recently used']];
-        const extra = folders.filter(([id]) => !data.items.some(item => item.id === id)).map(([id, name]) => ({
-            categoryType: 'dataextension', editable: 0, extendable: 0, hasChildren: false,
-            iconType: 'dataextension', id, parentId: Number(parent), name,
-            objectId: `sfmcfix-${id}`, links: { children: { href: `/v1/categories/${id}/children` } }
-        }));
-        data.items = [...extra, ...data.items];
-        data.count += extra.length;
-    };
-
     $(document).on('click', '[data-action="logitem-preview"]', function(e) {
         e.preventDefault();
         const dataset = $(this).data();
