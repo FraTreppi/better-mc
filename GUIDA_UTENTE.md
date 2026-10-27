@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.27 · Autore: Francesco Trepiccioni
+Versione 1.1.28 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -16,7 +16,7 @@ Per aggiornare una copia già installata, sostituisci i file nella **stessa cart
 
 Lo stesso ZIP è compatibile con **Google Chrome e Microsoft Edge basato su Chromium**. Usa una versione aggiornata del browser; il requisito Chromium minimo è 111. Non servono Node, npm, un server o password da inserire nell’estensione. Il file ZIP va estratto: non si installa con un doppio clic. L’installazione descritta è manuale, in modalità sviluppatore; non richiede l’opzione che consente estensioni da altri store.
 
-I dati locali di Chrome e Edge sono **separati**, anche sullo stesso computer. Installare l’estensione in Edge non importa automaticamente tester locali, cronologie, preferenze o copie SQL da Chrome. Imposta la BU nel nuovo browser e scegli la sorgente tester; se usi la DE `tester_content_builder`, gli stessi contatti possono essere letti da entrambi. Anche il login a Marketing Cloud deve essere effettuato nel browser nel quale lavori.
+I dati locali di Chrome e Edge sono **separati**, anche sullo stesso computer. Installare l’estensione in Edge non importa automaticamente tester locali, cronologie, preferenze o copie SQL da Chrome. Imposta la BU nel nuovo browser e premi Carica tester dalla DE; se usi la DE `tester_content_builder`, gli stessi contatti possono essere letti da entrambi. Anche il login a Marketing Cloud deve essere effettuato nel browser nel quale lavori.
 
 Se il browser aziendale impedisce l’attivazione della modalità sviluppatore o il caricamento, chiedi all’amministratore IT di autorizzare l’estensione.
 
@@ -38,7 +38,7 @@ Senza MID e stack riconosciuti, le cronologie del modulo rimangono temporanee. I
 
 ## Icone e impostazioni dell’interfaccia
 
-Le icone **Impostazioni SFMC** e **Test History** compaiono soltanto in **Preview and Test**. Il menu Impostazioni SFMC contiene le opzioni del MID e **Tester BU**; puoi chiuderlo cliccando fuori o premendo Escape.
+Le icone **Impostazioni SFMC** e **Test History** compaiono soltanto in **Preview and Test**. Il menu Impostazioni SFMC contiene le opzioni del MID e **Carica tester dalla DE** (oppure **Aggiorna tester dalla DE** dopo l’attivazione); puoi chiuderlo cliccando fuori o premendo Escape.
 
 Per nascondere completamente entrambe le icone:
 
@@ -70,7 +70,7 @@ I percorsi delle cartelle sono conservati soltanto in memoria per cinque minuti.
 
 ## Rubrica Tester BU
 
-In **Preview and Test → Impostazioni SFMC → Tester BU**, scegli la **Sorgente dei destinatari**. Ogni BU può usare la rubrica locale del browser oppure una DE condivisa. La scelta è separata per stack e MID e non cambia la BU selezionata in Salesforce.
+In **Preview and Test → Impostazioni SFMC**, premi **Carica tester dalla DE**. Un solo comando cerca la rubrica nella BU corrente, verifica cartella e campi, carica i tester e la attiva automaticamente. L’esito compare direttamente nel menu: non ci sono un modulo da compilare, una sorgente da scegliere o un salvataggio aggiuntivo. L’attivazione resta separata per stack e MID e non cambia la BU selezionata in Salesforce.
 
 ### Rubrica condivisa con Data Extension
 
@@ -87,30 +87,22 @@ Predisponi questa struttura in **ciascuna BU** dove vuoi usare i tester. Non ser
 | Email | EmailAddress, lunghezza 254, Primary Key, obbligatorio. |
 
 4. Aggiungi i contatti dai **Records** della DE oppure importali. Nel pacchetto trovi **esempi/tester_content_builder.csv** con una riga dimostrativa: sostituiscila con i tuoi contatti reali prima dell’importazione.
-5. In **Tester BU**, scegli **Data Extension condivisa: tester_content_builder**. L’estensione cerca automaticamente la DE nella BU e verifica che si trovi in una cartella chiamata esattamente **SFMC_UI_Fixer**, anche dentro altre sottocartelle. Non devi scrivere un percorso. Il pannello mostra il **percorso rilevato**, il collegamento **Apri la DE** e quanti tester ha letto. **Verifica e carica DE** ripete la ricerca e rilegge i dati.
-6. Premi **Salva sorgente**. La scelta della sorgente resta in questo profilo browser per quella BU; ogni collega la imposta nel proprio browser. **Annulla** conserva la configurazione precedente. Un eventuale percorso salvato nelle vecchie versioni non limita la ricerca automatica: se sposti SFMC_UI_Fixer, premi **Verifica e carica DE** per ritrovarla subito.
+5. In **Preview and Test → Impostazioni SFMC**, premi **Carica tester dalla DE**. Il comando cerca automaticamente la DE dentro **SFMC_UI_Fixer**, anche nelle sottocartelle, controlla lo schema, legge i tester e attiva la rubrica per questa BU.
+6. Attendi il messaggio con il numero di **tester attivi**. Il collegamento **Apri DE tester** apre la DE; il suo titolo indica il percorso rilevato. La scelta resta nel tuo profilo browser per quella BU. Dopo l’attivazione il comando si chiama **Aggiorna tester dalla DE** e ripete tutto il caricamento con un clic.
 
 Nel campo **type a name...** dei destinatari di prova, digita almeno **tre caratteri** di nome, cognome o email. Compaiono fino a cinque suggerimenti alla volta, con nome e indirizzo. Un clic inserisce l’email nei destinatari nativi di Salesforce. I campi Nome e Cognome servono alla ricerca: non sostituiscono la DE e la riga usate da Salesforce per la personalizzazione della preview.
 
-Per aggiungere, modificare o rimuovere tester condivisi, modifica i record in Salesforce. I colleghi con i permessi necessari sulla stessa DE vedono gli aggiornamenti alla successiva lettura. I contatti vengono conservati **solo in memoria per cinque minuti**; riapri **Tester BU → Verifica e carica DE** per rileggerli subito. L’estensione non crea la cartella o la DE e non scrive né cancella i suoi record.
+Per aggiungere, modificare o rimuovere tester condivisi, modifica i record in Salesforce. I colleghi con i permessi necessari sulla stessa DE vedono gli aggiornamenti alla successiva lettura. I contatti vengono conservati **solo in memoria per cinque minuti**; premi **Aggiorna tester dalla DE** nelle Impostazioni SFMC per rileggerli subito. L’estensione non crea la cartella o la DE e non scrive né cancella i suoi record.
 
-La rubrica ammette fino a **1000 righe**. I record con email mancanti, non valide o campi ambigui vengono esclusi: il pannello indica quanti e per quale motivo, senza riportarne i valori. Se tutte le righe risultano non utilizzabili, correggi il problema e premi **Verifica e carica DE** prima di salvare la sorgente. La lettura gestisce anche i nomi restituiti dall’API in minuscolo o con maiuscole diverse; mantieni nello schema della DE i nomi Nome, Cognome ed Email indicati sopra.
+La rubrica ammette fino a **1000 righe**. I record con email mancanti, non valide o campi ambigui vengono esclusi: il menu indica quante righe sono escluse, senza riportarne i valori. Se tutte le righe risultano non utilizzabili, il caricamento si ferma con le motivazioni e non attiva una nuova sorgente; correggi i Records e ripremi il pulsante. La lettura gestisce anche i nomi restituiti dall’API in minuscolo o con maiuscole diverse; mantieni nello schema della DE i nomi Nome, Cognome ed Email indicati sopra.
 
 Gli indirizzi duplicati compaiono una volta sola. Una DE vuota è valida. Se vengono trovate più DE con lo stesso Nome ed External Key richiesti, la verifica si ferma senza scegliere una rubrica arbitrariamente. Se DE, percorso o schema non corrispondono, i permessi mancano o la lettura supera il limite, compare un messaggio e non viene usata una lista parziale né la rubrica locale in sostituzione. La ricerca usa la sessione della BU attiva; confermare un MID non cambia cliente. Un cambio contesto svuota i suggerimenti e interrompe le letture in corso.
 
-### Rubrica locale del browser
+### Contatti locali delle versioni precedenti
 
-Seleziona **Rubrica locale di questo browser** per mantenere i tester nell’archivio dell’estensione. Puoi salvare una decina di contatti o molti di più, fino a **1000 per BU**, nei limiti dello spazio disponibile.
+Il pannello di inserimento manuale e la scelta tra rubrica locale e DE sono stati rimossi. I vecchi contatti locali già salvati restano nell’archivio dell’estensione, ma i suggerimenti usano soltanto la DE attivata con il nuovo comando. Se non è ancora attiva, il campo invita a premere **Carica tester dalla DE**; gli errori non riattivano i vecchi contatti.
 
-1. Compila una riga con **Cognome**, **Nome** ed **Email**. Nome e cognome sono facoltativi; l’email deve essere valida.
-2. Premi **+ Aggiungi tester** per aggiungere altre persone.
-3. Premi **Salva tester** e attendi il messaggio che indica quanti contatti sono stati salvati.
-
-Per modificare un contatto, correggi la riga e salva. Per eliminarlo, premi **×** sulla riga e poi salva. **Annulla** ed Escape chiudono senza salvare. Un cambio BU chiude l’editor. I tester salvati ricompaiono usando lo stesso profilo, stack e MID e autorizzando l’accesso locale.
-
-Passare alla sorgente DE **conserva la rubrica locale già salvata**: puoi riattivarla scegliendo la relativa sorgente e premendo Salva tester. Le due rubriche non vengono unite automaticamente.
-
-Salvare una rubrica, scegliere la sorgente o selezionare un tester **non invia email**. Per inviare rimane necessario il comando nativo **Send Test**.
+Caricare, aggiornare o selezionare un tester **non invia email** e non modifica i record della DE. Per inviare rimane necessario il comando nativo **Send Test**.
 
 ## Test History e anteprime email
 
@@ -329,7 +321,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.27**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.28**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.
@@ -350,4 +342,4 @@ Non serve disinstallare l’estensione o cancellare i dati locali. Il messaggio 
 
 I salvataggi locali non si sincronizzano automaticamente con altri browser o colleghi. La rubrica DE è invece condivisa tramite Salesforce con chi può leggere quella DE; i destinatari utilizzati possono comparire anche nel Test History locale. Il rinnovo di una conferma non cancella i dati già presenti. Un profilo nuovo, la disinstallazione, la pulizia dei dati del browser o il raggiungimento delle quote possono renderli indisponibili.
 
-Per rimuovere dati usa **Clear** nelle liste recenti, **REMOVE** nelle bozze, la rimozione delle righe nella rubrica seguita da **Salva tester**, oppure i cestini nell’archivio SQL. La cancellazione dei dati locali di un sito può rimuovere anche preferenze del sito stesso. I dati locali non hanno una cifratura propria dell’estensione: la protezione del computer e del profilo browser resta necessaria.
+Per rimuovere dati usa **Clear** nelle liste recenti, **REMOVE** nelle bozze, la gestione dei record della rubrica tester direttamente in Salesforce, oppure i cestini nell’archivio SQL. La cancellazione dei dati locali di un sito può rimuovere anche preferenze del sito stesso. I dati locali non hanno una cifratura propria dell’estensione: la protezione del computer e del profilo browser resta necessaria.

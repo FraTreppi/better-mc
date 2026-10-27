@@ -1,3 +1,9 @@
+# 1.1.28 — 27 ottobre 2026
+
+- Sostituito il pannello Tester BU con Carica tester dalla DE: ricerca automatica, verifica dello schema, lettura e attivazione per BU in una sola operazione. Aggiorna tester dalla DE ripete il caricamento; esito e link alla DE compaiono nel menu Impostazioni SFMC.
+- Rimossi selettore della sorgente, tabella di inserimento manuale e salvataggio separato. I vecchi contatti restano conservati, mentre i suggerimenti usano soltanto la DE attivata. Nessun invio o modifica a Salesforce.
+- Accorpati clic concorrenti e mantenuta la cache appena caricata dopo l’attivazione. Caricamenti falliti, righe tutte non valide e cambi BU non attivano una nuova sorgente. Guide e verifiche aggiornate.
+
 # 1.1.27 — 27 ottobre 2026
 
 - Ricerca automatica della rubrica tester dentro SFMC_UI_Fixer anche nelle sottocartelle della BU. Rimosso il campo percorso manuale; la verifica mostra il percorso rilevato e il collegamento alla DE.

@@ -19,6 +19,7 @@
     }
     window.addEventListener('sfmcfix:contextchange', clearTesterSearch);
     window.addEventListener('sfmcfix:preferences', clearTesterSearch);
+    window.addEventListener('sfmcfix:tester-loading', clearTesterSearch);
 
     console.log(`SFMC fixer - PREVIEW AND SEND`);
 
@@ -44,7 +45,11 @@
         const scope = sfmcfix.context.current().scope;
         $status.text('Ricerca tester…');
         try {
-            const result = sfmcfix.testerSource ? await sfmcfix.testerSource.list() : { testers: sfmcfix.preferences.get().testers || [] };
+            if (sfmcfix.preferences.get().testerSource !== 'de') {
+                $status.text('Premi Carica tester dalla DE nelle Impostazioni SFMC per attivare la rubrica.');
+                return;
+            }
+            const result = await sfmcfix.testerSource.list();
             if (generation !== searchGeneration || scope !== sfmcfix.context.current().scope || !$input[0]?.isConnected) return;
             const found = result.testers.filter(tester => tester.some(value => value.toLowerCase().includes(val)));
             const emails = new Set();
@@ -309,7 +314,7 @@
             const existing = document.getElementById('sfmcfix-test-tracking');
             const labels = ['send test', 'send test email', 'send test emails', 'invia test', 'invia email di test'];
             const send = active && Array.from(document.querySelectorAll('button, [role="button"], a.btn, input[type="submit"], input[type="button"]')).find(button =>
-                !button.closest('#sfmcfix-context, #sfmcfix-tester-editor, #testsendlog-viewer') &&
+                !button.closest('#sfmcfix-context, #testsendlog-viewer') &&
                 labels.includes((button.value || button.textContent || '').trim().replace(/\s+/g, ' ').toLowerCase()) &&
                 button.getClientRects().length > 0 && getComputedStyle(button).visibility !== 'hidden');
             if (!send || !sfmcfix.context.current().stack) { existing?.remove(); return; }
@@ -346,7 +351,6 @@
                 }
                 const history = document.getElementById('testsendlog-viewer');
                 if (history?.classList.contains('is-open')) history.classList.remove('is-open');
-                if (!active) document.getElementById('sfmcfix-tester-editor')?.close();
             }
         };
         syncVisibility();

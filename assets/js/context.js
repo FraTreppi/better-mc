@@ -16,6 +16,11 @@
     let settingsError = null;
     let settingsLoading = false;
     let settingsNeedReload = false;
+    let testersTask = null;
+    let testersBusy = false;
+    let testerLoadStatus = '';
+    let testerLoadError = false;
+    let loadedTesterDE = null;
     let settingsGeneration = 0;
 
     function asMid(value) {
@@ -185,19 +190,37 @@
             settings = result[SETTINGS] || settings;
             window.dispatchEvent(new Event('sfmcfix:preferences'));
         },
-        async configureTesters() {
-            await api.context.refresh();
-            if (settingsNeedReload) await loadSettings();
-            const context = current();
-            if (!context.persistent) {
-                alert('Per salvare i destinatari di test, apri Impostazioni SFMC e scegli Imposta MID o Conferma MID per la BU corrente.');
-                return;
-            }
-            if (settingsLoading) return;
-            if (settingsError) { alert(`Rubrica non disponibile: ${settingsError}`); return; }
-            if (api.openTesterEditor) api.openTesterEditor();
-            else api.addJs('components/tester-editor', () => api.openTesterEditor());
+        configureTesters() {
+            if (testersTask) return testersTask;
+            testersBusy = true;
+            testerLoadStatus = 'Ricerca e caricamento dei tester…';
+            testerLoadError = false; loadedTesterDE = null;
+            window.dispatchEvent(new Event('sfmcfix:tester-loading'));
+            renderContext();
+            let scope;
+            testersTask = (async () => {
+                try {
+                    await api.context.refresh();
+                    if (settingsNeedReload) await loadSettings();
+                    const context = current(); scope = context.scope;
+                    if (!context.persistent) throw new Error('Imposta o conferma il MID della BU corrente prima di caricare i tester.');
+                    if (settingsLoading) throw new Error('Attendi il caricamento delle impostazioni e riprova.');
+                    if (settingsError) throw new Error(`Rubrica non disponibile: ${settingsError}`);
+                    if (!api.testerSource) throw new Error('Attendi il caricamento di Content Builder e riprova.');
+                    const result = await api.testerSource.activate();
+                    if (scope !== current().scope) return;
+                    loadedTesterDE = { id: result.id, folderPath: result.folderPath };
+                    testerLoadStatus = `${result.testers.length} tester attivi per questa BU.${result.invalid ? ` ${result.invalid} righe non valide escluse.` : ''} Cerca nel campo “type a name...”.`;
+                    return result;
+                } catch (error) {
+                    if (!scope || scope === current().scope) { testerLoadError = true; testerLoadStatus = error.message; }
+                } finally {
+                    testersBusy = false; testersTask = null; renderContext();
+                }
+            })();
+            return testersTask;
         }
+
     };
 
     function renderContext() {
@@ -207,10 +230,18 @@
         const hint = rememberedContext();
         bar.querySelector('[data-context-action="configure"]').textContent = context.mid ? `BU ${context.mid} · ${context.stack || '?'}` :
             hint ? `Conferma MID ${hint.mid} · ${hint.stack}` : 'SFMC Fixer · Imposta MID';
-        bar.querySelector('[data-context-action="testers"]').textContent = api.preferences.get().testerSource === 'de' ?
-            'Tester BU · Data Extension' : `Tester BU (${api.preferences.get().testers?.length || 0})`;
+        bar.querySelector('[data-context-action="testers"]').textContent = testersBusy ? 'Caricamento tester…' :
+            api.preferences.get().testerSource === 'de' ? 'Aggiorna tester dalla DE' : 'Carica tester dalla DE';
+        const status = bar.querySelector('[data-tester-load-status]');
+        if (status) { status.textContent = testerLoadStatus; status.hidden = !testerLoadStatus; status.dataset.error = String(testerLoadError); }
+        const link = bar.querySelector('[data-tester-loaded-de]');
+        if (link) {
+            link.hidden = !loadedTesterDE;
+            if (loadedTesterDE) { link.href = api.links.contactBuilder(loadedTesterDE.id); link.title = `Data Extensions / ${loadedTesterDE.folderPath.join(' / ')}`; }
+            else { link.removeAttribute('href'); link.removeAttribute('title'); }
+        }
         bar.dataset.ready = String(context.persistent);
-        bar.querySelector('[data-context-action="testers"]').disabled = settingsLoading;
+        bar.querySelector('[data-context-action="testers"]').disabled = settingsLoading || testersBusy;
         const trigger = bar.querySelector('[data-context-action="toggle"]');
         trigger.title = context.persistent ? `Impostazioni SFMC · BU ${context.mid} · ${context.stack}` :
             hint ? 'Riconferma il MID della BU attuale per ritrovare i tester salvati nel browser. Puoi correggerlo se hai cambiato BU.' :
@@ -261,7 +292,9 @@
             </button>
             <div id="sfmcfix-context-options" role="group" aria-label="Opzioni SFMC" hidden>
                 <button type="button" data-context-action="configure"></button>
-                <button type="button" data-context-action="testers">Tester BU</button>
+                <button type="button" data-context-action="testers">Carica tester dalla DE</button>
+                <p data-tester-load-status role="status" aria-live="polite" hidden></p>
+                <a data-tester-loaded-de target="_blank" rel="noopener noreferrer" hidden>Apri DE tester</a>
             </div>`;
         const trigger = bar.querySelector('[data-context-action="toggle"]');
         const options = bar.querySelector('#sfmcfix-context-options');
@@ -274,9 +307,9 @@
         const configure = bar.querySelector('[data-context-action="configure"]');
         const testers = bar.querySelector('[data-context-action="testers"]');
         configure.title = 'Identifica la BU per le preferenze dell’estensione. Non cambia la BU in Marketing Cloud.';
-        testers.title = 'Gestisci i destinatari di prova per Content Builder. Non invia email.';
+        testers.title = 'Cerca la DE, verifica e carica i tester e attiva la rubrica per questa BU. Non invia email.';
         configure.onclick = () => { close(); trigger.focus(); api.context.configure(); };
-        testers.onclick = () => { close(); trigger.focus(); api.preferences.configureTesters(); };
+        testers.onclick = () => { trigger.focus(); api.preferences.configureTesters(); };
         document.addEventListener('click', event => { if (!bar.contains(event.target)) close(); });
         bar.addEventListener('keydown', event => {
             if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); trigger.focus(); }
@@ -291,7 +324,7 @@
             }
         });
         bar.addEventListener('focusout', event => { if (!bar.contains(event.relatedTarget)) close(); });
-        window.addEventListener('sfmcfix:contextchange', close);
+        window.addEventListener('sfmcfix:contextchange', () => { testerLoadStatus = ''; testerLoadError = false; loadedTesterDE = null; close(); renderContext(); });
         target.appendChild(bar);
         renderContext();
     };
@@ -320,7 +353,10 @@
         await Promise.all([loadSettings(), api.storage.getItem(UI_SETTINGS, {}).then(value => { uiSettings = value; }).catch(() => {})]);
         api.storage.onChange(changes => {
             if (changes[SETTINGS]) {
-                if (changes[SETTINGS].accessReset) { settingsNeedReload = true; settingsGeneration++; settingsError = null; settingsLoading = false; }
+                if (changes[SETTINGS].accessReset) {
+                    settingsNeedReload = true; settingsGeneration++; settingsError = null; settingsLoading = false;
+                    loadedTesterDE = null; testerLoadStatus = ''; testerLoadError = false;
+                }
                 const scope = current().scope;
                 settings = { [scope]: changes[SETTINGS].newValue?.[scope] || {} };
                 window.dispatchEvent(new Event('sfmcfix:preferences'));

@@ -10,6 +10,7 @@
     let pending = null;
     let controller = null;
     let expiry = null;
+    let activation = null;
 
     function invalidate() {
         cache = null;
@@ -141,8 +142,37 @@
         return { testers: Array.from(contacts.values()), invalid, invalidReasons, id: de.id, folderPath, scope: context.scope, loaded: Date.now() };
     }
 
+    function keepLoaded(value) {
+        clearTimeout(expiry);
+        cache = value;
+        expiry = setTimeout(() => { if (cache === value) cache = null; }, 5 * 60 * 1000);
+    }
+    function excluded(result) {
+        const labels = { missingEmail: 'Email mancante', invalidEmail: 'Email non valida', invalidNames: 'Nome/Cognome non validi',
+            ambiguousFields: 'campi ambigui', invalidFormat: 'formato non riconosciuto' };
+        return Object.entries(result.invalidReasons || {}).filter(([, count]) => count > 0)
+            .map(([reason, count]) => `${count}: ${labels[reason] || 'record non valido'}`).join('; ');
+    }
     api.testerSource = {
         name, folder,
+        activate() {
+            const context = api.context.current();
+            if (activation?.scope === context.scope) return activation.promise;
+            const task = { scope: context.scope };
+            task.promise = (async () => {
+                const result = await api.testerSource.list({ source: 'de', refresh: true });
+                if (context.scope !== api.context.current().scope) throw new Error('Caricamento interrotto: la BU è cambiata.');
+                if (!result.testers.length && result.invalid > 0) {
+                    throw new Error(`Nessun tester utilizzabile. ${result.invalid} righe escluse (${excluded(result)}). Correggi i Records della DE e riprova.`);
+                }
+                await api.preferences.save({ testerSource: 'de' });
+                if (context.scope !== api.context.current().scope) throw new Error('Caricamento interrotto: la BU è cambiata.');
+                keepLoaded(result);
+                return result;
+            })().finally(() => { if (activation === task) activation = null; });
+            activation = task;
+            return task.promise;
+        },
         async list({ source = api.preferences.get().testerSource, refresh = false } = {}) {
             if (source !== 'de') return { testers: api.preferences.get().testers || [], invalid: 0 };
             const context = api.context.current();
@@ -156,8 +186,7 @@
             const timeout = setTimeout(() => request.abort(), 25000);
             const promise = load(context, request).then(value => {
                 if (controller === request && context.scope === api.context.current().scope) {
-                    cache = value;
-                    expiry = setTimeout(() => { if (cache === value) cache = null; }, 5 * 60 * 1000);
+                    keepLoaded(value);
                 }
                 return value;
             }).finally(() => {

@@ -12,8 +12,11 @@ function fixture(options = {}) {
     let scope = 's50:123';
     const settings = { testerSource: 'de', testers: [['Local', '', 'local@example.com']] };
     const events = new EventTarget();
-    const calls = [];
-    const api = { preferences: { get: () => settings }, context: { current: () => ({ scope, persistent: options.persistent !== false }) } };
+    const calls = [], saves = [];
+    const api = { preferences: { get: () => settings, save: async patch => {
+        if (options.saveError) throw new Error('Storage non disponibile');
+        saves.push(clone(patch)); Object.assign(settings, patch); events.dispatchEvent(new Event('sfmcfix:preferences'));
+    } }, context: { current: () => ({ scope, persistent: options.persistent !== false }) } };
     const window = { sfmcfix: api, addEventListener: events.addEventListener.bind(events) };
     const records = options.records || [{ Nome: 'Mario', Cognome: 'Rossi', Email: 'mario@example.com', Secret: 'not-a-tester-field' }];
     const folders = options.folders || [{ id: 10, parentId: 0, categoryType: 'dataextension', name: 'Data Extensions' }, { id: 11, parentId: 10, name: 'SFMC_UI_Fixer' }];
@@ -41,7 +44,7 @@ function fixture(options = {}) {
     });
     vm.runInContext(script, context);
     function changeScope(next = 's50:999') { scope = next; events.dispatchEvent(new Event('sfmcfix:contextchange')); }
-    return { source: api.testerSource, settings, events, calls, changeScope };
+    return { source: api.testerSource, settings, events, calls, saves, changeScope };
 }
 
 test('shared DE uses exact schema, same-origin reads, paginated rows and memory-only cache', async () => {
@@ -156,4 +159,26 @@ test('automatic discovery rejects disconnected/shared chains, wrong final folder
         { id: '00000000-0000-4000-8000-000000000002', name, customerKey: name, categoryId: 12 }] });
     await assert.rejects(f.source.list(), /una sola DE/);
     assert.equal(f.calls.some(call => call.target.includes('customObjectData')), false);
+});
+
+
+test('one-click activation finds, validates and enables the DE once, preserving local contacts and the loaded cache', async () => {
+    const f = fixture({ folders: nestedFolders }); f.settings.testerSource = 'local';
+    const local = clone(f.settings.testers);
+    const [a, b] = await Promise.all([f.source.activate(), f.source.activate()]);
+    assert.equal(a.id, b.id); assert.equal(f.calls.length, 4);
+    assert.deepEqual(f.saves, [{ testerSource: 'de' }]); assert.deepEqual(f.settings.testers, local);
+    assert.deepEqual(clone((await f.source.list()).testers), clone(a.testers)); assert.equal(f.calls.length, 4);
+});
+
+test('one-click activation does not save an invalid/unreadable DE, and reports storage errors', async () => {
+    for (const options of [{ candidates: [] }, { records: [{ Email: 'invalid' }] }, { status: 403 },
+        { rowHook: async ({ changeScope }) => changeScope() }, { saveError: true }]) {
+        const f = fixture(options); f.settings.testerSource = 'local';
+        await assert.rejects(f.source.activate());
+        assert.equal(f.saves.length, 0); assert.equal(f.settings.testerSource, 'local');
+    }
+    const empty = fixture({ records: [] });
+    assert.equal((await empty.source.activate()).testers.length, 0);
+    assert.deepEqual(empty.saves, [{ testerSource: 'de' }]);
 });
