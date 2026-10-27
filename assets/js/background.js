@@ -1,7 +1,7 @@
 // Privileged storage stays in the extension. Page scripts receive only an
 // explicitly approved BU view, never the full archive or a network proxy.
 'use strict';
-const VERSION = '1.1.25';
+const VERSION = '1.1.26';
 function failure(code, message) { return Object.assign(new Error(message), { code }); }
 const SETTINGS = 'SFMCFIX---SETTINGS-V2';
 const UI = 'SFMCFIX---UI-PREFERENCES';
@@ -135,11 +135,19 @@ function testers(value) {
         return row.map(v => v.trim());
     });
 }
+function testerFolderPath(value) {
+    if (!Array.isArray(value) || !value.length || value.length > 20 || value.at(-1) !== 'SFMC_UI_Fixer' ||
+        value.some(part => typeof part !== 'string' || !part.trim() || part !== part.trim() || part.length > 250 || /[\x00-\x1f\x7f/\\→>]/.test(part)) ||
+        value.join('/').length > 2048) throw new Error('Percorso cartella tester non valido.');
+    return value.slice();
+}
 function preferencesView(all, scope) {
     if (!scope || !plain(all?.[scope])) return {};
     let rows = [];
     try { rows = testers(all[scope].testers || []); } catch (_) { /* Invalid legacy data is not exposed to the page. */ }
-    return { [scope]: { testers: rows, testerSource: all[scope].testerSource === 'de' ? 'de' : 'local' } };
+    let path = ['SFMC_UI_Fixer'];
+    try { path = testerFolderPath(all[scope].testerFolderPath || path); } catch (_) {}
+    return { [scope]: { testers: rows, testerSource: all[scope].testerSource === 'de' ? 'de' : 'local', testerFolderPath: path } };
 }
 const versionFields = ['queryDefinitionId', 'name', 'key', 'description', 'queryText', 'targetName', 'targetKey', 'targetId', 'targetDescription',
     'createdDate', 'modifiedDate', 'targetUpdateTypeId', 'targetUpdateTypeName', 'validatedQueryText', 'categoryId', 'folderLocationText', 'isFrozen', 'versioning'];
@@ -191,8 +199,9 @@ async function pageStorage(caller, action, payload, scope) {
         if (action === 'get') return { [SETTINGS]: preferencesView((await read('local', [SETTINGS]))[SETTINGS], scope) };
         const patch = payload.items[SETTINGS];
         if (!plain(patch) || Object.keys(patch).length !== 1 || !Object.hasOwn(patch, scope) || !plain(patch[scope]) ||
-            Object.keys(patch[scope]).some(k => !['testers', 'testerSource'].includes(k))) throw new Error('Modifica preferenze non autorizzata.');
+            Object.keys(patch[scope]).some(k => !['testers', 'testerSource', 'testerFolderPath'].includes(k))) throw new Error('Modifica preferenze non autorizzata.');
         const update = {};
+        if (Object.hasOwn(patch[scope], 'testerFolderPath')) update.testerFolderPath = testerFolderPath(patch[scope].testerFolderPath);
         if (Object.hasOwn(patch[scope], 'testers')) update.testers = testers(patch[scope].testers);
         if (Object.hasOwn(patch[scope], 'testerSource')) {
             if (!['local', 'de'].includes(patch[scope].testerSource)) throw new Error('Sorgente tester non valida.');

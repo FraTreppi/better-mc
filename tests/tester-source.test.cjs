@@ -119,3 +119,37 @@ test('reports why records are excluded without leaking their values or accepting
     assert.ok(!JSON.stringify(result).includes('DO_NOT_EXPOSE'));
     assert.ok(!JSON.stringify(result).includes('other@example.com'));
 });
+
+
+const nestedFolders = [{ id: 10, parentId: 0, categoryType: 'dataextension', name: 'Data Extensions' },
+    { id: 20, parentId: 10, name: 'Progetti' }, { id: 30, parentId: 20, name: 'Campagne' },
+    { id: 11, parentId: 30, name: 'SFMC_UI_Fixer' }];
+test('an explicit nested tester path is normalized, validated and cached separately from the default path', async () => {
+    const f = fixture({ folders: nestedFolders });
+    await assert.rejects(f.source.list(), /percorso/);
+    const result = await f.source.list({ folderPath: 'Data Extensions → Progetti / Campagne / SFMC_UI_Fixer' });
+    assert.deepEqual(clone(result.folderPath), ['Progetti', 'Campagne', 'SFMC_UI_Fixer']);
+    assert.equal(result.testers.length, 1);
+    const count = f.calls.length;
+    await f.source.list({ folderPath: ['Progetti', 'Campagne', 'SFMC_UI_Fixer'] }); assert.equal(f.calls.length, count);
+    await assert.rejects(f.source.list(), /percorso/); // Unsaved draft cannot replace the saved default.
+    f.settings.testerFolderPath = ['Progetti', 'Campagne', 'SFMC_UI_Fixer'];
+    f.events.dispatchEvent(new Event('sfmcfix:preferences'));
+    assert.equal((await f.source.list()).testers.length, 1);
+});
+
+test('nested tester paths reject disconnected/shared chains, wrong ancestors and malformed input before reading contacts', async () => {
+    const path = ['Progetti', 'Campagne', 'SFMC_UI_Fixer'];
+    for (const folders of [
+        nestedFolders.map((row, i) => i === 2 ? { ...row, parentId: 999 } : row),
+        nestedFolders.map((row, i) => i === 1 ? { ...row, name: 'Other project' } : row),
+        nestedFolders.map((row, i) => i === 1 ? { ...row, categoryType: 'shared_dataextension' } : row)
+    ]) {
+        const f = fixture({ folders }); await assert.rejects(f.source.list({ folderPath: path }), /percorso/);
+        assert.equal(f.calls.some(call => call.target.includes('customObjectData')), false);
+    }
+    for (const folderPath of ['', [], ['Other'], [' ', 'SFMC_UI_Fixer'], ['Bad/segment', 'SFMC_UI_Fixer'],
+        Array(21).fill('SFMC_UI_Fixer'), { arbitrary: 'path' }]) {
+        const f = fixture(); await assert.rejects(f.source.list({ folderPath })); assert.equal(f.calls.length, 0);
+    }
+});

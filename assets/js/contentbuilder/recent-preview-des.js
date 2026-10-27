@@ -6,41 +6,61 @@
     const GUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
     const guid = value => typeof value === 'string' && new RegExp(`^${GUID}$`, 'i').test(value) ? value.toLowerCase() : null;
     const numeric = value => /^\d{1,15}$/.test(String(value ?? '')) && Number(value) > 0 ? String(value) : null;
-    const folders = [{ id: 999999999, name: 'DE recenti · questa email' }, { id: 999999990, name: 'DE recenti · questa BU' }];
-    const virtual = id => folders.some(folder => String(folder.id) === String(id));
+    const folders = [{ id: 999999990, name: 'DE recenti' }];
+    const virtual = id => ['999999990', '999999999'].includes(String(id));
     const metadata = new Map(), active = new Set();
     let rootId = null, generation = 0;
     const array = key => {
         try { const value = JSON.parse(api.local.getItem(key) || '[]'); return Array.isArray(value) ? value : []; }
         catch (_) { return []; }
     };
+    function history() {
+        try {
+            const value = JSON.parse(api.local.getItem(KEY) || '[]');
+            if (Array.isArray(value)) return { items: value, clearedAt: 0 };
+            if (value && Array.isArray(value.items) && Number.isFinite(value.clearedAt) && value.clearedAt >= 0) return value;
+        } catch (_) {}
+        return { items: [], clearedAt: 0 };
+    }
+    function invalidate() {
+        generation++; metadata.clear();
+        for (const controller of active) controller.abort();
+        active.clear();
+    }
     function currentAsset() {
         const asset = api.temp.currentasset;
         return { assetId: numeric(asset?.id), emailID: numeric(asset?.legacyData?.legacyId) };
     }
     function entries() {
         // Import only identifiers from the existing, already BU-scoped send log.
+        const stored = history();
         const logs = array('testsendlogs').filter(row => row?.dataSource?.type === 'DataExtension').map(row => ({
             deId: row.dataSource.id, emailID: row.emailID, usedAt: new Date(row.logdate).getTime()
-        }));
-        return [...array(KEY), ...logs].filter(row => guid(row?.deId) && numeric(row?.emailID) &&
+        })).filter(row => row.usedAt > stored.clearedAt);
+        return [...stored.items.filter(row => (row?.epoch || 0) === stored.clearedAt), ...logs].filter(row => guid(row?.deId) && numeric(row?.emailID) &&
             Number.isFinite(row.usedAt) && row.usedAt <= Date.now() && Date.now() - row.usedAt < MAX_AGE)
-            .map(row => ({ deId: guid(row.deId), emailID: numeric(row.emailID), assetId: numeric(row.assetId), usedAt: row.usedAt }))
+            .map(row => ({ deId: guid(row.deId), emailID: numeric(row.emailID), assetId: numeric(row.assetId), usedAt: row.usedAt, epoch: stored.clearedAt }))
             .sort((a, b) => b.usedAt - a.usedAt);
     }
     function remember(deId, emailID, assetId, scope) {
         if (scope !== api.context.current().scope || !guid(deId) || !numeric(emailID)) return;
-        const item = { deId: guid(deId), emailID: numeric(emailID), assetId: numeric(assetId), usedAt: Date.now() };
+        const clearedAt = history().clearedAt;
+        const item = { epoch: clearedAt, deId: guid(deId), emailID: numeric(emailID), assetId: numeric(assetId), usedAt: Date.now() };
         const seen = new Set();
         const result = [item, ...entries()].filter(row => {
-            const key = `${row.deId}:${row.emailID}`;
+            const key = row.deId;
             if (seen.has(key)) return false;
             seen.add(key); return true;
         }).slice(0, 200);
-        try { api.local.setItem(KEY, JSON.stringify(result)); }
+        try { api.local.setItem(KEY, JSON.stringify({ clearedAt, items: result })); }
         catch (_) { /* A disabled/full site store must never break the native preview. */ }
     }
     api.recentPreviewDEs = {
+        clear() {
+            const clearedAt = Math.max(Date.now(), history().clearedAt + 1);
+            api.local.setItem(KEY, JSON.stringify({ clearedAt, items: [] }));
+            invalidate();
+        },
         rememberSend(data) {
             const asset = currentAsset();
             if (data?.dataSource?.type === 'DataExtension') remember(data.dataSource.id, data.emailID,
@@ -71,7 +91,8 @@
         const scope = api.context.current().scope, asset = currentAsset();
         const assetId = asset.emailID === numeric(emailID) ? asset.assetId : null;
         // Observe the successful native preview, without issuing it ourselves or reading its records/HTML.
-        xhr.done(() => remember(deId, emailID, assetId, scope));
+        const mark = history().clearedAt;
+        xhr.done(() => { if (mark === history().clearedAt) remember(deId, emailID, assetId, scope); });
     };
     function firstPage(url, data) {
         for (const key of ['$skip', '$offset', 'offset']) if (Number(url.searchParams.get(key)) > 0) return false;
@@ -131,17 +152,15 @@
         const match = url?.pathname.match(children ? /^\/fuelapi\/platform-internal\/v1\/categories\/(\d+)\/children\/?$/ :
             /^\/fuelapi\/data-internal\/v1\/customobjects\/category\/(\d+)\/?$/);
         if (!match || !virtual(match[1]) || String(options.type || options.method || 'GET').toUpperCase() !== 'GET') return;
-        const scope = api.context.current().scope, stamp = generation, asset = currentAsset();
+        const scope = api.context.current().scope, stamp = generation, mark = history().clearedAt;
         let cancelled = false;
         return { abort() { cancelled = true; }, send(headers, complete) {
             const response = items => ({ count: items.length, page: 1, pageSize: 25, links: {}, items });
             if (children) { complete(200, 'success', { json: response([]) }, ''); return; }
             const seen = new Set();
-            const ids = entries().filter(row => match[1] === '999999990' ||
-                (asset.emailID ? row.emailID === asset.emailID : asset.assetId && row.assetId === asset.assetId))
-                .filter(row => { if (seen.has(row.deId)) return false; seen.add(row.deId); return true; }).slice(0, 8).map(row => row.deId);
-            const stillCurrent = () => !cancelled && stamp === generation && scope === api.context.current().scope &&
-                (match[1] === '999999990' || JSON.stringify(asset) === JSON.stringify(currentAsset()));
+            const ids = entries().filter(row => { if (seen.has(row.deId)) return false; seen.add(row.deId); return true; })
+                .slice(0, 20).map(row => row.deId);
+            const stillCurrent = () => !cancelled && stamp === generation && scope === api.context.current().scope && mark === history().clearedAt;
             Promise.all(ids.map(id => requestMetadata(id).catch(error => {
                 if ([404, 410].includes(error.status)) return null;
                 throw error;
@@ -153,9 +172,33 @@
     }
     api.ajax.transport['/fuelapi/platform-internal/v1/categories/'] = options => transport(options, true);
     api.ajax.transport['/fuelapi/data-internal/v1/customobjects/category/'] = options => transport(options, false);
+    if (typeof document !== 'undefined') {
+        const syncClear = () => {
+            for (const branch of document.querySelectorAll('.tree-branch[data-id="999999990"]')) {
+                if (branch.querySelector('[data-sfmcfix-clear-recents]')) continue;
+                const header = branch.querySelector('.tree-branch-header') || branch;
+                const button = document.createElement('button');
+                button.type = 'button'; button.dataset.sfmcfixClearRecents = '';
+                button.textContent = 'Svuota recenti';
+                button.title = 'Svuota solo le DE recenti di questa BU. Test History e altre cronologie sono conservati.';
+                button.addEventListener('click', event => {
+                    event.preventDefault(); event.stopImmediatePropagation();
+                    try {
+                        api.recentPreviewDEs.clear();
+                        api.notificationLogger('success', null, 'DE recenti svuotate per questa BU. Riapri la cartella per aggiornare l’elenco.');
+                    } catch (_) { api.notificationLogger('error', null, 'Impossibile svuotare le DE recenti. Riprova.'); }
+                });
+                header.appendChild(button);
+            }
+        };
+        let queued = false;
+        new MutationObserver(() => {
+            if (queued) return;
+            queued = true; requestAnimationFrame(() => { queued = false; syncClear(); });
+        }).observe(document.body, { childList: true, subtree: true });
+        syncClear();
+    }
     window.addEventListener('sfmcfix:contextchange', () => {
-        generation++; rootId = null; metadata.clear();
-        for (const controller of active) controller.abort();
-        active.clear();
+        rootId = null; invalidate();
     });
 })();

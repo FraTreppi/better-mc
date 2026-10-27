@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.25 · Autore: Francesco Trepiccioni
+Versione 1.1.26 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -76,7 +76,7 @@ In **Preview and Test → Impostazioni SFMC → Tester BU**, scegli la **Sorgent
 
 Predisponi questa struttura in **ciascuna BU** dove vuoi usare i tester. Non servono GUID o ID di cartelle uguali tra clienti.
 
-1. Nella radice locale **Data Extensions**, crea la cartella **SFMC_UI_Fixer**. Non usare Shared Data Extensions o una cartella annidata con lo stesso nome.
+1. Dentro **Data Extensions**, crea la cartella **SFMC_UI_Fixer** nella posizione che preferisci, anche in sottocartelle: per esempio **Data Extensions → Progetti → Campagne → SFMC_UI_Fixer**. Usa le cartelle locali della BU, non Shared Data Extensions.
 2. Dentro la cartella crea una DE standard con **Nome** ed **External Key** entrambi uguali a **tester_content_builder**. La DE può essere non sendable: serve da rubrica dei destinatari di prova.
 3. Crea questi campi, rispettando esattamente maiuscole e minuscole:
 
@@ -87,8 +87,8 @@ Predisponi questa struttura in **ciascuna BU** dove vuoi usare i tester. Non ser
 | Email | EmailAddress, lunghezza 254, Primary Key, obbligatorio. |
 
 4. Aggiungi i contatti dai **Records** della DE oppure importali. Nel pacchetto trovi **esempi/tester_content_builder.csv** con una riga dimostrativa: sostituiscila con i tuoi contatti reali prima dell’importazione.
-5. In **Tester BU**, scegli **Data Extension condivisa: tester_content_builder**. L’estensione verifica nome, External Key, percorso e campi e indica quanti tester ha letto.
-6. Premi **Salva sorgente**. La scelta resta in questo profilo browser per quella BU; ogni collega la imposta nel proprio browser.
+5. In **Tester BU**, scegli **Data Extension condivisa: tester_content_builder**. Nel campo **Percorso della cartella tester** indica il percorso da Data Extensions fino a SFMC_UI_Fixer: per esempio **Progetti / Campagne / SFMC_UI_Fixer**. Per la posizione originale lascia **SFMC_UI_Fixer**. Premi **Verifica e carica DE**: l’estensione controlla nome, External Key, tutto il percorso e i campi e indica quanti tester ha letto.
+6. Premi **Salva sorgente**. Sorgente e percorso restano in questo profilo browser per quella BU; ogni collega li imposta nel proprio browser. Modificare il percorso richiede una nuova verifica prima del salvataggio. **Annulla** conserva la configurazione precedente.
 
 Nel campo **type a name...** dei destinatari di prova, digita almeno **tre caratteri** di nome, cognome o email. Compaiono fino a cinque suggerimenti alla volta, con nome e indirizzo. Un clic inserisce l’email nei destinatari nativi di Salesforce. I campi Nome e Cognome servono alla ricerca: non sostituiscono la DE e la riga usate da Salesforce per la personalizzazione della preview.
 
@@ -122,14 +122,13 @@ Se il tentativo usava una DE con una riga selezionata, il comando **Preview** ge
 
 L’anteprima disattiva script, moduli e collegamenti dell’email. Le immagini esterne sono bloccate inizialmente. **Carica immagini esterne** permette di abilitarle per quella sola anteprima, dopo una conferma: i server delle immagini possono registrare la richiesta. Generando una nuova anteprima, la scelta riparte dalle immagini bloccate.
 
-Nel selettore delle DE per la preview trovi due cartelle virtuali con scopi diversi:
+Nel selettore delle DE per la preview trovi una sola cartella virtuale **DE recenti**, con le ultime **20 DE distinte** usate nella BU. Rimane disponibile cambiando email o template. Una preview riuscita con un record selezionato ricorda la DE senza richiedere un invio di test; un nuovo utilizzo la riporta in cima senza duplicarla.
 
-- **DE recenti · questa email**: DE usate nelle preview riuscite e nei tentativi di invio dell’email corrente. Aprendo un’altra email questa lista può essere vuota.
-- **DE recenti · questa BU**: le ultime DE usate nella BU, disponibili anche dopo aver cambiato email o template.
+Sono considerati gli utilizzi degli ultimi **60 giorni**, compresi i riferimenti compatibili nello storico locale degli invii. I recenti della preview salvano solo identificativi e data d’uso, senza i valori dei record. La scorciatoia compare una sola volta alla radice riconosciuta, anche premendo **Load More**, e non crea cartelle reali in Salesforce.
 
-Una preview riuscita con un record selezionato ricorda la DE senza richiedere un invio di test. Ogni elenco mostra al massimo otto DE distinte, dalla più recente, per gli ultimi 60 giorni; vengono recuperati anche i riferimenti nello storico locale degli invii già esistente. I recenti della preview salvano solo identificativi e data d’uso, senza i valori dei record.
+Accanto alla cartella trovi **Svuota recenti**. Svuota soltanto le DE recenti della **BU corrente**, conservando Test History e le altre cronologie. Riapri la cartella per aggiornare l’elenco. Le vecchie voci di Test History non vengono reimportate dopo lo svuotamento; le nuove preview alimentano di nuovo la lista.
 
-Le due scorciatoie compaiono una sola volta alla radice riconosciuta del selettore, anche premendo **Load More**. Non creano cartelle reali in Salesforce. Restano separate per BU e browser/profilo; se il MID non è rilevato, rimangono temporanee nella scheda. Le DE eliminate vengono escluse e un errore di lettura o di permessi viene gestito dal selettore.
+I recenti sono separati per BU e browser/profilo; se il MID non è rilevato, rimangono temporanei nella scheda. Le DE eliminate vengono escluse e un errore di lettura o di permessi viene gestito dal selettore.
 
 ## Tracking Test
 
@@ -330,7 +329,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.25**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.26**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

@@ -43,15 +43,15 @@ function fixture(options = {}) {
     return { api, events, calls, notices, storage, changeScope, preview, request, categories };
 }
 
-test('a preview without Send Test becomes a BU recent after changing email; email and BU lists stay distinct', async () => {
+test('a preview without Send Test becomes a BU recent after changing email; one BU list survives email changes', async () => {
     const f = fixture(); f.preview();
     let result = await f.request(999999999).promise;
     assert.equal(result.status, 200); assert.deepEqual(result.items.map(row => row.id), [A]);
     f.api.temp.currentasset = { id: 2002, legacyData: { legacyId: 202 } };
-    assert.equal((await f.request(999999999).promise).items.length, 0);
+    assert.equal((await f.request(999999999).promise).items.length, 1);
     assert.deepEqual((await f.request().promise).items.map(row => row.id), [A]);
     f.preview(B, 202);
-    assert.deepEqual((await f.request(999999999).promise).items.map(row => row.id), [B]);
+    assert.deepEqual((await f.request(999999999).promise).items.map(row => row.id), [B, A]);
     assert.deepEqual((await f.request().promise).items.map(row => row.id), [B, A]);
     assert.equal(f.api.local.getItem('testsendlogs'), undefined);
     const saved = f.api.local.getItem(KEY);
@@ -63,9 +63,9 @@ test('virtual folders appear once at the detected root, never again in Load More
     const f = fixture();
     f.categories(0, 1, [{ id: 782, parentId: 0, categoryType: 'dataextension' }]);
     const first = f.categories(782, 1, [{ id: 10, name: 'Folder 1' }]);
-    assert.deepEqual(clone(first.data.items.map(row => row.id)), [999999999, 999999990, 10]);
-    assert.deepEqual(clone(first.data.items.slice(0, 2).map(row => row.name)), ['DE recenti · questa email', 'DE recenti · questa BU']);
-    first.again(); assert.equal(first.data.items.length, 3); assert.equal(first.data.count, 53);
+    assert.deepEqual(clone(first.data.items.map(row => row.id)), [999999990, 10]);
+    assert.deepEqual(clone(first.data.items.slice(0, 1).map(row => row.name)), ['DE recenti']);
+    first.again(); assert.equal(first.data.items.length, 2); assert.equal(first.data.count, 52);
     for (const page of [2, 3]) {
         const next = f.categories(782, page, [{ id: 10 + page, name: 'Native page ' + page }]);
         assert.deepEqual(next.data.items.map(row => row.id), [10 + page]);
@@ -76,15 +76,15 @@ test('virtual folders appear once at the detected root, never again in Load More
     f.changeScope(); assert.equal(f.categories(782).data.items.length, 0);
 });
 
-test('new history merges compatible send logs, deduplicates before limiting to eight, and ignores malformed/expired data', async () => {
+test('new history merges compatible send logs, deduplicates before limiting to twenty, and ignores malformed/expired data', async () => {
     const f = fixture(), stamp = Date.now();
-    const rows = Array.from({ length: 10 }, (_, i) => ({ logdate: new Date(stamp - i * 1000).toISOString(), emailID: 101,
+    const rows = Array.from({ length: 30 }, (_, i) => ({ logdate: new Date(stamp - i * 1000).toISOString(), emailID: 101,
         dataSource: { type: 'DataExtension', id: '00000000-0000-4000-8000-' + String(i + 1).padStart(12, '0'), row: 0 }, recipients: ['PRIVATE_EMAIL'] }));
     rows.unshift(...Array.from({ length: 12 }, () => rows[0]));
     rows.push({ ...rows[1], logdate: 'invalid' }, { ...rows[1], logdate: '2000-01-01' }, { ...rows[1], dataSource: { type: 'List', id: B } });
     f.api.local.setItem('testsendlogs', JSON.stringify(rows));
     const result = await f.request().promise;
-    assert.equal(result.items.length, 8); assert.equal(new Set(result.items.map(row => row.id)).size, 8);
+    assert.equal(result.items.length, 20); assert.equal(new Set(result.items.map(row => row.id)).size, 20);
     f.preview(B);
     assert.ok(!f.api.local.getItem(KEY).includes('PRIVATE_EMAIL'));
     assert.ok(!f.api.local.getItem(KEY).includes('recipients'));
@@ -136,19 +136,43 @@ test('aborting or changing the email/BU prevents late virtual-folder contents fr
 test('BU history works without a loaded email and its GET fallback is restricted to the same origin', async () => {
     const f = fixture({ native: false }); f.preview(); delete f.api.temp.currentasset;
     assert.equal((await f.request().promise).items.length, 1);
-    assert.equal((await f.request(999999999).promise).items.length, 0);
+    assert.equal((await f.request(999999999).promise).items.length, 1);
     assert.equal(f.calls[0].url, '/fuelapi/data-internal/v1/customobjects/' + A);
     assert.equal(f.calls[0].init.method, 'GET'); assert.equal(f.calls[0].init.mode, 'same-origin');
     assert.equal(f.calls[0].init.credentials, 'same-origin'); assert.equal(f.calls[0].init.redirect, 'error');
 });
 
-test('a pending email-specific list is invalidated when a different email opens', async () => {
+test('the single BU list remains valid when a different email opens', async () => {
     let complete;
     const f = fixture({ metadata: params => { complete = params.success; return { abort() {} }; } });
     f.preview(); const list = f.request(999999999);
     f.api.temp.currentasset = { id: 2002, legacyData: { legacyId: 202 } };
     complete({ id: A, name: 'A' });
-    assert.equal((await list.promise).status, 409);
-    assert.equal((await f.request(999999999).promise).items.length, 0);
+    assert.equal((await list.promise).status, 200);
+    assert.equal((await f.request(999999999).promise).items.length, 1);
     assert.equal((await f.request().promise).items.length, 1);
+});
+
+
+test('clear removes only current BU recents, preserves Test History and prevents old logs and pending previews from returning', async () => {
+    const f = fixture();
+    const logs = JSON.stringify([{ emailID: 101, logdate: new Date().toISOString(), dataSource: { type: 'DataExtension', id: A, row: 1 } }]);
+    f.api.local.setItem('testsendlogs', logs); f.api.local.setItem('OTHER_HISTORY', 'keep');
+    f.preview(B); const late = f.preview(A, 101, false);
+    f.changeScope('s50:999'); f.preview(B); f.changeScope('s50:123');
+    assert.equal((await f.request().promise).items.length, 2);
+    f.api.recentPreviewDEs.clear(); late.forEach(callback => callback());
+    assert.equal((await f.request().promise).items.length, 0);
+    assert.equal(f.api.local.getItem('testsendlogs'), logs); assert.equal(f.api.local.getItem('OTHER_HISTORY'), 'keep');
+    f.preview(B); assert.deepEqual((await f.request().promise).items.map(row => row.id), [B]);
+    f.changeScope('s50:999'); assert.deepEqual((await f.request().promise).items.map(row => row.id), [B]);
+});
+
+test('legacy preview history is retained until clear and pending metadata is not delivered after clear', async () => {
+    let complete;
+    const f = fixture({ metadata: params => { complete = params.success; return { abort() {} }; } });
+    f.api.local.setItem(KEY, JSON.stringify([{ deId: A, emailID: 101, usedAt: Date.now() }]));
+    const list = f.request(); f.api.recentPreviewDEs.clear(); complete({ id: A, name: 'Old' });
+    assert.equal((await list.promise).items.length, 0);
+    assert.equal((await f.request().promise).items.length, 0);
 });

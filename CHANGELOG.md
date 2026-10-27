@@ -1,3 +1,9 @@
+# 1.1.26 — 27 ottobre 2026
+
+- Unificati i recenti di preview nella sola cartella DE recenti della BU, fino a 20 DE distinte. Aggiunto Svuota recenti accanto alla cartella: conserva Test History e le altre cronologie e impedisce il ritorno delle vecchie voci dai log, anche dopo reload o risposte tardive.
+- La cartella SFMC_UI_Fixer dei tester può trovarsi in sottocartelle di Data Extensions. Nuovo campo Percorso della cartella tester, verifica esplicita e salvataggio per BU; annullare conserva la configurazione precedente. Nome ed External Key tester_content_builder e schema dei campi restano richiesti.
+- Validazione del percorso nel worker, controllo completo della catena di cartelle prima dei record e cache per percorso. Configurazioni esistenti compatibili con SFMC_UI_Fixer direttamente sotto Data Extensions. Guide Markdown/PDF aggiornate.
+
 # 1.1.25 — 26 ottobre 2026
 
 - Le DE usate in una preview riuscita vengono ricordate anche senza Send Test. I recenti della BU restano disponibili cambiando email o template; recuperati anche i riferimenti validi nello storico degli invii esistente.

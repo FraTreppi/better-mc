@@ -219,3 +219,19 @@ test('an abandoned confirmation expires without unlocking data or blocking anoth
     w.advance(120001);
     assert.equal((await w.request(next, 'requestAccess', {}, 's50:123')).result.state, 'ask');
 });
+
+
+test('tester folder paths are validated, scoped and preserved independently of local tester contacts', async () => {
+    const w = workerFixture(), content = w.from('https://content-builder.s50.marketingcloudapps.com/');
+    await w.request(content, 'authorize', {}, 's50:123');
+    const merge = path => w.request(content, 'merge', { items: { [SETTINGS]: { 's50:123': { testerSource: 'de', testerFolderPath: path } } } }, 's50:123');
+    const saved = await merge(['Progetti', 'SFMC_UI_Fixer']); assert.equal(saved.ok, true);
+    assert.deepEqual(saved.result[SETTINGS]['s50:123'].testerFolderPath, ['Progetti', 'SFMC_UI_Fixer']);
+    assert.equal(w.state.local[SETTINGS]['s50:123'].testers[0][1], 'Mario');
+    assert.equal(w.state.local[SETTINGS]['s50:999'].testerFolderPath, undefined);
+    for (const invalid of ['https://arbitrary.invalid/', [], ['Wrong'], ['Bad/segment', 'SFMC_UI_Fixer'],
+        ['x'.repeat(251), 'SFMC_UI_Fixer'], Array(21).fill('SFMC_UI_Fixer'), ['\u0000', 'SFMC_UI_Fixer']]) {
+        assert.equal((await merge(invalid)).ok, false);
+    }
+    assert.deepEqual(w.state.local[SETTINGS]['s50:123'].testerFolderPath, ['Progetti', 'SFMC_UI_Fixer']);
+});

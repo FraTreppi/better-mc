@@ -23,10 +23,14 @@
                     </select>
                 </label>
                 <section data-tester-de hidden>
-                    <p>Crea nella BU corrente la cartella <strong>Data Extensions → SFMC_UI_Fixer</strong>.
+                    <p>Crea nella BU corrente la cartella <strong>SFMC_UI_Fixer</strong>, anche dentro altre cartelle di Data Extensions.
                         Inserisci una DE con Nome ed External Key <strong>tester_content_builder</strong> e i campi
                         <strong>Nome</strong> (Text), <strong>Cognome</strong> (Text), <strong>Email</strong> (EmailAddress, Primary Key).
                         La rubrica viene letta da Salesforce; gestisci lì i contatti. Nessun invio o modifica alla DE.</p>
+                    <label>Percorso della cartella tester
+                        <input type="text" data-tester-folder-path maxlength="2048" autocomplete="off" aria-describedby="sfmcfix-tester-folder-help" placeholder="Progetti / Campagne / SFMC_UI_Fixer">
+                    </label>
+                    <p id="sfmcfix-tester-folder-help">Indica le cartelle a partire da Data Extensions, fino a SFMC_UI_Fixer. Esempio: Progetti / Campagne / SFMC_UI_Fixer.</p>
                     <button type="button" data-tester-action="load-de">Verifica e carica DE</button>
                     <a data-tester-de-link target="_blank" rel="noopener noreferrer" hidden>Apri la DE</a>
                     <p data-tester-de-status role="status" aria-live="polite"></p>
@@ -59,6 +63,9 @@
         source.value = api.preferences.get().testerSource === 'de' ? 'de' : 'local';
         const deStatus = dialog.querySelector('[data-tester-de-status]');
         const deLink = dialog.querySelector('[data-tester-de-link]');
+        const pathInput = dialog.querySelector('[data-tester-folder-path]');
+        pathInput.value = (api.preferences.get().testerFolderPath || ['SFMC_UI_Fixer']).join(' / ');
+        let verifiedPath = null;
         let loadGeneration = 0;
         let deReady = false;
         let saving = false;
@@ -66,13 +73,15 @@
         async function loadDe(refresh = false) {
             const generation = ++loadGeneration;
             deReady = false;
+            verifiedPath = null;
             save.disabled = true;
             deLink.hidden = true;
             deStatus.textContent = 'Lettura della DE nella BU corrente…';
             try {
                 if (!api.testerSource) throw new Error('Ricarica la scheda Marketing Cloud per attivare la sorgente DE.');
-                const result = await api.testerSource.list({ source: 'de', refresh });
+                const result = await api.testerSource.list({ source: 'de', refresh, folderPath: pathInput.value });
                 if (generation !== loadGeneration || source.value !== 'de' || api.context.current().scope !== context.scope) return;
+                verifiedPath = result.folderPath;
                 deReady = result.testers.length > 0 || result.invalid === 0;
                 const reasons = { missingEmail: 'campo Email non trovato nella risposta', invalidEmail: 'Email vuota, non valida o di tipo errato',
                     invalidNames: 'Nome/Cognome non testuali o troppo lunghi', ambiguousFields: 'campi duplicati o ambigui', invalidFormat: 'formato record non riconosciuto' };
@@ -81,6 +90,7 @@
                 deStatus.textContent = `${result.testers.length} tester disponibili. ${result.invalid ? `${result.invalid} righe escluse${details ? ` (${details})` : ''}. ` : ''}${deReady ?
                     'Premi Salva sorgente per usarli. I dati vengono riletti dopo cinque minuti o con Verifica e carica DE.' :
                     'Nessun tester utilizzabile: verifica i Records e premi Verifica e carica DE.'}`;
+                deStatus.textContent += ` Percorso: Data Extensions / ${result.folderPath.join(' / ')}.`;
                 deLink.href = api.links.contactBuilder(result.id);
                 deLink.hidden = false;
             } catch (error) {
@@ -99,6 +109,10 @@
             if (shared) loadDe();
             else { loadGeneration++; save.disabled = false; }
         }
+        pathInput.addEventListener('input', () => {
+            loadGeneration++; verifiedPath = null; deReady = false; save.disabled = source.value === 'de';
+            deLink.hidden = true; deStatus.textContent = 'Percorso modificato. Premi Verifica e carica DE prima di salvare.';
+        });
         source.onchange = renderSource;
         dialog.querySelector('[data-tester-action="load-de"]').onclick = () => loadDe(true);
 
@@ -162,7 +176,7 @@
         form.addEventListener('submit', async event => {
             event.preventDefault();
             if (saving) return;
-            if (source.value === 'de' && !deReady) return;
+            if (source.value === 'de' && (!deReady || !verifiedPath)) return;
             edited();
             const values = [];
             for (const [index, row] of (source.value === 'de' ? [] : Array.from(body.rows)).entries()) {
@@ -182,7 +196,7 @@
             form.querySelectorAll('input, button, select').forEach(element => { element.disabled = true; });
             save.textContent = 'Salvataggio…';
             try {
-                await api.preferences.save(source.value === 'de' ? { testerSource: 'de' } : { testers: values, testerSource: 'local' });
+                await api.preferences.save(source.value === 'de' ? { testerSource: 'de', testerFolderPath: verifiedPath } : { testers: values, testerSource: 'local' });
                 status.textContent = source.value === 'de' ? `Rubrica DE attiva per BU ${context.mid} · ${context.stack}. Cerca un destinatario nel campo type a name...` :
                     `${values.length} tester salvati per BU ${context.mid} · ${context.stack} in questo browser.`;
                 close.textContent = 'Chiudi';

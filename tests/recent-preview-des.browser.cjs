@@ -77,41 +77,62 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
         const page = await ctx.newPage(); page.on('pageerror', error => errors.push(error.message));
         await page.goto('https://content-builder.s50.marketingcloudapps.com/');
         await page.locator('#status').getByText('Pronto', { exact: true }).waitFor();
-        const open = async () => { await page.locator('#open-picker').click(); await page.locator('#picker-tree > li').nth(26).waitFor(); };
+        const open = async () => { await page.locator('#open-picker').click(); await page.locator('#picker-tree > li').nth(25).waitFor(); };
         await open();
         const virtual = page.locator('#picker-tree > li[data-id="999999999"],#picker-tree > li[data-id="999999990"]');
-        assert.equal(await virtual.count(), 2);
-        for (const count of [52, 62]) {
+        assert.equal(await virtual.count(), 1);
+        for (const count of [51, 61]) {
             await page.locator('#load-more').click(); await page.waitForFunction(count => document.querySelector('#picker-tree').children.length === count, count);
-            assert.equal(await virtual.count(), 2); assert.equal(await page.evaluate(() => __lastCount), 62);
+            assert.equal(await virtual.count(), 1); assert.equal(await page.evaluate(() => __lastCount), 61);
         }
         await page.getByRole('button', { name: 'Folder 1', exact: true }).click();
         await page.locator('#records').getByRole('button', { name: 'DE clienti', exact: true }).click();
         await page.locator('#preview-record').click(); await page.locator('#status').getByText('Preview completata', { exact: true }).waitFor();
         await page.locator('#change-email').click(); await page.locator('#status').getByText('Email cambiata', { exact: true }).waitFor();
         await open();
-        await page.getByRole('button', { name: 'DE recenti · questa email', exact: true }).click();
-        await page.locator('#status').getByText('Elenco: 0', { exact: true }).waitFor();
-        await page.getByRole('button', { name: 'DE recenti · questa BU', exact: true }).click();
+        await page.getByRole('button', { name: 'DE recenti', exact: true }).click();
         await page.locator('#records').getByRole('button', { name: 'DE clienti', exact: true }).waitFor();
         assert.equal(await page.locator('#records > button').count(), 1);
         const detailCalls = requests.filter(request => request.path.endsWith('/customobjects/' + A)).length;
-        await page.getByRole('button', { name: 'DE recenti · questa BU', exact: true }).click();
+        await page.getByRole('button', { name: 'DE recenti', exact: true }).click();
         await page.locator('#status').getByText('Elenco: 1', { exact: true }).waitFor();
         assert.equal(requests.filter(request => request.path.endsWith('/customobjects/' + A)).length, detailCalls);
         await page.reload(); await page.locator('#status').getByText('Pronto', { exact: true }).waitFor();
         await open();
-        await page.getByRole('button', { name: 'DE recenti · questa email', exact: true }).click();
+        await page.getByRole('button', { name: 'DE recenti', exact: true }).click();
         await page.locator('#records').getByRole('button', { name: 'DE clienti', exact: true }).waitFor();
         const store = await page.evaluate(() => Object.entries(localStorage).filter(([key]) => key.includes('PREVIEW-DE-RECENTS')));
         assert.equal(store.length, 1); assert.ok(!JSON.stringify(store).includes('PRIVATE_RENDERED_HTML'));
         assert.ok(!requests.some(request => request.path.endsWith('/preview/send')));
+        await page.evaluate(() => {
+            sfmcfix.local.setItem('testsendlogs', JSON.stringify([{ logdate: new Date().toISOString(), emailID: 101,
+                dataSource: { type: 'DataExtension', id: '00000000-0000-4000-8000-000000000001', row: 0 }, recipients: [] }]));
+            sfmcfix.local.setItem('OTHER_HISTORY', 'preserved');
+            for (let i = 1; i <= 22; i++) sfmcfix.recentPreviewDEs.rememberSend({ emailID: 101,
+                dataSource: { type: 'DataExtension', id: '00000000-0000-4000-8000-' + String(i).padStart(12, '0') } });
+        });
+        await page.getByRole('button', { name: 'DE recenti', exact: true }).click();
+        await page.locator('#status').getByText('Elenco: 20', { exact: true }).waitFor();
+        assert.equal(await page.locator('#records > button').count(), 20);
+        const beforeClear = requests.length;
+        await page.getByRole('button', { name: 'Svuota recenti', exact: true }).click();
+        assert.equal(requests.length, beforeClear); // Clear must not trigger the native folder click.
+        await page.getByRole('button', { name: 'DE recenti', exact: true }).click();
+        await page.locator('#status').getByText('Elenco: 0', { exact: true }).waitFor();
+        assert.equal(await page.evaluate(() => JSON.parse(sfmcfix.local.getItem('testsendlogs')).length), 1);
+        assert.equal(await page.evaluate(() => sfmcfix.local.getItem('OTHER_HISTORY')), 'preserved');
+        await page.reload(); await page.locator('#status').getByText('Pronto', { exact: true }).waitFor(); await open();
+        await page.getByRole('button', { name: 'DE recenti', exact: true }).click();
+        await page.locator('#status').getByText('Elenco: 0', { exact: true }).waitFor();
+        await page.getByRole('button', { name: 'Folder 1', exact: true }).click();
+        await page.locator('#records').getByRole('button', { name: 'DE clienti', exact: true }).click();
+        await page.locator('#preview-record').click(); await page.locator('#status').getByText('Preview completata', { exact: true }).waitFor();
         forbidden = true;
         await page.reload(); await page.locator('#status').getByText('Pronto', { exact: true }).waitFor(); await open();
-        await page.getByRole('button', { name: 'DE recenti · questa BU', exact: true }).click();
+        await page.getByRole('button', { name: 'DE recenti', exact: true }).click();
         await page.locator('#status').getByText('Errore lettura', { exact: true }).waitFor();
         assert.deepEqual(errors, []);
-        console.log('PASS actual bootstrap + native jQuery picker: successful preview without send survives email change/reload; email/BU histories differ; three native pages keep exactly two shortcuts and 60 native folders; metadata uses native session and cache; 403 completes; records/HTML are not stored and no sends run.');
+        console.log('PASS actual bootstrap + native jQuery picker: successful preview without send survives email change/reload; one BU history with twenty distinct DEs; three native pages keep one shortcut and 60 native folders; clear survives reload without erasing Test History or other histories; metadata uses native session and cache; 403 completes; records/HTML are not stored and no sends run.');
         await ctx.close();
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

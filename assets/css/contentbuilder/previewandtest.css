@@ -25,15 +25,6 @@
     background-color: #f1f1f1;
 }
 
-li.tree-branch[data-id="999999999"] .tree-branch-header .tree-label {
-    color: red;
-    font-weight: bold;
-}
-
-li.tree-branch[data-id="999999999"] .tree-branch-header:hover .tree-label {
-    color:#9f1313 !important;
-}
-
 li.tree-branch[data-id="999999990"] .tree-branch-header .tree-label {
     color: rgb(236, 130, 0);
     font-weight: bold;
@@ -52,3 +43,6 @@ li.tree-branch[data-id="999999990"] .tree-branch-header:hover .tree-label {
     padding: 0;
     margin: 0;
 }
+
+[data-sfmcfix-clear-recents] { margin-left: 10px; padding: 2px 6px; border: 1px solid #b5c8da; border-radius: 3px; background: #fff; color: #145b92; font: inherit; font-size: 12px; cursor: pointer; }
+[data-sfmcfix-clear-recents]:focus-visible { outline: 2px solid #145b92; outline-offset: 2px; }

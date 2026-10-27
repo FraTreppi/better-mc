@@ -5,6 +5,16 @@
     const folder = 'SFMC_UI_Fixer';
     const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const emailPattern = /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/;
+
+    function normalizeFolderPath(value = [folder]) {
+        let parts = Array.isArray(value) ? value.slice() : typeof value === 'string' ? value.split(/[/→>]/).map(part => part.trim()) : null;
+        if (parts?.[0] === 'Data Extensions') parts.shift();
+        if (!parts?.length || parts.length > 20 || parts.at(-1) !== folder || parts.some(part => typeof part !== 'string' ||
+            !part.trim() || part !== part.trim() || part.length > 250 || /[\x00-\x1f\x7f/\\→>]/.test(part)) || parts.join('/').length > 2048) {
+            throw new Error('Indica il percorso da Data Extensions fino a SFMC_UI_Fixer, per esempio Progetti / SFMC_UI_Fixer.');
+        }
+        return parts;
+    }
     let cache = null;
     let pending = null;
     let controller = null;
@@ -19,13 +29,14 @@
         pending = null;
     }
     window.addEventListener('sfmcfix:contextchange', invalidate);
-    let source = api.preferences.get().testerSource;
+    const preferencesKey = () => JSON.stringify([api.preferences.get().testerSource, api.preferences.get().testerFolderPath || [folder]]);
+    let source = preferencesKey();
     window.addEventListener('sfmcfix:preferences', () => {
-        const next = api.preferences.get().testerSource;
+        const next = preferencesKey();
         if (next !== source) { source = next; invalidate(); }
     });
 
-    async function load(context, request) {
+    async function load(context, request, folderPath) {
         function checkContext() {
             if (request.signal.aborted || context.scope !== api.context.current().scope) {
                 throw new Error('Caricamento interrotto: la BU è cambiata o la richiesta è scaduta. Riprova.');
@@ -77,14 +88,15 @@
         if (!/^\d+$/.test(String(de.categoryId))) throw new Error('Cartella della DE non riconosciuta.');
         const path = await get(`/fuelapi/platform-internal/v1/categories/${de.categoryId}/fullPath?$pageSize=50`);
         const folders = path?.items;
-        // The standard folder must be a direct child of the local DE root.
-        // A similarly named nested/shared folder must never be used silently.
-        if (!Array.isArray(folders) || folders.length !== 2 || folders[1]?.name !== folder ||
-            String(folders[1]?.id) !== String(de.categoryId) ||
-            String(folders[1]?.parentId) !== String(folders[0]?.id) ||
+        // Require the complete, explicitly selected chain under the local DE root.
+        if (!Array.isArray(folders) || folders.length !== folderPath.length + 1 ||
+            String(folders.at(-1)?.id) !== String(de.categoryId) ||
             String(folders[0]?.categoryType).toLowerCase() !== 'dataextension' ||
-            !(Number(folders[0]?.parentId) === 0 || folders[0]?.isRoot === true)) {
-            throw new Error(`Sposta la DE in Data Extensions → ${folder}, direttamente sotto la radice locale della BU.`);
+            !(Number(folders[0]?.parentId) === 0 || folders[0]?.isRoot === true) ||
+            new Set(folders.map(item => String(item.id))).size !== folders.length ||
+            folders.some(item => !/^\d+$/.test(String(item.id)) || (item.categoryType && String(item.categoryType).toLowerCase() !== 'dataextension')) ||
+            folderPath.some((part, index) => folders[index + 1]?.name !== part || String(folders[index + 1]?.parentId) !== String(folders[index]?.id))) {
+            throw new Error(`La DE deve trovarsi in Data Extensions / ${folderPath.join(' / ')} nella BU corrente. Verifica il percorso indicato.`);
         }
         const schema = await get(`/fuelapi/internal/v1/customobjects/${de.id}/fields/`);
         const fields = Array.isArray(schema?.fields) ? schema.fields : schema?.items;
@@ -132,23 +144,25 @@
         }
         const invalid = Object.values(invalidReasons).reduce((sum, count) => sum + count, 0);
         checkContext();
-        return { testers: Array.from(contacts.values()), invalid, invalidReasons, id: de.id, scope: context.scope, loaded: Date.now() };
+        return { testers: Array.from(contacts.values()), invalid, invalidReasons, id: de.id, folderPath, scope: context.scope, loaded: Date.now() };
     }
 
     api.testerSource = {
-        name, folder,
-        async list({ source = api.preferences.get().testerSource, refresh = false } = {}) {
+        name, folder, normalizeFolderPath,
+        async list({ source = api.preferences.get().testerSource, refresh = false, folderPath = api.preferences.get().testerFolderPath || [folder] } = {}) {
             if (source !== 'de') return { testers: api.preferences.get().testers || [], invalid: 0 };
             const context = api.context.current();
             if (!context.persistent) throw new Error('Conferma il MID della BU corrente prima di leggere la DE.');
+            folderPath = normalizeFolderPath(folderPath);
+            const folderKey = JSON.stringify(folderPath);
             if (refresh) invalidate();
-            if (cache?.scope === context.scope && Date.now() - cache.loaded < 5 * 60 * 1000) return cache;
-            if (pending?.scope === context.scope) return pending.promise;
+            if (cache?.scope === context.scope && JSON.stringify(cache.folderPath) === folderKey && Date.now() - cache.loaded < 5 * 60 * 1000) return cache;
+            if (pending?.scope === context.scope && pending.folderKey === folderKey) return pending.promise;
             invalidate();
             const request = new AbortController();
             controller = request;
             const timeout = setTimeout(() => request.abort(), 25000);
-            const promise = load(context, request).then(value => {
+            const promise = load(context, request, folderPath).then(value => {
                 if (controller === request && context.scope === api.context.current().scope) {
                     cache = value;
                     expiry = setTimeout(() => { if (cache === value) cache = null; }, 5 * 60 * 1000);
@@ -158,7 +172,7 @@
                 clearTimeout(timeout);
                 if (controller === request) { controller = null; pending = null; }
             });
-            pending = { scope: context.scope, promise };
+            pending = { scope: context.scope, folderKey, promise };
             return promise;
         }
     };
