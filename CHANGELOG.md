@@ -1,3 +1,9 @@
+# 1.1.27 — 27 ottobre 2026
+
+- Ricerca automatica della rubrica tester dentro SFMC_UI_Fixer anche nelle sottocartelle della BU. Rimosso il campo percorso manuale; la verifica mostra il percorso rilevato e il collegamento alla DE.
+- I vecchi percorsi salvati non limitano la ricerca. Verifica e carica DE ripete l’individuazione, anche dopo uno spostamento della cartella. Nome/External Key tester_content_builder, schema e controlli della radice locale restano richiesti; risultati ambigui non vengono scelti automaticamente.
+- Aggiornati prove unit, percorso browser e guida Markdown/PDF. Nessun nuovo endpoint o permesso.
+
 # 1.1.26 — 27 ottobre 2026
 
 - Unificati i recenti di preview nella sola cartella DE recenti della BU, fino a 20 DE distinte. Aggiunto Svuota recenti accanto alla cartella: conserva Test History e le altre cronologie e impedisce il ritorno delle vecchie voci dai log, anche dopo reload o risposte tardive.

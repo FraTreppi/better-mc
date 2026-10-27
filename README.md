@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.26
+# SFMC UI Fixer — Multi BU 1.1.27
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -35,11 +35,11 @@ Le due icone Impostazioni SFMC e Test History compaiono solo in Preview and Test
 
 ## Rubrica DE condivisa
 
-Crea in ogni BU la DE **tester_content_builder** dentro **SFMC_UI_Fixer**, anche in sottocartelle di Data Extensions, con Nome ed External Key `tester_content_builder` e campi `Nome` (Text), `Cognome` (Text), `Email` (EmailAddress, Primary Key). In **Tester BU**, scegli la sorgente DE, indica il percorso (per esempio **Progetti / SFMC_UI_Fixer**), premi **Verifica e carica DE** e poi **Salva sorgente**. I record vengono letti con la sessione corrente e non modificati. La [guida](GUIDA_UTENTE.md#rubrica-tester-bu) spiega schema, ricerca e aggiornamento dei contatti.
+Crea in ogni BU la DE **tester_content_builder** dentro **SFMC_UI_Fixer**, anche in sottocartelle di Data Extensions, con Nome ed External Key `tester_content_builder` e campi `Nome` (Text), `Cognome` (Text), `Email` (EmailAddress, Primary Key). In **Tester BU**, scegli la sorgente DE: cartella e DE vengono individuate automaticamente nella BU, anche nelle sottocartelle, e il percorso trovato viene mostrato. Premi **Verifica e carica DE** per aggiornare e **Salva sorgente** per attivarla. I record vengono letti con la sessione corrente e non modificati. La [guida](GUIDA_UTENTE.md#rubrica-tester-bu) spiega schema, ricerca e aggiornamento dei contatti.
 
 ## Sicurezza e dati
 
-La versione 1.1.26 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
+La versione 1.1.27 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. Le anteprime bloccano script, navigazione e risorse esterne; le immagini HTTPS richiedono un comando e una conferma espliciti. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
@@ -47,4 +47,4 @@ Queste misure riducono i rischi individuati e non costituiscono una garanzia ass
 
 Vedi **[Sicurezza e limiti](SICUREZZA.md)** per le protezioni e i rischi residui. La [documentazione tecnica](DOCUMENTATION.md) e la [cronologia](CHANGELOG.md) sono separate dalla guida utente.
 
-La 1.1.26 riunisce le DE recenti in una sola cartella, con 20 voci e Svuota recenti per BU. La rubrica tester permette di salvare il percorso di SFMC_UI_Fixer anche in sottocartelle, mantenendo nome, External Key e campi della DE richiesti.
+La 1.1.27 trova automaticamente la rubrica tester dentro SFMC_UI_Fixer, anche in sottocartelle, senza compilare il percorso. Verifica nome, External Key, cartella e schema e mostra la posizione trovata; i vecchi percorsi manuali non limitano la ricerca.

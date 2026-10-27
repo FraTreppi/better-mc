@@ -179,7 +179,7 @@
     function cancel() { cancelSearch(); cancelJob(folderJob); folderJob = null; }
     window.addEventListener('sfmcfix:contextchange', () => { cancel(); folderCache = null; diagnostics.clear(); });
     api.assetSearch = { search, folders, cancel, cancelSearch, types, diagnostics: () => ({
-        feature: 'content-builder-search', version: '1.1.26', date: new Date().toISOString(),
+        feature: 'content-builder-search', version: '1.1.27', date: new Date().toISOString(),
         context: { source: api.context.current().source || 'unknown', midDetected: Boolean(api.context.current().mid) },
         navigation: api.assetNavigation?.diagnostics(),
         requests: Array.from(diagnostics.values(), record => ({ ...record })), headerNames: Object.keys(headers())

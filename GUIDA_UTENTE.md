@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.26 · Autore: Francesco Trepiccioni
+Versione 1.1.27 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -87,8 +87,8 @@ Predisponi questa struttura in **ciascuna BU** dove vuoi usare i tester. Non ser
 | Email | EmailAddress, lunghezza 254, Primary Key, obbligatorio. |
 
 4. Aggiungi i contatti dai **Records** della DE oppure importali. Nel pacchetto trovi **esempi/tester_content_builder.csv** con una riga dimostrativa: sostituiscila con i tuoi contatti reali prima dell’importazione.
-5. In **Tester BU**, scegli **Data Extension condivisa: tester_content_builder**. Nel campo **Percorso della cartella tester** indica il percorso da Data Extensions fino a SFMC_UI_Fixer: per esempio **Progetti / Campagne / SFMC_UI_Fixer**. Per la posizione originale lascia **SFMC_UI_Fixer**. Premi **Verifica e carica DE**: l’estensione controlla nome, External Key, tutto il percorso e i campi e indica quanti tester ha letto.
-6. Premi **Salva sorgente**. Sorgente e percorso restano in questo profilo browser per quella BU; ogni collega li imposta nel proprio browser. Modificare il percorso richiede una nuova verifica prima del salvataggio. **Annulla** conserva la configurazione precedente.
+5. In **Tester BU**, scegli **Data Extension condivisa: tester_content_builder**. L’estensione cerca automaticamente la DE nella BU e verifica che si trovi in una cartella chiamata esattamente **SFMC_UI_Fixer**, anche dentro altre sottocartelle. Non devi scrivere un percorso. Il pannello mostra il **percorso rilevato**, il collegamento **Apri la DE** e quanti tester ha letto. **Verifica e carica DE** ripete la ricerca e rilegge i dati.
+6. Premi **Salva sorgente**. La scelta della sorgente resta in questo profilo browser per quella BU; ogni collega la imposta nel proprio browser. **Annulla** conserva la configurazione precedente. Un eventuale percorso salvato nelle vecchie versioni non limita la ricerca automatica: se sposti SFMC_UI_Fixer, premi **Verifica e carica DE** per ritrovarla subito.
 
 Nel campo **type a name...** dei destinatari di prova, digita almeno **tre caratteri** di nome, cognome o email. Compaiono fino a cinque suggerimenti alla volta, con nome e indirizzo. Un clic inserisce l’email nei destinatari nativi di Salesforce. I campi Nome e Cognome servono alla ricerca: non sostituiscono la DE e la riga usate da Salesforce per la personalizzazione della preview.
 
@@ -96,7 +96,7 @@ Per aggiungere, modificare o rimuovere tester condivisi, modifica i record in Sa
 
 La rubrica ammette fino a **1000 righe**. I record con email mancanti, non valide o campi ambigui vengono esclusi: il pannello indica quanti e per quale motivo, senza riportarne i valori. Se tutte le righe risultano non utilizzabili, correggi il problema e premi **Verifica e carica DE** prima di salvare la sorgente. La lettura gestisce anche i nomi restituiti dall’API in minuscolo o con maiuscole diverse; mantieni nello schema della DE i nomi Nome, Cognome ed Email indicati sopra.
 
-Gli indirizzi duplicati compaiono una volta sola. Una DE vuota è valida. Se DE, percorso o schema non corrispondono, i permessi mancano o la lettura supera il limite, compare un messaggio e non viene usata una lista parziale né la rubrica locale in sostituzione. La ricerca usa la sessione della BU attiva; confermare un MID non cambia cliente. Un cambio contesto svuota i suggerimenti e interrompe le letture in corso.
+Gli indirizzi duplicati compaiono una volta sola. Una DE vuota è valida. Se vengono trovate più DE con lo stesso Nome ed External Key richiesti, la verifica si ferma senza scegliere una rubrica arbitrariamente. Se DE, percorso o schema non corrispondono, i permessi mancano o la lettura supera il limite, compare un messaggio e non viene usata una lista parziale né la rubrica locale in sostituzione. La ricerca usa la sessione della BU attiva; confermare un MID non cambia cliente. Un cambio contesto svuota i suggerimenti e interrompe le letture in corso.
 
 ### Rubrica locale del browser
 
@@ -329,7 +329,7 @@ Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più s
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.26**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.27**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

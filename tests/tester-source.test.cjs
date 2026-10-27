@@ -124,32 +124,36 @@ test('reports why records are excluded without leaking their values or accepting
 const nestedFolders = [{ id: 10, parentId: 0, categoryType: 'dataextension', name: 'Data Extensions' },
     { id: 20, parentId: 10, name: 'Progetti' }, { id: 30, parentId: 20, name: 'Campagne' },
     { id: 11, parentId: 30, name: 'SFMC_UI_Fixer' }];
-test('an explicit nested tester path is normalized, validated and cached separately from the default path', async () => {
-    const f = fixture({ folders: nestedFolders });
-    await assert.rejects(f.source.list(), /percorso/);
-    const result = await f.source.list({ folderPath: 'Data Extensions → Progetti / Campagne / SFMC_UI_Fixer' });
+test('tester folders are found automatically at any validated depth and stale manual paths are ignored', async () => {
+    const folders = clone(nestedFolders), f = fixture({ folders });
+    f.settings.testerFolderPath = ['Wrong old location', 'SFMC_UI_Fixer'];
+    const result = await f.source.list();
     assert.deepEqual(clone(result.folderPath), ['Progetti', 'Campagne', 'SFMC_UI_Fixer']);
-    assert.equal(result.testers.length, 1);
+    assert.equal(result.testers.length, 1); assert.equal(f.calls.length, 4);
     const count = f.calls.length;
-    await f.source.list({ folderPath: ['Progetti', 'Campagne', 'SFMC_UI_Fixer'] }); assert.equal(f.calls.length, count);
-    await assert.rejects(f.source.list(), /percorso/); // Unsaved draft cannot replace the saved default.
-    f.settings.testerFolderPath = ['Progetti', 'Campagne', 'SFMC_UI_Fixer'];
+    await f.source.list(); assert.equal(f.calls.length, count);
+    f.settings.testerFolderPath = ['Another stale hint', 'SFMC_UI_Fixer'];
     f.events.dispatchEvent(new Event('sfmcfix:preferences'));
-    assert.equal((await f.source.list()).testers.length, 1);
+    await f.source.list(); assert.equal(f.calls.length, count);
+    folders[1].name = 'Nuova posizione';
+    const moved = await f.source.list({ refresh: true });
+    assert.deepEqual(clone(moved.folderPath), ['Nuova posizione', 'Campagne', 'SFMC_UI_Fixer']);
+    assert.equal(f.calls.length, count * 2);
 });
 
-test('nested tester paths reject disconnected/shared chains, wrong ancestors and malformed input before reading contacts', async () => {
-    const path = ['Progetti', 'Campagne', 'SFMC_UI_Fixer'];
+test('automatic discovery rejects disconnected/shared chains, wrong final folders and ambiguous DEs before reading contacts', async () => {
     for (const folders of [
         nestedFolders.map((row, i) => i === 2 ? { ...row, parentId: 999 } : row),
-        nestedFolders.map((row, i) => i === 1 ? { ...row, name: 'Other project' } : row),
-        nestedFolders.map((row, i) => i === 1 ? { ...row, categoryType: 'shared_dataextension' } : row)
+        nestedFolders.map((row, i) => i === 3 ? { ...row, name: 'Other folder' } : row),
+        nestedFolders.map((row, i) => i === 1 ? { ...row, categoryType: 'shared_dataextension' } : row),
+        nestedFolders.map((row, i) => i === 1 ? { ...row, name: '' } : row),
+        nestedFolders.map((row, i) => i === 2 ? { ...row, id: 20 } : row)
     ]) {
-        const f = fixture({ folders }); await assert.rejects(f.source.list({ folderPath: path }), /percorso/);
+        const f = fixture({ folders }); await assert.rejects(f.source.list(), /SFMC_UI_Fixer/);
         assert.equal(f.calls.some(call => call.target.includes('customObjectData')), false);
     }
-    for (const folderPath of ['', [], ['Other'], [' ', 'SFMC_UI_Fixer'], ['Bad/segment', 'SFMC_UI_Fixer'],
-        Array(21).fill('SFMC_UI_Fixer'), { arbitrary: 'path' }]) {
-        const f = fixture(); await assert.rejects(f.source.list({ folderPath })); assert.equal(f.calls.length, 0);
-    }
+    const f = fixture({ candidates: [{ id, name, customerKey: name, categoryId: 11 },
+        { id: '00000000-0000-4000-8000-000000000002', name, customerKey: name, categoryId: 12 }] });
+    await assert.rejects(f.source.list(), /una sola DE/);
+    assert.equal(f.calls.some(call => call.target.includes('customObjectData')), false);
 });
