@@ -1,3 +1,9 @@
+# 1.1.30 — 28 ottobre 2026
+
+- Apertura automatica nella stessa scheda della SQL Query Activity appena copiata dal dettaglio, dopo il comando finale e la chiusura della procedura nativa riuscita. Il GUID viene letto dalla risposta Salesforce e sostituisce quello di origine nel percorso già osservato.
+- Nessuna copia, salvataggio o esecuzione aggiuntiva. Annullamento, errore, identificativi non validi, scadenza e cambio pagina/BU impediscono la navigazione; il Copy del testo SQL resta separato.
+- Verifica browser con bootstrap Automation Studio e richieste native simulate, guide Markdown/PDF aggiornate. Nessun nuovo permesso.
+
 # 1.1.29 — 28 ottobre 2026
 
 - Rimossi Tracking Test, Test History e le anteprime aggiuntive dallo storico; eliminati template e script di navigazione dedicati dal pacchetto e dal manifest.

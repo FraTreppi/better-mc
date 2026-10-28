@@ -4,7 +4,15 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.29 — 28 ottobre 2026
+## Versione attuale 1.1.30 — 28 ottobre 2026
+
+Aggiunto automation/query-copy-navigation.js al bootstrap Automation Studio. Il componente riconosce Copy nativo dal dettaglio ActivityDetails di una Query Activity già caricata, il comando finale del modal e le risposte POST di creazione della collezione query o copy/clone della query sorgente. Usa solo un queryDefinitionId GUID valido e diverso dall’originale, nella BU e nel percorso iniziali. Dopo le callback native e la chiusura della procedura, sostituisce soltanto il GUID nel percorso esistente, nella stessa scheda. Non legge il SQL/payload e non modifica né ripete richieste. Il Copy SQL della toolbar rimane escluso.
+
+Annulla, chiusura, Escape, cambio BU/percorso, risposte ambigue o non valide e scadenze invalidano la navigazione. L’intento dura dieci minuti; dopo il successo l’attesa della chiusura dura al massimo trenta secondi. Il controllo periodico si avvia soltanto dopo il completamento di una richiesta osservata con un risultato valido; nessun polling di rete.
+
+Verifica 1.1.30: 56 test unit passati e nuova prova browser con bootstrap effettivo Automation Studio, jQuery e wizard simulato passata. Quattordici scenari coprono creazione/chiusura, singola apertura, payload e callback nativi invariati, save normale, clipboard Copy, annullamento, errore e riprova, ID originale/non valido, metodi e percorsi estranei, origine diversa, scadenza e risposte tardive dopo annullamento/Escape/cambio BU/navigazione, più endpoint copy esplicito. Controllate sintassi di 48 file JavaScript e guida PDF 1.1.30. Le prove non usano una sessione Salesforce autenticata né creano attività reali. Le varianti del DOM, degli endpoint o delle risposte non riconosciute mantengono il comportamento nativo; occorre confermare il flusso sul tenant. Nessun nuovo permesso e nessuna prova aggiuntiva di caricamento dell’estensione in Edge in questa revisione.
+
+## Versione 1.1.29 — 28 ottobre 2026
 
 Rimossi Tracking Test, Test History, la registrazione dei tentativi di invio e le anteprime generate dai log. Eliminati i due content script di navigazione Tracking dal manifest e i relativi file; rimossi i template della cronologia e della preview. Preview and Test conserva soltanto il toolbox Impostazioni SFMC per MID e caricamento della rubrica DE, con visibilità configurabile. Il reset dell’asset al cambio BU ora appartiene al bootstrap Content Builder.
 

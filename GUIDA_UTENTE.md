@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.29 · Autore: Francesco Trepiccioni
+Versione 1.1.30 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -214,6 +214,14 @@ Il pulsante compare solo se vengono riconosciuti il Run Log, le due date e un un
 
 Nel menu delle attività del canvas può comparire **View**, che apre il dettaglio dell’attività in una nuova scheda quando Salesforce ne fornisce l’identificativo. Il collegamento della DE target apre il dettaglio in Contact Builder.
 
+### Aprire la Query Activity appena copiata
+
+Nel dettaglio di una SQL Query Activity, usa il comando **Copy** nativo di Salesforce e completa i passaggi per nome, query e Data Extension di destinazione. Dopo **Finish** o **Salva**, quando Salesforce conferma la creazione e chiude la procedura, l’estensione apre automaticamente la nuova Query Activity nella stessa scheda e nella stessa BU.
+
+L’apertura usa l’identificativo della copia restituito dalla richiesta nativa. L’estensione non ripete la copia, non modifica il SQL e non esegue la query. Se annulli, il salvataggio fallisce, cambi pagina o BU, non viene avviata una nuova navigazione. Il pulsante **Copy** aggiunto sotto l’editor continua a copiare soltanto il testo SQL negli appunti.
+
+L’automatismo richiede il dettaglio della query con un percorso ActivityDetails riconosciuto, una procedura modale con comando finale riconosciuto e una risposta nativa di creazione con il nuovo identificativo. Se Salesforce non fornisce questi elementi, rimane il comportamento nativo; la copia non viene cercata per nome né scelta da una lista di risultati.
+
 ### Strumenti Query Activity
 
 Nel riepilogo di una Query Activity trovi:
@@ -301,7 +309,7 @@ Il file `sfmc-email-studio-diagnostica.json` contiene percorsi e metadati di nav
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.29**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.30**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

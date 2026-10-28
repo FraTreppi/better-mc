@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.29 · 28 ottobre 2026
+Versione 1.1.30 · 28 ottobre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -40,6 +40,12 @@ Non è presente un backend di telemetria dell’estensione. Le anteprime aggiunt
 ## DE recenti di Preview and Test
 
 Le preview native riuscite vengono osservate senza leggerne il rendering o i record: il nuovo storico conserva GUID della DE, ID email/asset, data d’uso e marcatore di svuotamento, nello storage del sito già separato per stack/MID. Fino a 200 DE distinte, con venti DE distinte nell’unico elenco della BU; quelle più vecchie di 60 giorni sono ignorate e scartate al successivo salvataggio; i riferimenti compatibili ai test precedenti vengono recuperati dallo storico esistente senza copiarne destinatari o contenuti. Le scritture di questo storico non inviano email. Le cartelle virtuali leggono i metadati delle sole DE identificate, sulla stessa origine, tramite il client AJAX nativo o GET fetch con credenziali same-origin; non richiedono record. Cache dei metadati di 30 secondi e richieste concorrenti condivise sono limitate alla BU corrente. Cambio BU invalida la cache e le letture pendenti; abort e svuotamento dei recenti impediscono la consegna di risultati obsoleti. Permessi negati o risposte non valide completano la richiesta con errore, mentre 404/410 escludono le DE mancanti. Svuota recenti modifica soltanto il proprio archivio del sito per la BU corrente, senza cancellare gli eventuali log precedenti. Il marcatore persistente esclude i vecchi log e invalida preview o letture precedenti allo svuotamento. Nessun nuovo permesso o proxy.
+
+## Navigazione dopo la copia di una Query Activity
+
+Il componente osserva il clic Copy nativo dal dettaglio di una query già caricata e il comando finale della procedura modale. Legge soltanto il nuovo queryDefinitionId nelle risposte riuscite a POST same-origin della collezione query o degli endpoint copy/clone della query di origine. Non legge il SQL o il corpo della richiesta, non modifica le opzioni AJAX e non invia richieste aggiuntive. Le risposte senza GUID valido, con ID uguale all’originale, errore applicativo o identificativi ambigui non avviano la navigazione.
+
+La navigazione usa lo stesso tipo di attività del percorso ActivityDetails già osservato, sostituendo soltanto il GUID. Attende il completamento delle richieste osservate, delle callback native e la chiusura della procedura. Clic Annulla/Chiudi, cambio percorso o BU e scadenza invalidano le risposte tardive. L’intento di copia dura al massimo dieci minuti e l’attesa dopo una creazione riuscita trenta secondi. Nessuna preferenza o dato della query viene salvato da questo componente; nessun nuovo permesso.
 
 ## Aggiornamento del Run Log
 
