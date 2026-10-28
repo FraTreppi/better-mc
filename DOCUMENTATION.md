@@ -4,7 +4,15 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.34 — 28 ottobre 2026
+## Versione attuale 1.1.35 — 28 ottobre 2026
+
+Dopo la conferma utente di apertura riuscita nella 1.1.34 (navigated e creazione HTTP 201), rimossi interamente dall’interfaccia il pulsante Scarica diagnostica apertura, l’avviso automatico, la generazione/download del JSON e il relativo CSS. Non esiste un ripiego che li mostri dopo errori o timeout. Lo stato tecnico interno in memoria resta disponibile alle verifiche automatiche.
+
+Il ricordo della query sorgente prima associato al montaggio del controllo è stato conservato come chiamata autonoma, all’avvio e ai cambi di percorso/BU. La navigazione mantiene il comportamento verificato con il prefisso AutomationStudioFuel3/fuelapi e il percorso temporaneo del wizard. Nessun nuovo permesso o richiesta Salesforce.
+
+Le prove browser dei sorgenti verificano l’assenza dei controlli all’apertura, dopo il successo e dopo una richiesta non riconosciuta fino al timeout, oltre alle regressioni native di copia/navigazione. Passati anche i 56 test unit e la verifica sintattica di 48 file JavaScript; guida PDF 1.1.35 aggiornata. Le risposte sono simulate, senza creazioni reali di attività nel tenant.
+
+## Versione 1.1.34 — 28 ottobre 2026
 
 Il nuovo rapporto utente conferma la correzione precedente (origine, wizard e Finish riconosciuti), ma riporta native-request-unrecognized con requests vuoto. L’utente ha poi fornito Request Method POST e il percorso /AutomationStudioFuel3/fuelapi/automation/v1/queries/. Il filtro della 1.1.33 era ancorato a /fuelapi/automation/v1/queries/ e scartava questa richiesta prima di registrarne la risposta.
 

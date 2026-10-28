@@ -1,3 +1,9 @@
+# 1.1.35 — 28 ottobre 2026
+
+- Rimossi completamente Scarica diagnostica apertura, gli avvisi della copia query, il relativo download JSON e gli stili dedicati. Il comando non ricompare in caso di errore o timeout.
+- Conservata l’apertura automatica della Query Activity copiata, inclusi percorso temporaneo del wizard e prefisso AutomationStudioFuel3/fuelapi.
+- Aggiornate guida Markdown/PDF e regressioni browser per verificare l’apertura e l’assenza dei controlli rimossi.
+
 # 1.1.34 — 28 ottobre 2026
 
 - Corretto il filtro delle richieste native di copia: riconosce POST /AutomationStudioFuel3/fuelapi/automation/v1/queries/, oltre al percorso senza prefisso. Il percorso effettivo è stato fornito dall’utente tramite Network.

@@ -2,18 +2,18 @@
     'use strict';
     const api = window.sfmcfix;
     if (api.queryCopyNavigation || !window.jQuery?.ajaxPrefilter) return;
-    const VERSION = '1.1.34';
+    const VERSION = '1.1.35';
     const GUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
     const guid = value => typeof value === 'string' && new RegExp(`^${GUID}$`, 'i').test(value) ? value.toLowerCase() : null;
     const routePattern = new RegExp(`^#ActivityDetails/(\\d{1,6})/(${GUID})/?$`, 'i');
-    const excluded = '.mcefix-activity-toolbar, #sfmcfix-context, #sfmcfix-query-copy-diagnostic, #sfmcfix-query-copy-tools, [data-sfmcfix-run-log]';
+    const excluded = '.mcefix-activity-toolbar, #sfmcfix-context, [data-sfmcfix-run-log]';
     const copyLabels = new Set(['copy', 'duplicate', 'copia', 'duplica', 'copy query', 'copy activity', 'copy sql query', 'copia query', 'duplica query']);
     const finishLabels = new Set(['finish', 'save', 'done', 'create', 'complete', 'copy', 'duplicate', 'fine', 'salva', 'crea', 'completa', 'copia', 'duplica']);
     const cancelLabels = new Set(['cancel', 'close', 'annulla', 'chiudi']);
     const wizardTitles = new Set(['copy query activity', 'copy sql query activity', 'copia attività query', 'copia attivita query']);
     const headings = 'h1,h2,h3,h4,h5,h6,.modal-title,[role="heading"],.modal-header span';
     const normalize = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
-    let operation = null, timer = null, expiry = null, report = null, noticeDismissed = false, lastFinish = null, clientCount = 0, rememberedDetail = null;
+    let operation = null, timer = null, expiry = null, report = null, lastFinish = null, clientCount = 0, rememberedDetail = null;
 
     function visible(node) {
         return Boolean(node?.isConnected && node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden');
@@ -42,10 +42,9 @@
         if (expiry !== null) clearTimeout(expiry);
         timer = null; expiry = null; operation = null;
     }
-    function hideNotice() { document.getElementById('sfmcfix-query-copy-diagnostic')?.remove(); }
     function cancel(reason = 'cancelled') {
         if (operation) report.result = reason;
-        dispose(); hideNotice();
+        dispose();
     }
     function diagnostics() {
         return { format: 'sfmcfix-query-copy-v1', extensionVersion: VERSION, capturedAt: new Date().toISOString(),
@@ -57,47 +56,12 @@
         const match = location.hash.match(routePattern);
         return Boolean(match && match[1] === '300');
     }
-    function downloadButton() {
-        const download = document.createElement('button');
-        download.type = 'button'; download.className = 'btn btn-default btn-sm';
-        download.textContent = 'Scarica diagnostica apertura';
-        download.onclick = () => {
-            const url = URL.createObjectURL(new Blob([JSON.stringify(diagnostics(), null, 2)], { type: 'application/json' }));
-            const link = document.createElement('a'); link.href = url; link.download = 'sfmc-query-copy-diagnostica.json'; link.click();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-        };
-        return download;
-    }
     function rememberDetail() {
         const match = location.hash.match(routePattern);
         if (match?.[1] === '300') rememberedDetail = { hash: location.hash, scope: api.context.current().scope, seenAt: Date.now() };
     }
-    function renderDiagnosticControl() {
-        rememberDetail();
-        const existing = document.getElementById('sfmcfix-query-copy-tools');
-        if (!queryDetail()) { existing?.remove(); return; }
-        if (existing) return;
-        const box = document.createElement('aside');
-        box.id = 'sfmcfix-query-copy-tools'; box.className = 'sfmcfix-query-copy-tools';
-        box.setAttribute('aria-label', 'Diagnostica copia Query Activity');
-        box.append(downloadButton()); document.body.append(box);
-    }
-    function notice() {
-        if (noticeDismissed || document.getElementById('sfmcfix-query-copy-diagnostic')) return;
-        const box = document.createElement('aside');
-        box.id = 'sfmcfix-query-copy-diagnostic';
-        box.setAttribute('role', 'status');
-        box.className = 'sfmcfix-query-copy-diagnostic';
-        const text = document.createElement('span');
-        text.textContent = 'La copia non è stata aperta automaticamente. ';
-        renderDiagnosticControl();
-        const download = document.getElementById('sfmcfix-query-copy-tools') ? null : downloadButton();
-        const close = document.createElement('button');
-        close.type = 'button'; close.className = 'btn btn-link btn-sm'; close.textContent = 'Chiudi'; close.onclick = () => { noticeDismissed = true; hideNotice(); };
-        box.append(text); if (download) box.append(download); box.append(close); document.body.append(box);
-    }
     function begin(dialog = null) {
-        hideNotice(); dispose(); noticeDismissed = false;
+        dispose();
         const direct = location.hash.match(routePattern);
         // Copy temporarily replaces the source detail hash. Recover only a
         // detail actually observed in this document/BU; never infer its ID or
@@ -139,18 +103,17 @@
             if (report.result === 'waiting-source-return') report.result = 'source-return-timeout';
             else if (report.result === 'waiting-wizard-close') report.result = 'wizard-close-timeout';
             else if (report.result === 'waiting-native-request') report.result = 'native-request-unrecognized';
-            dispose(); if (closed) notice(); return;
+            dispose(); return;
         }
         // Native callback/transition completion comes first. The extension
         // never closes or submits the wizard itself.
         if (task.result && closed && !sameSourceRoute(location.hash, task)) report.result = 'waiting-source-return';
         if (task.result && !task.failed && !task.requests.size && Date.now() >= task.readyAt && closed && sameSourceRoute(location.hash, task)) {
             const hash = task.hash.replace(routePattern, `#ActivityDetails/$1/${task.result}`);
-            report.result = 'navigated'; dispose(); hideNotice(); location.hash = hash; return;
+            report.result = 'navigated'; dispose(); location.hash = hash; return;
         }
         if (closed && !task.requests.size && Date.now() - task.submitAt >= 2000) {
             if (report.result === 'waiting-native-request') report.result = 'native-request-unrecognized';
-            if (!['native-error', 'waiting-source-return'].includes(report.result)) notice();
         }
         timer = setTimeout(watch, 100);
     }
@@ -176,8 +139,7 @@
                 // unlabelled icon, as in the native Copy Query Activity flow.
                 installObservers();
                 const task = operation && current(operation) ? operation : begin(dialog);
-                if (!task) { report.finishRecognized = true; notice(); return; }
-                noticeDismissed = false; hideNotice();
+                if (!task) { report.finishRecognized = true; return; }
                 task.dialog = dialog; task.submitAt = Date.now(); task.attempt++; task.result = null; task.failed = false; task.requests.clear();
                 task.openUntil = Date.now() + 30000;
                 report.copyWizardRecognized = recognized; report.finishRecognized = true; report.result = 'waiting-native-request'; report.requests = [];
@@ -245,9 +207,9 @@
         }
     }
     installObservers();
-    renderDiagnosticControl();
+    rememberDetail();
     window.addEventListener('hashchange', event => {
-        renderDiagnosticControl();
+        rememberDetail();
         const task = operation;
         if (task && allowedRoute(location.hash, task)) {
             // Salesforce can return to/re-dispatch the source detail after
@@ -266,7 +228,7 @@
         }
         cancel('route-changed');
     });
-    window.addEventListener('sfmcfix:contextchange', () => { rememberedDetail = null; cancel('context-changed'); renderDiagnosticControl(); });
+    window.addEventListener('sfmcfix:contextchange', () => { rememberedDetail = null; cancel('context-changed'); rememberDetail(); });
     window.addEventListener('pagehide', () => cancel('page-hidden'));
     api.queryCopyNavigation = { cancel, diagnostics };
 })();
