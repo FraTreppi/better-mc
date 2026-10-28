@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.30 · 28 ottobre 2026
+Versione 1.1.31 · 28 ottobre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -43,9 +43,11 @@ Le preview native riuscite vengono osservate senza leggerne il rendering o i rec
 
 ## Navigazione dopo la copia di una Query Activity
 
-Il componente osserva il clic Copy nativo dal dettaglio di una query già caricata e il comando finale della procedura modale. Legge soltanto il nuovo queryDefinitionId nelle risposte riuscite a POST same-origin della collezione query o degli endpoint copy/clone della query di origine. Non legge il SQL o il corpo della richiesta, non modifica le opzioni AJAX e non invia richieste aggiuntive. Le risposte senza GUID valido, con ID uguale all’originale, errore applicativo o identificativi ambigui non avviano la navigazione.
+Il componente riconosce la procedura dal titolo esatto Copy Query Activity al clic sul comando finale, anche senza aver riconosciuto il Copy iniziale a icona. Verifica il percorso ActivityDetails della query; il titolo nativo del wizard può confermare il tipo di operazione anche quando i metadati non sono presenti nella cache dell’estensione; per i contenitori senza classe modal o ruolo dialog richiede un contenitore modale/wizard con il titolo esatto, entro una ricerca limitata degli antenati. Legge solo le intestazioni, senza acquisire il SQL visualizzato. Legge soltanto il nuovo queryDefinitionId nelle risposte riuscite a POST same-origin della collezione query o degli endpoint copy/clone della query di origine. Non legge il SQL o il corpo della richiesta, non modifica le opzioni AJAX e non invia richieste aggiuntive. Le risposte senza GUID valido, con ID uguale all’originale, errore applicativo o identificativi ambigui non avviano la navigazione.
 
-La navigazione usa lo stesso tipo di attività del percorso ActivityDetails già osservato, sostituendo soltanto il GUID. Attende il completamento delle richieste osservate, delle callback native e la chiusura della procedura. Clic Annulla/Chiudi, cambio percorso o BU e scadenza invalidano le risposte tardive. L’intento di copia dura al massimo dieci minuti e l’attesa dopo una creazione riuscita trenta secondi. Nessuna preferenza o dato della query viene salvato da questo componente; nessun nuovo permesso.
+La navigazione usa lo stesso tipo di attività del percorso ActivityDetails già osservato, sostituendo soltanto il GUID. Attende il completamento delle richieste osservate, delle callback native e la chiusura della procedura. Clic Annulla/Chiudi, cambio effettivo di attività o BU e scadenza invalidano le risposte tardive. Il ritorno nativo al medesimo percorso sorgente, compresa la normalizzazione di maiuscole o slash finale, non viene scambiato per una navigazione diversa. Viene controllato anche il percorso newURL dell’evento, senza conservarlo. L’intento di copia dura al massimo dieci minuti e l’attesa del completamento dopo Finish trenta secondi. Nessuna preferenza o dato della query viene salvato da questo componente; nessun nuovo permesso.
+
+Quando l’apertura non viene riconosciuta, una sola nota offre il download esplicito della diagnostica. Il rapporto contiene soltanto versione, data, passaggi riconosciuti, categorie fisse di endpoint, metodo, stato HTTP e flag di presenza dei campi identificativi. Non contiene valori degli ID, MID, nomi, SQL, payload, URL effettivi, risposte o intestazioni. Le richieste vengono solo osservate tramite le istanze jQuery già inizializzate della pagina, di Backbone o AMD, con registrazione unica per istanza e senza nuovi tentativi. Il file viene creato localmente al clic e l’URL Blob viene revocato; non è inviato automaticamente. La nota è chiudibile e viene rimossa al cambio di contesto o alla nuova procedura.
 
 ## Aggiornamento del Run Log
 

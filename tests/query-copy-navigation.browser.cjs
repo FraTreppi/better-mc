@@ -37,13 +37,13 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
                     <script id="sfmc-fixer-config" type="application/json">{"extensionPath":"/","timestamp":1}</script><script src="/assets/js/content.js"></script>
                     </head><body><h1 id="query-name">Originale</h1><button id="native-copy">Copy</button><button id="native-save">Save</button>
                     <div id="summaryQueryEditor"></div><p id="status"></p>
-                    <div id="wizard" class="modal" role="dialog" hidden><h2>Copy SQL Query Activity</h2><label>Nome<input value="Nuova query"></label><button id="next">Next</button><button id="finish" data-dismiss="modal">Finish</button><button id="cancel">Cancel</button></div>
+                    <div id="wizard" class="modal" role="dialog" hidden><h2>Copy Query Activity</h2><label>Nome<input value="Nuova query"></label><button id="next">Next</button><button id="finish" type="button" class="btn btn-primary accept" data-original-title="" title="">Finish</button><button id="cancel">Cancel</button></div>
                     <script>
-                    window.__path='/fuelapi/automation/v1/queries/';window.__mode='';window.__keepOpen=false;window.__callbacks=0;window.__cancelled=0;
+                    window.__path='/fuelapi/automation/v1/queries/';window.__mode='';window.__keepOpen=false;window.__returnToOriginal=false;window.__callbacks=0;window.__cancelled=0;
                     window.ace={edit:()=>({selectAll:()=>{},focus:()=>{},setValue:()=>{}})};document.execCommand=()=>true;
                     function readQuery(){const id=location.hash.split('/')[2];return jQuery.ajax({url:'/fuelapi/automation/v1/queries/'+id,dataType:'json',success:data=>document.querySelector('#query-name').textContent=data.name})}
-                    function createQuery(){jQuery.ajax({url:__path+__mode,type:'POST',dataType:'json',contentType:'application/json',data:JSON.stringify({name:'Nuova query',queryText:'SELECT 1',targetId:'target-fixture'}),
-                        success:function(){__callbacks++;if(!__keepOpen)document.querySelector('#wizard').hidden=true;document.querySelector('#status').textContent='Salvata'},
+                    function createQuery(){(window.__nativeJQuery || jQuery).ajax({url:__path+__mode,type:'POST',dataType:'json',contentType:'application/json',data:JSON.stringify({name:'Nuova query',queryText:'SELECT 1',targetId:'target-fixture'}),
+                        success:function(){__callbacks++;if(__returnToOriginal)window.dispatchEvent(new HashChangeEvent('hashchange',{newURL:location.href,oldURL:location.href}));if(!__keepOpen)document.querySelector('#wizard').hidden=true;document.querySelector('#status').textContent='Salvata'},
                         error:function(){document.querySelector('#status').textContent='Errore'}})}
                     document.querySelector('#native-copy').onclick=()=>{document.querySelector('#wizard').hidden=false;document.querySelector('#status').textContent='Passaggio 1'};
                     document.querySelector('#next').onclick=()=>document.querySelector('#status').textContent='Passaggio 2';
@@ -65,10 +65,17 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
         const original = async f => { await f.page.clock.runFor(1200); assert.ok(f.page.url().endsWith(A)); assert.deepEqual(f.errors, []); };
         {
             const f = await fixture();
-            await start(f); await f.page.evaluate(() => { __keepOpen = true; });
+            await f.page.evaluate(() => {
+                document.querySelector('#native-copy').innerHTML = '<i class="fuelux-icon fuelux-icon-copy"></i>';
+                document.querySelector('#native-copy').style.minHeight = '25px';
+                document.querySelector('#native-copy').style.minWidth = '25px';
+                document.querySelector('#wizard h2').textContent = 'Copy Query Activity';
+            });
+            await start(f); await f.page.evaluate(() => { __keepOpen = true; __returnToOriginal = true; });
             await finish(f); await original(f); // Success alone does not dismiss/navigate away from the wizard.
             await f.page.evaluate(() => { document.querySelector('#wizard').hidden = true; });
             await f.page.clock.runFor(500);
+            assert.ok(f.page.url().endsWith(B), 'icon-only Copy followed by Copy Query Activity → Finish must open the new query');
             await f.page.locator('#query-name').getByText('Nuova query', { exact: true }).waitFor();
             assert.ok(f.page.url().endsWith(`/300/${B}`));
             assert.equal(await f.page.evaluate(() => __callbacks), 1);
@@ -117,7 +124,10 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
             await finish(f); await original(f); await f.ctx.close();
         }
         {
-            const f = await fixture(); await start(f); await f.page.clock.runFor(10 * 60 * 1000 + 1); await finish(f); await original(f); await f.ctx.close();
+            const f = await fixture(); await start(f); await f.page.clock.runFor(10 * 60 * 1000 - 1000);
+            await f.page.evaluate(() => { __mode = '?hold'; }); await f.page.locator('#finish').click(); await assertWait(f.held);
+            await f.page.clock.runFor(2000); await f.release(); await f.page.locator('#status').getByText('Salvata', { exact: true }).waitFor();
+            await original(f); await f.ctx.close();
         }
         for (const change of ['cancel', 'escape', 'bu', 'navigation']) {
             const f = await fixture(); await start(f); await f.page.evaluate(() => { __mode = '?hold'; }); await f.page.locator('#finish').click();
@@ -133,7 +143,85 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
             const f = await fixture(); await start(f); await f.page.evaluate(A => { __path = '/fuelapi/automation/v1/queries/' + A + '/copy'; }, A); await finish(f);
             await f.page.clock.runFor(600); await f.page.locator('#query-name').getByText('Nuova query', { exact: true }).waitFor(); assert.ok(f.page.url().endsWith(B)); assert.deepEqual(f.errors, []); await f.ctx.close();
         }
-        console.log('PASS actual Automation Studio bootstrap and native jQuery copy wizard: opens returned new Query Activity in the same tab after completion/close; no duplicate writes, unchanged SQL payload; ordinary save/clipboard Copy/cancel/error/invalid or source IDs/late results after cancel, BU change or navigation never redirect; native retry and explicit copy endpoint supported. Simulated Salesforce only.');
+        {
+            const f = await fixture();
+            await f.page.evaluate(() => {
+                document.querySelector('#native-copy').innerHTML = '<i class="copy-icon"></i>';
+                document.querySelector('#native-copy').style.cssText = 'min-width:25px;min-height:25px';
+                const wizard = document.querySelector('#wizard'); wizard.className = 'activityConfig'; wizard.removeAttribute('role');
+                wizard.querySelector('h2').textContent = 'Copy Query Activity';
+            });
+            await start(f); await finish(f); await f.page.clock.runFor(600);
+            assert.ok(f.page.url().endsWith(B)); assert.deepEqual(f.errors, []); await f.ctx.close();
+        }
+        for (const separateClient of [false, true]) {
+            const f = await fixture();
+            if (separateClient) {
+                await f.page.addScriptTag({ url: '/jquery.js' });
+                await f.page.evaluate(() => {
+                    const native = jQuery.noConflict(true);
+                    window.requirejs = name => name === 'jquery' ? native : null;
+                    window.requirejs.defined = name => name === 'jquery';
+                    window.__nativeJQuery = native;
+                });
+            }
+            await f.page.evaluate(() => {
+                sfmcfix.temp.activities = {};
+                document.querySelector('#native-copy').innerHTML = '<i class="copy-icon"></i>';
+                document.querySelector('#native-copy').style.cssText = 'min-width:25px;min-height:25px';
+            });
+            await start(f); await finish(f); await f.page.clock.runFor(600);
+            assert.ok(f.page.url().endsWith(B));
+            const report = await f.page.evaluate(() => sfmcfix.queryCopyNavigation.diagnostics());
+            assert.equal(report.sourceQueryLoaded, false); assert.equal(report.copyWizardRecognized, true);
+            assert.equal(report.result, 'navigated');
+            assert.equal(f.calls.filter(call => call.method === 'POST').length, 1);
+            assert.deepEqual(f.errors, []); await f.ctx.close();
+        }
+        {
+            const f = await fixture(); await start(f);
+            await f.page.evaluate(A => {
+                const url = new URL(location.href); url.hash = '#ActivityDetails/300/' + A.toUpperCase() + '/';
+                history.replaceState(null, '', url.href);
+                window.dispatchEvent(new HashChangeEvent('hashchange', {newURL:url.href}));
+            }, A);
+            await finish(f); await f.page.clock.runFor(600);
+            assert.ok(f.page.url().endsWith(B)); assert.deepEqual(f.errors, []); await f.ctx.close();
+        }
+        for (const title of ['Edit Query Activity', 'Create Query Activity', 'Copy Script Activity']) {
+            const f = await fixture();
+            await f.page.evaluate(title => {
+                document.querySelector('#native-copy').innerHTML = '<i class="copy-icon"></i>';
+                document.querySelector('#native-copy').style.cssText = 'min-width:25px;min-height:25px';
+                document.querySelector('#wizard h2').textContent = title;
+            }, title);
+            await start(f); await finish(f); await original(f);
+            assert.equal(await f.page.locator('#sfmcfix-query-copy-diagnostic').count(), 0);
+            await f.ctx.close();
+        }
+        {
+            const f = await fixture(); await start(f);
+            await f.page.evaluate(() => { __path = '/fuelapi/automation/v1/queries/create'; });
+            await finish(f); await f.page.clock.runFor(2500);
+            assert.ok(f.page.url().endsWith(A));
+            const download = f.page.waitForEvent('download');
+            await f.page.getByRole('button', { name: 'Scarica diagnostica apertura', exact: true }).click();
+            const file = await download;
+            assert.equal(file.suggestedFilename(), 'sfmc-query-copy-diagnostica.json');
+            const report = JSON.parse(fs.readFileSync(await file.path(), 'utf8'));
+            assert.equal(report.copyWizardRecognized, true); assert.equal(report.finishRecognized, true);
+            assert.equal(report.result, 'native-request-unrecognized');
+            assert.deepEqual(report.requests, [{ method: 'POST', endpoint: 'other-query-path', eligible: false, status: 200,
+                response: { queryDefinitionId: true, id: false, nestedQueryDefinitionId: false, errors: false } }]);
+            const serialized = JSON.stringify(report);
+            for (const privateValue of [A, B, 'SELECT 1', 'Nuova query', 'target-fixture', '/queries/create']) assert.ok(!serialized.includes(privateValue));
+            await f.page.getByRole('button', { name: 'Chiudi', exact: true }).click();
+            await f.page.clock.runFor(1000);
+            assert.equal(await f.page.locator('#sfmcfix-query-copy-diagnostic').count(), 0);
+            assert.equal(f.calls.filter(call => call.method === 'POST').length, 1);
+            assert.deepEqual(f.errors, []); await f.ctx.close();
+        }
+        console.log('PASS actual Automation Studio bootstrap and native jQuery copy wizard: opens returned new Query Activity in the same tab after completion/close; no duplicate writes, unchanged SQL payload; ordinary save/clipboard Copy/cancel/error/invalid or source IDs/late results after cancel, BU change or navigation never redirect; native retry and explicit copy endpoint supported; same-source native hashchange and canonicalization survive completion; icon-only launcher, exact Copy Query Activity title and non-Bootstrap wizard supported; edit/create/script wizards excluded; sanitized user-downloaded diagnostics for unknown requests. Simulated Salesforce only.');
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
 async function assertWait(check) { for (let i = 0; i < 100; i++) { if (check()) return; await new Promise(resolve => setTimeout(resolve, 20)); } throw Error('Request not captured'); }

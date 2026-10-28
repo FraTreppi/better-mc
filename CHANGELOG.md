@@ -1,3 +1,11 @@
+# 1.1.31 — 28 ottobre 2026
+
+- Corretto l’avvio dell’apertura dopo Copy Query Activity quando il comando iniziale è soltanto un’icona. Il titolo nativo del wizard e il clic su Finish identificano la copia, anche senza un precedente Copy testuale riconosciuto.
+- Corretto l’annullamento improprio quando Salesforce, dopo aver creato la copia, ripristina o segnala nuovamente il percorso della query originale. I cambi effettivi di attività o BU continuano a invalidare l’apertura.
+- Riconosciuti anche contenitori modali senza classi Bootstrap o ruolo dialog, con ricerca limitata e titolo esatto. I wizard Edit/Create Query e Copy Script non avviano la navigazione.
+- Una mancata apertura offre il download locale di una diagnostica con passaggi riconosciuti, categorie dei percorsi, stato HTTP e flag; esclusi SQL, nomi, ID, MID, payload e credenziali.
+- Riprodotto il mancato avvio della 1.1.30 con Copy a icona; prova browser corretta con il markup Finish fornito dall’utente. Guide aggiornate. Nessun nuovo permesso, scrittura o esecuzione.
+
 # 1.1.30 — 28 ottobre 2026
 
 - Apertura automatica nella stessa scheda della SQL Query Activity appena copiata dal dettaglio, dopo il comando finale e la chiusura della procedura nativa riuscita. Il GUID viene letto dalla risposta Salesforce e sostituisce quello di origine nel percorso già osservato.

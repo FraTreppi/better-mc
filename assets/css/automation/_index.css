@@ -134,3 +134,19 @@ body #workflowPane .codeBlock .codeBlock-wrapper.type__verification { border-col
 body #workflowPane .codeBlock .codeBlock-wrapper.type__verification .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__verification { background: #fab856;}
 body #workflowPane .codeBlock .codeBlock-wrapper.type__wait { border-color: #666699;}
 body #workflowPane .codeBlock .codeBlock-wrapper.type__wait .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__wait { background: #666699;}
+
+.sfmcfix-query-copy-diagnostic {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    z-index: 998;
+    max-width: min(600px, calc(100vw - 24px));
+    padding: 8px 12px;
+    border: 1px solid #b5c8da;
+    border-radius: 4px;
+    background: #fff;
+    color: #263b4c;
+    box-shadow: 0 2px 8px #0002;
+    font-size: 12px;
+}
+.sfmcfix-query-copy-diagnostic button { margin-left: 6px; }
