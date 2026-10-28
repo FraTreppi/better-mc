@@ -4,7 +4,17 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.32 — 28 ottobre 2026
+## Versione attuale 1.1.33 — 28 ottobre 2026
+
+La diagnostica fornita dall’utente riporta copyWizardRecognized=true e finishRecognized=true insieme a sourceRouteRecognized=false, sourceQueryLoaded=false, result=source-route-unrecognized e nessuna richiesta osservata; dopo la chiusura runtime.queryDetail torna true. Il riconoscimento si interrompeva perché assumeva che il dettaglio originale fosse ancora nel percorso al clic su Finish.
+
+Prima della correzione, una fixture con Copy a icona, percorso temporaneo non ActivityDetails durante il wizard e ritorno nativo all’originale riproduce esattamente questi flag e il mancato cambio di query. Ora il dettaglio valido osservato prima della copia viene ricordato soltanto in memoria, per documento/BU e al massimo dieci minuti; il clic sul comando sorgente aggiorna l’osservazione anche con icona senza etichetta. Al Finish di un Copy Query Activity riconosciuto, se il percorso è temporaneo viene recuperata quella sorgente osservata. Nessun ID sorgente viene indovinato o ricavato dal wizard. Durante la richiesta si ammette soltanto l’esatto percorso temporaneo catturato per quell’operazione; dopo successo e chiusura si attende il ritorno nativo al dettaglio originale e si sostituisce solo il GUID con quello restituito dalla creazione.
+
+La diagnostica aggiunge soltanto sourceFromRememberedDetail, wizardRouteDifferent e conteggi limitati degli eventi, senza valori dei percorsi o degli ID. Sorgente mai osservata/scaduta, cambio BU, annullamento e navigazione effettiva impediscono l’apertura. Un ritorno nativo ritardato non produce una nota di fallimento prematura.
+
+Verifica della 1.1.33: la regressione che prima riproduceva il rapporto utente passa; i browser test coprono anche ritorno nativo ritardato, risposta tardiva dopo annullamento/cambio BU/navigazione, sorgente non osservata o scaduta e assenza di dati applicativi nel rapporto. Passati anche i 56 test unit e la verifica sintattica di 48 file JavaScript; guida PDF 1.1.33 rigenerata. Le richieste native sono simulate; non vengono create attività reali e manca una sessione Salesforce autenticata per la conferma sul tenant.
+
+## Versione 1.1.32 — 28 ottobre 2026
 
 La diagnostica della 1.1.31 dipendeva dal riconoscimento del flusso e dall’avviso rimosso al cambio di vista. Ora un controllo indipendente è montato direttamente nel body del dettaglio ActivityDetails/300, prima di Copy e senza richiedere metadati in cache. Rimane dopo la chiusura della modale o della nota, con un livello visivo sopra gli sfondi modali; si rimuove uscendo dal dettaglio SQL e si ricrea una sola volta al rientro. Il download continua a usare soltanto un Blob locale; non aggiunge richieste Salesforce. La nota automatica riutilizza il comando esistente, evitando due pulsanti uguali.
 

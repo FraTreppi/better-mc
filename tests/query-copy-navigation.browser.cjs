@@ -6,7 +6,7 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
 (async () => {
     const browser = await chromium.launch({ executablePath: process.env.SFMCFIX_CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
     try {
-        async function fixture() {
+        async function fixture(startHash = '#ActivityDetails/300/' + A) {
             const ctx = await browser.newContext(), page = await ctx.newPage(), errors = [], calls = [];
             let hold = null;
             page.on('pageerror', error => errors.push(error.message));
@@ -39,13 +39,13 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
                     <div id="summaryQueryEditor"></div><p id="status"></p>
                     <div id="wizard" class="modal" role="dialog" hidden><h2>Copy Query Activity</h2><label>Nome<input value="Nuova query"></label><button id="next">Next</button><button id="finish" type="button" class="btn btn-primary accept" data-original-title="" title="">Finish</button><button id="cancel">Cancel</button></div>
                     <script>
-                    window.__path='/fuelapi/automation/v1/queries/';window.__mode='';window.__keepOpen=false;window.__returnToOriginal=false;window.__callbacks=0;window.__cancelled=0;
+                    window.__path='/fuelapi/automation/v1/queries/';window.__mode='';window.__keepOpen=false;window.__returnToOriginal=false;window.__wizardRoute=false;window.__returnDelay=0;window.__callbacks=0;window.__cancelled=0;
                     window.ace={edit:()=>({selectAll:()=>{},focus:()=>{},setValue:()=>{}})};document.execCommand=()=>true;
-                    function readQuery(){const id=location.hash.split('/')[2];return jQuery.ajax({url:'/fuelapi/automation/v1/queries/'+id,dataType:'json',success:data=>document.querySelector('#query-name').textContent=data.name})}
+                    function readQuery(){const id=location.hash.split('/')[2];if(!/^[0-9a-f-]{36}$/i.test(id||''))return jQuery.Deferred().resolve().promise();return jQuery.ajax({url:'/fuelapi/automation/v1/queries/'+id,dataType:'json',success:data=>document.querySelector('#query-name').textContent=data.name})}
                     function createQuery(){(window.__nativeJQuery || jQuery).ajax({url:__path+__mode,type:'POST',dataType:'json',contentType:'application/json',data:JSON.stringify({name:'Nuova query',queryText:'SELECT 1',targetId:'target-fixture'}),
-                        success:function(){__callbacks++;if(__returnToOriginal)window.dispatchEvent(new HashChangeEvent('hashchange',{newURL:location.href,oldURL:location.href}));if(!__keepOpen)document.querySelector('#wizard').hidden=true;document.querySelector('#status').textContent='Salvata'},
+                        success:function(){__callbacks++;if(__wizardRoute){if(__returnDelay)setTimeout(()=>{location.hash='#ActivityDetails/300/${A}'},__returnDelay);else location.hash='#ActivityDetails/300/${A}'}if(__returnToOriginal)window.dispatchEvent(new HashChangeEvent('hashchange',{newURL:location.href,oldURL:location.href}));if(!__keepOpen)document.querySelector('#wizard').hidden=true;document.querySelector('#status').textContent='Salvata'},
                         error:function(){document.querySelector('#status').textContent='Errore'}})}
-                    document.querySelector('#native-copy').onclick=()=>{document.querySelector('#wizard').hidden=false;document.querySelector('#status').textContent='Passaggio 1'};
+                    document.querySelector('#native-copy').onclick=()=>{if(__wizardRoute)location.hash='#native-query-copy-wizard';document.querySelector('#wizard').hidden=false;document.querySelector('#status').textContent='Passaggio 1'};
                     document.querySelector('#next').onclick=()=>document.querySelector('#status').textContent='Passaggio 2';
                     document.querySelector('#finish').onclick=createQuery;
                     document.querySelector('#native-save').onclick=createQuery;
@@ -54,7 +54,7 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
                     const ready=setInterval(()=>{if(window.sfmcfix?.queryCopyNavigation){clearInterval(ready);readQuery().done(()=>document.querySelector('#status').textContent='Pronto')}},20);
                     </script></body></html>` });
             });
-            await page.goto(`https://mc.s50.marketingcloudapps.com/AutomationStudioFuel3/?mid=123#ActivityDetails/300/${A}`);
+            await page.goto(`https://mc.s50.marketingcloudapps.com/AutomationStudioFuel3/?mid=123${startHash}`);
             await page.locator('#status').getByText('Pronto', { exact: true }).waitFor();
             await page.clock.install();
             await page.clock.pauseAt(new Date());
@@ -63,6 +63,22 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
         const start = async f => { await f.page.locator('#native-copy').click(); await f.page.locator('#next').click(); };
         const finish = async f => { await f.page.locator('#finish').click(); await f.page.locator('#status').getByText('Salvata', { exact: true }).waitFor(); };
         const original = async f => { await f.page.clock.runFor(1200); assert.ok(f.page.url().endsWith(A)); assert.deepEqual(f.errors, []); };
+        {
+            const f = await fixture();
+            await f.page.evaluate(() => {
+                __wizardRoute = true;
+                document.querySelector('#native-copy').innerHTML = '<i class="copy-icon"></i>';
+                document.querySelector('#native-copy').style.cssText = 'min-width:25px;min-height:25px';
+            });
+            await start(f); await f.page.clock.runFor(100);
+            assert.ok(f.page.url().endsWith('#native-query-copy-wizard'));
+            await finish(f); await f.page.clock.runFor(700);
+            const diagnostic = await f.page.evaluate(() => sfmcfix.queryCopyNavigation.diagnostics());
+            assert.ok(f.page.url().endsWith(B), 'recognized Copy/Finish on a temporary wizard route must open the returned new query: ' + JSON.stringify(diagnostic));
+            assert.equal(diagnostic.result, 'navigated');
+            assert.equal(f.calls.filter(call=>call.method==='POST').length, 1);
+            assert.deepEqual(f.errors, []); await f.ctx.close();
+        }
         {
             const f = await fixture();
             await f.page.evaluate(() => {
@@ -260,7 +276,44 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
             assert.equal(await f.page.locator('#sfmcfix-query-copy-tools').count(),1);
             assert.deepEqual(f.errors,[]); await f.ctx.close();
         }
-        console.log('PASS actual Automation Studio bootstrap and native jQuery copy wizard: opens returned new Query Activity in the same tab after completion/close; no duplicate writes, unchanged SQL payload; ordinary save/clipboard Copy/cancel/error/invalid or source IDs/late results after cancel, BU change or navigation never redirect; native retry and explicit copy endpoint supported; same-source native hashchange and canonicalization survive completion; icon-only launcher, exact Copy Query Activity title and non-Bootstrap wizard supported; edit/create/script wizards excluded; sanitized user-downloaded diagnostics for unknown requests; bottom-right diagnostic button available before Copy and after an entirely unrecognized Finish, removed off query details and restored once on return. Simulated Salesforce only.');
+        {
+            const f = await fixture();
+            await f.page.evaluate(() => {
+                __wizardRoute=true;__returnDelay=2500;
+                document.querySelector('#native-copy').innerHTML='<i class="copy-icon"></i>';
+                document.querySelector('#native-copy').style.cssText='min-width:25px;min-height:25px';
+            });
+            await start(f);await f.page.clock.runFor(100);await finish(f);await f.page.clock.runFor(600);
+            assert.ok(f.page.url().endsWith('#native-query-copy-wizard'));
+            assert.equal(await f.page.evaluate(()=>sfmcfix.queryCopyNavigation.diagnostics().result),'waiting-source-return');
+            await f.page.clock.runFor(1500);assert.equal(await f.page.locator('#sfmcfix-query-copy-diagnostic').count(),0);
+            await f.page.clock.runFor(1000);assert.ok(f.page.url().endsWith(B));
+            const report=await f.page.evaluate(()=>sfmcfix.queryCopyNavigation.diagnostics());
+            assert.equal(report.sourceFromRememberedDetail,true);assert.equal(report.wizardRouteDifferent,true);
+            assert.equal(report.result,'navigated');
+            for(const privateValue of [A,B,'#native-query-copy-wizard','SELECT 1'])assert.ok(!JSON.stringify(report).includes(privateValue));
+            assert.deepEqual(f.errors,[]);await f.ctx.close();
+        }
+        for(const change of ['cancel','bu','navigation']) {
+            const f=await fixture();
+            await f.page.evaluate(()=>{__wizardRoute=true;__mode='?hold';document.querySelector('#native-copy').textContent='◻';});
+            await start(f);await f.page.clock.runFor(100);await f.page.locator('#finish').click();await assertWait(f.held);
+            if(change==='cancel')await f.page.locator('#cancel').click();
+            if(change==='bu')await f.page.evaluate(()=>{history.replaceState(null,'','?mid=999'+location.hash);window.dispatchEvent(new Event('sfmcfix:contextchange'));});
+            if(change==='navigation')await f.page.evaluate(()=>{location.hash='#Overview';});
+            await f.release();await f.page.locator('#status').getByText('Salvata',{exact:true}).waitFor();await f.page.clock.runFor(1000);
+            assert.ok(!f.page.url().endsWith(B));assert.deepEqual(f.errors,[]);await f.ctx.close();
+        }
+        for(const missingOrigin of ['not-observed','expired']) {
+            const f=await fixture(missingOrigin==='not-observed'?'#native-query-copy-wizard':undefined);
+            await f.page.evaluate(()=>{__wizardRoute=true;document.querySelector('#native-copy').textContent='◻';});
+            await start(f);await f.page.clock.runFor(missingOrigin==='expired'?10*60*1000+1:100);
+            await finish(f);await f.page.clock.runFor(700);
+            assert.ok(f.page.url().endsWith(A));
+            assert.equal(await f.page.evaluate(()=>sfmcfix.queryCopyNavigation.diagnostics().result),'source-route-unrecognized');
+            assert.deepEqual(f.errors,[]);await f.ctx.close();
+        }
+        console.log('PASS actual Automation Studio bootstrap and native jQuery copy wizard: opens returned new Query Activity in the same tab after completion/close; no duplicate writes, unchanged SQL payload; ordinary save/clipboard Copy/cancel/error/invalid or source IDs/late results after cancel, BU change or navigation never redirect; native retry and explicit copy endpoint supported; temporary wizard route reproduces the supplied failure and now opens after native return; missing/expired source, late responses after cancel/BU/navigation never open; same-source native hashchange and canonicalization survive completion; icon-only launcher, exact Copy Query Activity title and non-Bootstrap wizard supported; edit/create/script wizards excluded; sanitized user-downloaded diagnostics for unknown requests; bottom-right diagnostic button available before Copy and after an entirely unrecognized Finish, removed off query details and restored once on return. Simulated Salesforce only.');
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
 async function assertWait(check) { for (let i = 0; i < 100; i++) { if (check()) return; await new Promise(resolve => setTimeout(resolve, 20)); } throw Error('Request not captured'); }

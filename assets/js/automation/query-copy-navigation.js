@@ -2,7 +2,7 @@
     'use strict';
     const api = window.sfmcfix;
     if (api.queryCopyNavigation || !window.jQuery?.ajaxPrefilter) return;
-    const VERSION = '1.1.32';
+    const VERSION = '1.1.33';
     const GUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
     const guid = value => typeof value === 'string' && new RegExp(`^${GUID}$`, 'i').test(value) ? value.toLowerCase() : null;
     const routePattern = new RegExp(`^#ActivityDetails/(\\d{1,6})/(${GUID})/?$`, 'i');
@@ -13,7 +13,7 @@
     const wizardTitles = new Set(['copy query activity', 'copy sql query activity', 'copia attività query', 'copia attivita query']);
     const headings = 'h1,h2,h3,h4,h5,h6,.modal-title,[role="heading"],.modal-header span';
     const normalize = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
-    let operation = null, timer = null, expiry = null, report = null, noticeDismissed = false, lastFinish = null, clientCount = 0;
+    let operation = null, timer = null, expiry = null, report = null, noticeDismissed = false, lastFinish = null, clientCount = 0, rememberedDetail = null;
 
     function visible(node) {
         return Boolean(node?.isConnected && node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden');
@@ -68,7 +68,12 @@
         };
         return download;
     }
+    function rememberDetail() {
+        const match = location.hash.match(routePattern);
+        if (match?.[1] === '300') rememberedDetail = { hash: location.hash, scope: api.context.current().scope, seenAt: Date.now() };
+    }
     function renderDiagnosticControl() {
+        rememberDetail();
         const existing = document.getElementById('sfmcfix-query-copy-tools');
         if (!queryDetail()) { existing?.remove(); return; }
         if (existing) return;
@@ -93,15 +98,23 @@
     }
     function begin(dialog = null) {
         hideNotice(); dispose(); noticeDismissed = false;
-        const match = location.hash.match(routePattern), source = guid(match?.[2]);
+        const direct = location.hash.match(routePattern);
+        // Copy temporarily replaces the source detail hash. Recover only a
+        // detail actually observed in this document/BU; never infer its ID or
+        // build a source route from the copy wizard's unknown path.
+        const remembered = !direct && copyWizard(dialog) && rememberedDetail?.scope === api.context.current().scope &&
+            Date.now() - rememberedDetail.seenAt <= 10 * 60 * 1000 ? rememberedDetail : null;
+        const sourceHash = direct ? location.hash : remembered?.hash;
+        const match = sourceHash?.match(routePattern), source = guid(match?.[2]);
         const loaded = source && (api.temp?.activities?.[match[2]]?.data || api.temp?.activities?.[source]?.data);
         report = { sourceRouteRecognized: Boolean(match), sourceQueryLoaded: Boolean(source && guid(loaded?.queryDefinitionId) === source),
+            sourceFromRememberedDetail: Boolean(remembered), wizardRouteDifferent: Boolean(remembered),
             copyWizardRecognized: copyWizard(dialog), finishRecognized: false, result: 'copy-started', requests: [] };
         if (!report.sourceRouteRecognized || !report.sourceQueryLoaded && !report.copyWizardRecognized) {
             report.result = !match ? 'source-route-unrecognized' : 'source-query-unavailable';
             return null;
         }
-        operation = { source, hash: location.hash, scope: api.context.current().scope, expires: Date.now() + 10 * 60 * 1000,
+        operation = { source, hash: sourceHash, wizardHash: remembered ? location.hash : null, scope: api.context.current().scope, expires: Date.now() + 10 * 60 * 1000,
             dialog, submitAt: null, attempt: 0, result: null, failed: false, requests: new Set() };
         expiry = setTimeout(() => cancel('expired'), 10 * 60 * 1000);
         return operation;
@@ -110,8 +123,11 @@
         const next = hash.match(routePattern), previous = task.hash.match(routePattern);
         return Boolean(next && previous && next[1] === previous[1] && guid(next[2]) === task.source);
     }
+    function allowedRoute(hash, task) {
+        return sameSourceRoute(hash, task) || task.wizardHash !== null && hash === task.wizardHash;
+    }
     function current(task) {
-        return operation === task && task.scope === api.context.current().scope && sameSourceRoute(location.hash, task) && Date.now() < task.expires;
+        return operation === task && task.scope === api.context.current().scope && allowedRoute(location.hash, task) && Date.now() < task.expires;
     }
     function watch() {
         timer = null;
@@ -120,19 +136,21 @@
         if (!current(task)) { cancel('context-changed'); return; }
         const closed = !visible(task.dialog) && !dialogs().length;
         if (Date.now() > task.openUntil) {
-            if (report.result === 'waiting-wizard-close') report.result = 'wizard-close-timeout';
+            if (report.result === 'waiting-source-return') report.result = 'source-return-timeout';
+            else if (report.result === 'waiting-wizard-close') report.result = 'wizard-close-timeout';
             else if (report.result === 'waiting-native-request') report.result = 'native-request-unrecognized';
             dispose(); if (closed) notice(); return;
         }
         // Native callback/transition completion comes first. The extension
         // never closes or submits the wizard itself.
-        if (task.result && !task.failed && !task.requests.size && Date.now() >= task.readyAt && closed) {
+        if (task.result && closed && !sameSourceRoute(location.hash, task)) report.result = 'waiting-source-return';
+        if (task.result && !task.failed && !task.requests.size && Date.now() >= task.readyAt && closed && sameSourceRoute(location.hash, task)) {
             const hash = task.hash.replace(routePattern, `#ActivityDetails/$1/${task.result}`);
             report.result = 'navigated'; dispose(); hideNotice(); location.hash = hash; return;
         }
         if (closed && !task.requests.size && Date.now() - task.submitAt >= 2000) {
             if (report.result === 'waiting-native-request') report.result = 'native-request-unrecognized';
-            if (report.result !== 'native-error') notice();
+            if (!['native-error', 'waiting-source-return'].includes(report.result)) notice();
         }
         timer = setTimeout(watch, 100);
     }
@@ -140,9 +158,10 @@
     document.addEventListener('click', event => {
         const button = event.target.closest?.('button, a, [role="button"], input[type="button"], input[type="submit"]');
         if (!button || button.closest(excluded) || !visible(button) || button.disabled || button.getAttribute('aria-disabled') === 'true' || button.classList.contains('disabled')) return;
+        rememberDetail();
         const labels = [button.value, button.textContent, button.getAttribute('aria-label'), button.title, button.getAttribute('data-original-title')].map(normalize).filter(Boolean);
         const dialog = dialogFor(button);
-        if (queryDetail() && labels.includes('finish')) {
+        if ((queryDetail() || copyWizard(dialog)) && labels.includes('finish')) {
             lastFinish = { dialogFound: Boolean(dialog), copyWizardRecognized: copyWizard(dialog), acceptClass: button.classList.contains('accept') };
             if (!lastFinish.copyWizardRecognized && !(operation && current(operation) && operation.dialog === dialog)) {
                 dispose();
@@ -229,21 +248,24 @@
     window.addEventListener('hashchange', event => {
         renderDiagnosticControl();
         const task = operation;
-        if (task && sameSourceRoute(location.hash, task)) {
+        if (task && allowedRoute(location.hash, task)) {
             // Salesforce can return to/re-dispatch the source detail after
             // creating the copy. This is the expected native completion, not
             // navigation to a different activity. Also allow case/trailing-slash
             // canonicalization of that same observed detail route.
             let sameEvent = true;
             if (event.newURL) {
-                try { const url = new URL(event.newURL); sameEvent = url.origin === location.origin && sameSourceRoute(url.hash, task); }
+                try { const url = new URL(event.newURL); sameEvent = url.origin === location.origin && allowedRoute(url.hash, task); }
                 catch (_) { sameEvent = false; }
             }
-            if (sameEvent) { report.sourceRouteEvents = Math.min(20, (report.sourceRouteEvents || 0) + 1); return; }
+            if (sameEvent) {
+                const field = sameSourceRoute(location.hash, task) ? 'sourceRouteEvents' : 'wizardRouteEvents';
+                report[field] = Math.min(20, (report[field] || 0) + 1); return;
+            }
         }
         cancel('route-changed');
     });
-    window.addEventListener('sfmcfix:contextchange', () => { cancel('context-changed'); renderDiagnosticControl(); });
+    window.addEventListener('sfmcfix:contextchange', () => { rememberedDetail = null; cancel('context-changed'); renderDiagnosticControl(); });
     window.addEventListener('pagehide', () => cancel('page-hidden'));
     api.queryCopyNavigation = { cancel, diagnostics };
 })();

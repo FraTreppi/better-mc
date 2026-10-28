@@ -1,3 +1,10 @@
+# 1.1.33 — 28 ottobre 2026
+
+- Corretto source-route-unrecognized durante Copy Query Activity: il percorso della query originale viene conservato prima della copia e recuperato al clic su Finish anche se Salesforce mostra un percorso temporaneo del wizard.
+- La richiesta nativa resta osservata sul percorso temporaneo esatto; dopo il successo si attendono chiusura della procedura e ritorno al dettaglio originale prima di aprire la nuova query. Nessun avviso prematuro durante questa attesa.
+- Sorgenti assenti, scadute o di un’altra BU non vengono usate. Annullamento, cambio pagina/BU e risposte tardive rimangono gestiti senza navigazione.
+- Riprodotti gli stessi flag della diagnostica utente con la 1.1.32 prima della correzione; prova browser aggiornata e guide Markdown/PDF aggiornate. Nessuna nuova richiesta, scrittura o esecuzione Salesforce.
+
 # 1.1.32 — 28 ottobre 2026
 
 - Scarica diagnostica apertura è ora un comando separato sempre presente in basso a destra nel dettaglio SQL Query Activity, prima di Copy e dopo la chiusura della modale. Non dipende dall’avviso o dal riconoscimento del wizard; Chiudi rimuove soltanto la nota.
