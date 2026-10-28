@@ -1,10 +1,10 @@
-# SFMC UI Fixer — Multi BU 1.1.28
+# SFMC UI Fixer — Multi BU 1.1.29
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
 [Scarica lo ZIP per Chrome e Microsoft Edge](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-ui-fixer-multi-bu-diagnostica.zip)
 
-La **[Guida utente](GUIDA_UTENTE.md)**, disponibile anche come **[PDF](GUIDA_UTENTE.pdf)**, descrive tutte le funzionalità e come usarle: installazione, configurazione delle BU, rubrica tester, cronologie, Tracking Test, strumenti DE, Automation Studio, Query Studio e Journey Builder.
+La **[Guida utente](GUIDA_UTENTE.md)**, disponibile anche come **[PDF](GUIDA_UTENTE.pdf)**, descrive tutte le funzionalità e come usarle: installazione, configurazione delle BU, rubrica tester, cronologie, strumenti DE, Automation Studio, Query Studio e Journey Builder.
 
 ## Installazione e aggiornamento
 
@@ -25,13 +25,13 @@ I salvataggi locali sono separati fra Chrome, Edge e i relativi profili: non ven
 | --- | --- |
 | Contact Builder | Ricerca avanzata DE, visite recenti, prima/ultima pagina, CLONE, MULTI ROWS, CSV completo della DE con avanzamento e annullamento, analisi SMS locale, collegamento alla stessa DE in Email Studio. |
 | Content Builder | Ricerca Advanced per nome, Customer Key o ID su tutte le cartelle della BU, filtri per tipo/cartella/date, risultati paginati e apertura dei contenuti. |
-| Preview and Test | Caricamento e attivazione con un clic della rubrica DE tester_content_builder, fino a 1000 tester per BU, suggerimenti destinatari, Test History locale e nuove anteprime, cartelle virtuali delle DE recenti, Tracking Test. |
+| Preview and Test | Caricamento e attivazione con un clic della rubrica DE tester_content_builder, fino a 1000 tester per BU, suggerimenti destinatari, cartella virtuale DE recenti con svuotamento. |
 | Automation Studio | Refresh automatico del Run Log ogni 5 secondi con pulsante ON/OFF, automation recenti, collegamenti alle attività e alla DE target, copia SQL, vista SQL validato, download JSON, copie locali prima della modifica. |
 | Query Studio | Bozze, recupero dell’editor, elenco query, copia campi e campi obbligatori, pannelli comprimibili. |
 | Journey Builder | Collegamento ai Journey referenziati e alla DE dell’entry quando identificabile. |
 | Pagina dell’estensione | Visibilità delle icone, consultazione ed esportazione delle versioni SQL, eliminazione delle copie locali, diagnostica Email Studio. |
 
-Le due icone Impostazioni SFMC e Test History compaiono solo in Preview and Test e possono essere nascoste completamente. Tracking Test rimane accanto a Send Test. I collegamenti usano la sessione e la BU attive di Salesforce: non cambiano cliente automaticamente.
+L’icona Impostazioni SFMC compare solo in Preview and Test e può essere nascosta dalla pagina dell’estensione. I collegamenti usano la sessione e la BU attive di Salesforce: non cambiano cliente automaticamente.
 
 ## Rubrica DE condivisa
 
@@ -39,12 +39,12 @@ Crea in ogni BU la DE **tester_content_builder** dentro **SFMC_UI_Fixer**, anche
 
 ## Sicurezza e dati
 
-La versione 1.1.28 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
+La versione 1.1.29 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
 
-Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. Le anteprime bloccano script, navigazione e risorse esterne; le immagini HTTPS richiedono un comando e una conferma espliciti. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
+Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
 Queste misure riducono i rischi individuati e non costituiscono una garanzia assoluta. Le operazioni sui record usano la sessione Salesforce e possono modificare dati reali. Le copie locali e i file scaricati non sono cifrati dall’estensione.
 
 Vedi **[Sicurezza e limiti](SICUREZZA.md)** per le protezioni e i rischi residui. La [documentazione tecnica](DOCUMENTATION.md) e la [cronologia](CHANGELOG.md) sono separate dalla guida utente.
 
-La 1.1.28 sostituisce il pannello manuale dei tester con un solo comando: Carica tester dalla DE. Trova la rubrica, verifica i campi, legge i contatti e la attiva per la BU corrente; non serve scegliere una sorgente o premere Salva.
+La 1.1.29 rimuove Tracking Test, Test History e le anteprime dallo storico. Rubrica tester, caricamento automatico dalla DE e DE recenti restano disponibili. Nessun nuovo tentativo di invio viene registrato; i log precedenti sono conservati.

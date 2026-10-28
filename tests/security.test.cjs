@@ -97,7 +97,7 @@ test('privileged pages are private and network permissions remain limited', () =
     const patterns = manifest.web_accessible_resources.flatMap(entry => entry.resources);
     const accessible = file => patterns.some(pattern => new RegExp('^' + pattern.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$').test(file));
     for (const file of ['assets/js/background.js', 'assets/js/loader.js', 'assets/js/activity-versioning.js', 'assets/js/local-access-settings.js', 'assets/html/activity-versioning.html', 'assets/html/email-studio-diagnostics.html']) assert.equal(accessible(file), false, file);
-    for (const file of ['assets/js/content.js', 'assets/js/context.js', 'assets/js/contentbuilder/tester-source.js', 'assets/html/modals/dem-preview.html']) assert.equal(accessible(file), true, file);
+    for (const file of ['assets/js/content.js', 'assets/js/context.js', 'assets/js/contentbuilder/tester-source.js', 'assets/html/modals/advanced-de-search.html']) assert.equal(accessible(file), true, file);
     assert.ok(manifest.content_security_policy.extension_pages.includes("frame-ancestors 'none'"));
     assert.ok(manifest.content_security_policy.extension_pages.includes("script-src 'self'"));
 });

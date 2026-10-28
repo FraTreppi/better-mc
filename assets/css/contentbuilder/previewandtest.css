@@ -4,7 +4,6 @@
     z-index: 1;
     position: absolute;
 }
-.sfmcfix-test-tracking { display: inline-block; margin-left: 8px; vertical-align: middle; }
 
 .input-suggestion {
     position: relative;
@@ -34,15 +33,25 @@ li.tree-branch[data-id="999999990"] .tree-branch-header:hover .tree-label {
     color:rgb(199, 110, 2) !important;
 }
 
-#dempreview-iframe-modal .modal-body {
-    padding: 0;
-}
-
-#dempreview-iframe-modal iframe {
-    border: 0;
-    padding: 0;
-    margin: 0;
-}
-
 [data-sfmcfix-clear-recents] { margin-left: 10px; padding: 2px 6px; border: 1px solid #b5c8da; border-radius: 3px; background: #fff; color: #145b92; font: inherit; font-size: 12px; cursor: pointer; }
 [data-sfmcfix-clear-recents]:focus-visible { outline: 2px solid #145b92; outline-offset: 2px; }
+
+.previewandtest-toolbox {
+    position: fixed;
+    right: 12px;
+    bottom: 115px;
+    z-index: 998;
+}
+.previewandtest-toolbox[hidden] { display: none !important; }
+.previewandtest-toolbox > aside > button {
+    border-radius: 50%;
+    height: 40px;
+    width: 40px;
+    border: solid 2px #fff;
+    box-shadow: 3px 1px 3px #ccc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #b9dfff;
+}
+.previewandtest-toolbox > aside > button:hover { border-color: #648dd5; }

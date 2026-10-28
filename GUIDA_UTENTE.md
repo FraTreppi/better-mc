@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.28 · Autore: Francesco Trepiccioni
+Versione 1.1.29 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -24,7 +24,7 @@ Se il browser aziendale impedisce l’attivazione della modalità sviluppatore o
 
 Il **MID** è il numero della Business Unit. Lo **stack**, per esempio `s50`, identifica l’ambiente Salesforce. L’estensione usa entrambi per organizzare le copie locali dei dati.
 
-In **Content Builder → Preview and Test**, apri l’icona **Impostazioni SFMC**, accanto a **Test History**. La prima opzione mostra **BU <numero> · <stack>**, oppure **Imposta MID** se il numero non è disponibile.
+In **Content Builder → Preview and Test**, apri l’icona **Impostazioni SFMC**. La prima opzione mostra **BU <numero> · <stack>**, oppure **Imposta MID** se il numero non è disponibile.
 
 In Content Builder il MID viene cercato automaticamente nel contesto della sessione Salesforce, all’apertura del modulo e di Advanced, prima della ricerca e tornando nella scheda. Se è disponibile non devi digitarlo a ogni ricaricamento. Un cambio BU rilevato aggiorna il contesto e chiude la ricerca precedente.
 
@@ -38,15 +38,15 @@ Senza MID e stack riconosciuti, le cronologie del modulo rimangono temporanee. I
 
 ## Icone e impostazioni dell’interfaccia
 
-Le icone **Impostazioni SFMC** e **Test History** compaiono soltanto in **Preview and Test**. Il menu Impostazioni SFMC contiene le opzioni del MID e **Carica tester dalla DE** (oppure **Aggiorna tester dalla DE** dopo l’attivazione); puoi chiuderlo cliccando fuori o premendo Escape.
+L’icona **Impostazioni SFMC** compare soltanto in **Preview and Test**. Il menu Impostazioni SFMC contiene le opzioni del MID e **Carica tester dalla DE** (oppure **Aggiorna tester dalla DE** dopo l’attivazione); puoi chiuderlo cliccando fuori o premendo Escape.
 
-Per nascondere completamente entrambe le icone:
+Per nascondere l’icona:
 
 1. Clicca l’icona dell’estensione nella barra del browser.
-2. Nella pagina **Impostazioni e versioni**, disattiva **Mostra le icone Impostazioni SFMC e Test History in Preview and Test**.
-3. Per riattivarle, torna alla stessa pagina e rimetti la spunta.
+2. Nella pagina **Impostazioni e versioni**, disattiva **Mostra l’icona Impostazioni SFMC in Preview and Test**.
+3. Per riattivarla, torna alla stessa pagina e rimetti la spunta.
 
-La scelta riguarda questo profilo browser e non cancella rubrica o cronologie. Il pulsante **Tracking Test** resta disponibile anche con le due icone nascoste.
+La scelta riguarda questo profilo browser e non cancella rubrica o cronologie.
 
 ## Content Builder: ricerca Advanced
 
@@ -104,35 +104,17 @@ Il pannello di inserimento manuale e la scelta tra rubrica locale e DE sono stat
 
 Caricare, aggiornare o selezionare un tester **non invia email** e non modifica i record della DE. Per inviare rimane necessario il comando nativo **Send Test**.
 
-## Test History e anteprime email
+## DE recenti in Preview and Test
 
-**Test History** apre lo storico locale dei tentativi di invio effettuati dal browser. Ogni voce può mostrare data, nome e ID dell’email, origine dei dati, prefisso dell’oggetto e destinatari. Passa sulla voce per espanderne i dettagli.
-
-Lo storico registra il tentativo prima della risposta di Salesforce: una voce non certifica che l’email sia stata inviata o consegnata. Le voci più vecchie di **60 giorni** vengono scartate quando lo storico viene elaborato. Non è uno storico condiviso con i colleghi.
-
-Se il tentativo usava una DE con una riga selezionata, il comando **Preview** genera una nuova anteprima usando quell’email e quella riga. Usa i contenuti e i dati disponibili adesso: non riproduce una fotografia immutabile dell’invio originale. Se la riga non esiste più, l’anteprima può non essere disponibile.
-
-L’anteprima disattiva script, moduli e collegamenti dell’email. Le immagini esterne sono bloccate inizialmente. **Carica immagini esterne** permette di abilitarle per quella sola anteprima, dopo una conferma: i server delle immagini possono registrare la richiesta. Generando una nuova anteprima, la scelta riparte dalle immagini bloccate.
+Dalla versione 1.1.29 i comandi Tracking Test e Test History e le anteprime dallo storico sono rimossi. La rubrica tester e Preview and Test di Salesforce restano disponibili. L’estensione non registra nuovi tentativi di invio; gli eventuali log precedenti rimangono nei dati locali del sito. Per consultare gli invii puoi usare il menu nativo Email Studio → Tracking → Test Send Emails.
 
 Nel selettore delle DE per la preview trovi una sola cartella virtuale **DE recenti**, con le ultime **20 DE distinte** usate nella BU. Rimane disponibile cambiando email o template. Una preview riuscita con un record selezionato ricorda la DE senza richiedere un invio di test; un nuovo utilizzo la riporta in cima senza duplicarla.
 
 Sono considerati gli utilizzi degli ultimi **60 giorni**, compresi i riferimenti compatibili nello storico locale degli invii. I recenti della preview salvano solo identificativi e data d’uso, senza i valori dei record. La scorciatoia compare una sola volta alla radice riconosciuta, anche premendo **Load More**, e non crea cartelle reali in Salesforce.
 
-Accanto alla cartella trovi **Svuota recenti**. Svuota soltanto le DE recenti della **BU corrente**, conservando Test History e le altre cronologie. Riapri la cartella per aggiornare l’elenco. Le vecchie voci di Test History non vengono reimportate dopo lo svuotamento; le nuove preview alimentano di nuovo la lista.
+Accanto alla cartella trovi **Svuota recenti**. Svuota soltanto le DE recenti della **BU corrente**, conservando le altre cronologie e gli eventuali dati salvati dalle versioni precedenti. Riapri la cartella per aggiornare l’elenco. I vecchi riferimenti agli invii non vengono reimportati dopo lo svuotamento; le nuove preview alimentano di nuovo la lista.
 
 I recenti sono separati per BU e browser/profilo; se il MID non è rilevato, rimangono temporanei nella scheda. Le DE eliminate vengono escluse e un errore di lettura o di permessi viene gestito dal selettore.
-
-## Tracking Test
-
-In **Preview and Test**, accanto al pulsante nativo **Send Test**, trovi **Tracking Test**.
-
-1. Premi **Tracking Test**.
-2. Si apre una nuova scheda con **Email Studio → Tracking → Test Send Emails**.
-3. Consulta gli invii nella schermata nativa di Salesforce.
-
-Il comando apre l’elenco generale degli invii di prova: non esegue un nuovo invio e non filtra automaticamente una singola email. Usa lo stack e la sessione correnti, senza cambiare BU.
-
-Durante il caricamento può comparire brevemente Subscribers prima di Tracking. L’avviso di apertura si rimuove quando l’elenco è pronto. In caso di attesa prolungata puoi usare **Chiudi**; un avviso di errore scompare comunque dopo 30 secondi. **Scarica diagnostica tracking** salva un rapporto tecnico da condividere quando serve assistenza.
 
 ## Contact Builder: trovare e riaprire le DE
 
@@ -315,13 +297,11 @@ Per raccogliere informazioni su un problema di navigazione:
 
 Il file `sfmc-email-studio-diagnostica.json` contiene percorsi e metadati di navigazione; può includere identificativi tecnici come MID e GUID. Non raccoglie i record della DE. Il rapporto non viene inviato automaticamente.
 
-Per il pulsante Tracking Test, l’avviso di errore offre una diagnostica più specifica: `sfmc-tracking-diagnostica.json`. Anche questo file viene creato solo quando premi il download.
-
 ## Errori dopo un aggiornamento
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.28**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.29**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.
@@ -335,11 +315,11 @@ Non serve disinstallare l’estensione o cancellare i dati locali. Il messaggio 
 | --- | --- |
 | Rubrica locale, scelta della sorgente tester e copie SQL delle Query Activity | Archivio locale dell’estensione nel profilo del browser, organizzato per stack e MID. |
 | Rubrica DE condivisa | Record in Salesforce; copia temporanea in memoria nella scheda, per cinque minuti. |
-| DE recenti, automation recenti, Test History e bozze Query Studio | Dati locali del sito/modulo nel profilo browser; temporanei se manca un contesto completo. |
-| Scelta di mostrare le due icone | Impostazione generale dell’estensione per quel profilo. |
+| DE recenti, automation recenti e bozze Query Studio | Dati locali del sito/modulo nel profilo browser; temporanei se manca un contesto completo. |
+| Scelta di mostrare l’icona Impostazioni SFMC | Impostazione generale dell’estensione per quel profilo. |
 | Record modificati o inseriti nelle DE | Salesforce, dopo il salvataggio reale. |
 | CSV, versioni esportate e diagnostica scaricata | File nella posizione scelta per i download. |
 
-I salvataggi locali non si sincronizzano automaticamente con altri browser o colleghi. La rubrica DE è invece condivisa tramite Salesforce con chi può leggere quella DE; i destinatari utilizzati possono comparire anche nel Test History locale. Il rinnovo di una conferma non cancella i dati già presenti. Un profilo nuovo, la disinstallazione, la pulizia dei dati del browser o il raggiungimento delle quote possono renderli indisponibili.
+I salvataggi locali non si sincronizzano automaticamente con altri browser o colleghi. La rubrica DE è invece condivisa tramite Salesforce con chi può leggere quella DE. Il rinnovo di una conferma non cancella i dati già presenti. Un profilo nuovo, la disinstallazione, la pulizia dei dati del browser o il raggiungimento delle quote possono renderli indisponibili.
 
 Per rimuovere dati usa **Clear** nelle liste recenti, **REMOVE** nelle bozze, la gestione dei record della rubrica tester direttamente in Salesforce, oppure i cestini nell’archivio SQL. La cancellazione dei dati locali di un sito può rimuovere anche preferenze del sito stesso. I dati locali non hanno una cifratura propria dell’estensione: la protezione del computer e del profilo browser resta necessaria.

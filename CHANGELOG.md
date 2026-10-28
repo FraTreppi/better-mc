@@ -1,3 +1,10 @@
+# 1.1.29 — 28 ottobre 2026
+
+- Rimossi Tracking Test, Test History e le anteprime aggiuntive dallo storico; eliminati template e script di navigazione dedicati dal pacchetto e dal manifest.
+- Rubrica tester, caricamento automatico dalla DE, suggerimenti e DE recenti conservati. Rimane soltanto l’icona Impostazioni SFMC, con la relativa preferenza di visibilità aggiornata.
+- Rimossa la registrazione dei nuovi tentativi di invio. Preview and Test e Send Test nativi restano disponibili; i log precedenti sono conservati e i recenti possono ancora recuperarne i soli riferimenti DE validi.
+- Guide Markdown/PDF e verifiche aggiornate.
+
 # 1.1.28 — 27 ottobre 2026
 
 - Sostituito il pannello Tester BU con Carica tester dalla DE: ricerca automatica, verifica dello schema, lettura e attivazione per BU in una sola operazione. Aggiorna tester dalla DE ripete il caricamento; esito e link alla DE compaiono nel menu Impostazioni SFMC.

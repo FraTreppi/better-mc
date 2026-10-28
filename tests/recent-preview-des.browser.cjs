@@ -42,6 +42,7 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
                     const id = name.split('/').at(-1);
                     return route.fulfill({ json: { id, name: id === A ? 'DE clienti' : 'DE nuova' } });
                 }
+                if (name === '/fuelapi/guide/v1/emails/preview/send') return route.fulfill({ json: { success: true } });
                 if (name.endsWith('/preview') && route.request().method() === 'POST') return route.fulfill({ json: { message: { views: [{ content: 'PRIVATE_RENDERED_HTML' }] } } });
                 throw Error('Unexpected native/server call: ' + name);
             }
@@ -50,7 +51,7 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
                 <script>jQuery.ajaxSetup({beforeSend:function(xhr){xhr.setRequestHeader('X-Fixture-Native','configured')}});</script>
                 <script src="/assets/js/content.js"></script></head><body>
                 <main id="preview-panel"><div class="test-send-recipients-tab-content"><div class="test-send-recipients-pillbox"><input class="pillbox-add-item"></div></div></main>
-                <button id="open-picker">Seleziona DE</button><button id="change-email">Cambia email</button><button id="preview-record">Preview record</button><button>Send Test</button>
+                <button id="open-picker">Seleziona DE</button><button id="change-email">Cambia email</button><button id="preview-record">Preview record</button><button id="send-test">Send Test</button>
                 <ul id="picker-tree"></ul><button id="load-more">Load More</button><ul id="records"></ul><p id="status"></p>
                 <script>
                     window.__page = 0; window.__selected = null;
@@ -70,7 +71,8 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
                     document.querySelector('#load-more').onclick=loadMore;
                     document.querySelector('#change-email').onclick=function(){ajax({url:'/fuelapi/asset/v1/content/assets/2002',success:function(){document.querySelector('#status').textContent='Email cambiata'}})};
                     document.querySelector('#preview-record').onclick=function(){ajax({url:'/fuelapi/guide/v1/emails/'+sfmcfix.temp.currentasset.legacyData.legacyId+'/dataExtension/'+window.__selected+'/row/0/preview',type:'POST',success:function(){document.querySelector('#status').textContent='Preview completata'}})};
-                    const ready=setInterval(function(){if(window.sfmcfix?.recentPreviewDEs && window.sfmcfix?.ajax?.prefilter['fuelapi/guide/v1/emails/preview/send']){
+                    document.querySelector('#send-test').onclick=function(){ajax({url:'/fuelapi/guide/v1/emails/preview/send',type:'POST',contentType:'application/json',data:JSON.stringify({emailID:101,recipients:['tester@example.com'],dataSource:{type:'DataExtension',id:window.__selected,row:0}}),success:function(){document.querySelector('#status').textContent='Invio nativo simulato'}})};
+                    const ready=setInterval(function(){if(window.sfmcfix?.recentPreviewDEs && document.querySelector('.previewandtest-toolbox')){
                         clearInterval(ready);ajax({url:'/fuelapi/asset/v1/content/assets/1001',success:function(){document.querySelector('#status').textContent='Pronto'}})}},20);
                 </script></body></html>` });
         });
@@ -131,8 +133,15 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
         await page.reload(); await page.locator('#status').getByText('Pronto', { exact: true }).waitFor(); await open();
         await page.getByRole('button', { name: 'DE recenti', exact: true }).click();
         await page.locator('#status').getByText('Errore lettura', { exact: true }).waitFor();
+        const legacyLog = await page.evaluate(() => sfmcfix.local.getItem('testsendlogs'));
+        await page.locator('#send-test').click();
+        await page.locator('#status').getByText('Invio nativo simulato', { exact: true }).waitFor();
+        assert.equal(requests.filter(request => request.path.endsWith('/preview/send')).length, 1);
+        assert.equal(await page.evaluate(() => sfmcfix.local.getItem('testsendlogs')), legacyLog);
+        assert.equal(await page.locator('#testsendlog-viewer, [data-action="open-log-container"], #sfmcfix-test-tracking, #dempreview-iframe-modal').count(), 0);
+        assert.equal(await page.locator('[data-context-action="testers"]').count(), 1);
         assert.deepEqual(errors, []);
-        console.log('PASS actual bootstrap + native jQuery picker: successful preview without send survives email change/reload; one BU history with twenty distinct DEs; three native pages keep one shortcut and 60 native folders; clear survives reload without erasing Test History or other histories; metadata uses native session and cache; 403 completes; records/HTML are not stored and no sends run.');
+        console.log('PASS actual bootstrap + native jQuery picker: successful preview without send survives email change/reload; one BU history with twenty distinct DEs; three native pages keep one shortcut and 60 native folders; clear survives reload without erasing Test History or other histories; metadata uses native session and cache; 403 completes; records/HTML are not stored; simulated native send remains unmodified and writes no Test History; tester settings remain and removed controls are absent.');
         await ctx.close();
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

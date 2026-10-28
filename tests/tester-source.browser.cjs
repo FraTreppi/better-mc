@@ -11,7 +11,7 @@ const root=path.resolve(__dirname,'..'),id='00000000-0000-4000-8000-000000000001
  await ctx.exposeBinding('mergeSettings',(_,key,patch)=>{saves.push(structuredClone(patch));for(const [scope,value]of Object.entries(patch))settings[scope]={...settings[scope],...value};return {[key]:structuredClone(settings)}});
  await ctx.addInitScript(()=>{
  window.__sendCount=0;window.__alerts=[];window.alert=m=>__alerts.push(m);
- window.sfmcfix={retryjQ:cb=>cb(),initAjaxHanlders:()=>{},addCss:()=>{},temp:{},ajax:{success:{},error:{},transport:{},prefilter:{}},storage:{getItem:key=>readSettings(key),mergeItem:(key,patch)=>mergeSettings(key,patch),onChange:()=>{}},
+ window.sfmcfix={retryjQ:cb=>cb(),initAjaxHanlders:()=>{},addCss:file=>{const link=document.createElement('link');link.rel='stylesheet';link.href='/assets/css/'+file+'.css';document.head.append(link)},temp:{},ajax:{success:{},error:{},transport:{},prefilter:{}},storage:{getItem:key=>readSettings(key),mergeItem:(key,patch)=>mergeSettings(key,patch),onChange:()=>{}},
  addJs:(file,cb)=>{const s=document.createElement('script');s.src='/assets/js/'+file+'.js';s.onload=()=>cb?.();document.head.append(s)},
  addHtml:async(file,place,cb)=>{const html=await fetch('/assets/html/'+file+'.html').then(r=>r.text());document.body.insertAdjacentHTML('beforeend',html);cb(html)},notificationLogger:()=>{}};
  });
@@ -38,6 +38,7 @@ const root=path.resolve(__dirname,'..'),id='00000000-0000-4000-8000-000000000001
  });
  const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
  await page.goto('https://content-builder.s50.marketingcloudapps.com/?mid=123');
+ assert.equal(await page.locator('#testsendlog-viewer, [data-action="open-log-container"], #sfmcfix-test-tracking').count(),0);
  const trigger=page.getByRole('button',{name:'Impostazioni SFMC',exact:true});await trigger.waitFor();
  await page.locator('.test-send-recipients-tab-content').hover();await page.locator('#tester-input').waitFor();
  await page.locator('#tester-input').fill('local');
@@ -78,6 +79,15 @@ const root=path.resolve(__dirname,'..'),id='00000000-0000-4000-8000-000000000001
  fail=false;await load();await page.waitForFunction(()=>document.querySelector('[data-tester-load-status]').textContent.startsWith('10 tester attivi'));
  await page.reload();await trigger.waitFor();assert.equal(await page.evaluate(()=>sfmcfix.preferences.get().testerSource),'de');
  await page.locator('.test-send-recipients-tab-content').hover();await page.locator('#tester-input').waitFor();await page.locator('#tester-input').fill('Team');await page.waitForFunction(()=>document.querySelectorAll('.suggestion-list-item').length===5);
+ await page.evaluate(()=>{sfmcfix.uiPreferences.get=()=>({hidePreviewIcons:true});window.dispatchEvent(new Event('sfmcfix:ui-preferences'))});
+ await page.locator('.previewandtest-toolbox').waitFor({state:'hidden'});
+ await page.evaluate(()=>{sfmcfix.uiPreferences.get=()=>({hidePreviewIcons:false});window.dispatchEvent(new Event('sfmcfix:ui-preferences'))});
+ await trigger.waitFor({state:'visible'});
+ assert.equal(await page.locator('.previewandtest-toolbox [data-context-action="toggle"]').count(),1);
+ await page.locator('#preview-panel').evaluate(panel=>panel.hidden=true);
+ await page.locator('.previewandtest-toolbox').waitFor({state:'hidden'});
+ await page.locator('#preview-panel').evaluate(panel=>panel.hidden=false);
+ await trigger.waitFor({state:'visible'});
  await page.evaluate(()=>{history.replaceState(null,'','?mid=999');window.dispatchEvent(new Event('sfmcfix:contextchange'))});
  assert.equal(await page.locator('.suggestion-list-item').count(),0);
  assert.equal(await status.textContent(),'');

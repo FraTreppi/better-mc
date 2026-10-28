@@ -30,7 +30,7 @@
                 payload: { items: { [KEY]: { hidePreviewIcons: !show } } } });
             if (!response?.ok) throw new Error(response?.error || 'Salvataggio non riuscito');
             saved = show;
-            status.textContent = show ? 'Icone visibili in Preview and Test.' : 'Entrambe le icone sono nascoste. Puoi riattivarle da questa pagina.';
+            status.textContent = show ? 'Impostazioni SFMC visibili in Preview and Test.' : 'L’icona Impostazioni SFMC è nascosta. Puoi riattivarla da questa pagina.';
         } catch (error) {
             status.textContent = `Impostazione non salvata: ${error.message}`;
         } finally {

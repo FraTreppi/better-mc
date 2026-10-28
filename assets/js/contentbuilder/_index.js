@@ -1,6 +1,11 @@
 (function($) {
     sfmcfix.temp = sfmcfix.temp || [];
 
+    window.addEventListener('sfmcfix:contextchange', () => {
+        delete sfmcfix.temp.currentasset;
+        delete sfmcfix.temp.lastloadedasset;
+    });
+
     // HANDLERS
     sfmcfix.ajax.success['/fuelapi/asset/v1/content/assets/' ] = function(_data,b,c,options,jqXHR) {
         const url = options.url.split('?')[0];

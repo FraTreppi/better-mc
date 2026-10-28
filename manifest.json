@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SFMC UI Fixer — Multi BU",
-  "version": "1.1.28",
+  "version": "1.1.29",
   "description": "Strumenti per Marketing Cloud su Chrome e Microsoft Edge, configurabili per Business Unit.",
   "action": {
     "default_title": "SFMC UI Fixer — Impostazioni e versioni"
@@ -26,8 +26,7 @@
         "https://*.exacttarget.com/cloud/*"
       ],
       "js": [
-        "assets/js/email-studio-navigation-shell.js",
-        "assets/js/test-tracking-shell.js"
+        "assets/js/email-studio-navigation-shell.js"
       ],
       "run_at": "document_start"
     },
@@ -36,8 +35,7 @@
         "https://*.exacttarget.com/C12/Default.aspx*"
       ],
       "js": [
-        "assets/js/email-studio-navigation-main.js",
-        "assets/js/test-tracking-main.js"
+        "assets/js/email-studio-navigation-main.js"
       ],
       "run_at": "document_end",
       "all_frames": true,
@@ -58,7 +56,6 @@
         "assets/css/*",
         "assets/html/contactbuilder/*",
         "assets/html/modals/*",
-        "assets/html/previewandtest/*",
         "assets/html/querystudio/*"
       ],
       "matches": [

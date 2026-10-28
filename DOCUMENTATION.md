@@ -4,6 +4,16 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
+## Versione attuale 1.1.29 — 28 ottobre 2026
+
+Rimossi Tracking Test, Test History, la registrazione dei tentativi di invio e le anteprime generate dai log. Eliminati i due content script di navigazione Tracking dal manifest e i relativi file; rimossi i template della cronologia e della preview. Preview and Test conserva soltanto il toolbox Impostazioni SFMC per MID e caricamento della rubrica DE, con visibilità configurabile. Il reset dell’asset al cambio BU ora appartiene al bootstrap Content Builder.
+
+La rubrica tester, i suggerimenti e la cartella DE recenti restano operativi. I recenti osservano le preview native riuscite; i vecchi log non vengono cancellati e possono ancora fornire riferimenti DE validi, senza generare nuovi log di invio. Il percorso nativo Salesforce di invio non viene modificato.
+
+Verifica della 1.1.29: 56 test unit passati; prove browser dei sorgenti con Chromium su fixture Salesforce per rubrica, visibilità delle sole Impostazioni SFMC, DE recenti e Advanced passate. La prova con bootstrap completo verifica assenza dei controlli rimossi, conservazione dei log precedenti e un invio nativo simulato completato una sola volta senza scritture nello storico. Verificate sintassi di 46 file JavaScript e guida PDF aggiornata. Nessun invio reale e nessuna sessione Salesforce autenticata sono stati usati. Lo smoke test con estensione caricata in Edge è aggiornato ma non eseguito in questa revisione, poiché il browser richiesto non è disponibile.
+
+Le sezioni successive descrivono anche l’originale e le versioni precedenti, comprese funzioni ora rimosse.
+
 ## 1. Che cosa c'è nella cartella
 
 È già una vera estensione Chrome, chiamata **SFMC UI Fixer**, con Manifest V3, versione 1.0, e autore indicato nel package `Simone Luise`. Non è una Salesforce App e non richiede di installare un pacchetto nel tenant per il funzionamento previsto dal codice.

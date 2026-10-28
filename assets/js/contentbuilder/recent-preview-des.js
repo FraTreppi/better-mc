@@ -180,7 +180,7 @@
                 const button = document.createElement('button');
                 button.type = 'button'; button.dataset.sfmcfixClearRecents = '';
                 button.textContent = 'Svuota recenti';
-                button.title = 'Svuota solo le DE recenti di questa BU. Test History e altre cronologie sono conservati.';
+                button.title = 'Svuota solo le DE recenti di questa BU. Le altre cronologie sono conservate.';
                 button.addEventListener('click', event => {
                     event.preventDefault(); event.stopImmediatePropagation();
                     try {

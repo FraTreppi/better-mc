@@ -99,7 +99,8 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
         await preferences.goto(`${extension}/assets/html/activity-versioning.html`);
         const visibility = preferences.locator('#show-preview-icons'); await visibility.setChecked(false);
         await page.locator('.previewandtest-toolbox').waitFor({ state: 'hidden' });
-        assert.equal(await page.getByRole('link', { name: 'Tracking Test', exact: true }).isVisible(), true);
+        assert.equal(await page.getByRole('link', { name: 'Tracking Test', exact: true }).count(), 0);
+        assert.equal(await page.locator('#testsendlog-viewer').count(), 0);
         await preferences.reload(); assert.equal(await preferences.locator('#show-preview-icons').isChecked(), false);
         await preferences.locator('#show-preview-icons').setChecked(true);
         await page.locator('.previewandtest-toolbox').waitFor({ state: 'visible' });
@@ -125,7 +126,7 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'sfmcfix-browser-'));
         await search.waitFor({ state: 'detached' });
         assert.equal(await page.evaluate(() => sfmcfix.assetNavigation.diagnostics().result), 'confirmed');
         assert.deepEqual(errors, []); assert.deepEqual(consoleErrors, []);
-        console.log(`PASS real extension ${manifest.version}: service worker, protected local/session APIs, isolated session consent with native document IDs, no repeat on reload/module return/new tab, separate BU confirmation, reset with retained tester data, one-click DE activation without an editor, internal settings, live document notifications Tracking Test visibility and Advanced metadata search through configured jQuery beforeSend/prefilters and real extension resources.`);
+        console.log(`PASS real extension ${manifest.version}: service worker, protected local/session APIs, isolated session consent with native document IDs, no repeat on reload/module return/new tab, separate BU confirmation, reset with retained tester data, one-click DE activation without an editor, internal settings, live document notifications and tester settings visibility without Tracking Test or Test History and Advanced metadata search through configured jQuery beforeSend/prefilters and real extension resources.`);
     } finally {
         if (ctx) await ctx.close();
         fs.rmSync(profile, { recursive: true, force: true });
