@@ -20,9 +20,10 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
                 const req = route.request(), url = new URL(req.url()), name = url.pathname;
                 if (name === '/jquery.js') return route.fulfill({ contentType: 'application/javascript', body: fs.readFileSync('/usr/share/javascript/jquery/jquery.js') });
                 if (name.startsWith('/assets/')) return route.fulfill({ contentType: name.endsWith('.js') ? 'application/javascript' : 'text/css', body: fs.readFileSync(root + name) });
-                if (name.startsWith('/fuelapi/')) {
+                const apiPath=name.replace(/^\/AutomationStudioFuel3(?=\/fuelapi\/)/i,'');
+                if (apiPath.startsWith('/fuelapi/')) {
                     calls.push({ method: req.method(), path: name, body: req.postData() });
-                    if (req.method() === 'GET' && name.startsWith('/fuelapi/automation/v1/queries/')) {
+                    if (req.method() === 'GET' && apiPath.startsWith('/fuelapi/automation/v1/queries/')) {
                         const id = name.split('/').at(-1);
                         return route.fulfill({ json: { queryDefinitionId: id, name: id === A ? 'Originale' : 'Nuova query', queryText: 'SELECT 1', modifiedDate: '2026-10-28T10:00:00Z' } });
                     }
@@ -63,6 +64,19 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
         const start = async f => { await f.page.locator('#native-copy').click(); await f.page.locator('#next').click(); };
         const finish = async f => { await f.page.locator('#finish').click(); await f.page.locator('#status').getByText('Salvata', { exact: true }).waitFor(); };
         const original = async f => { await f.page.clock.runFor(1200); assert.ok(f.page.url().endsWith(A)); assert.deepEqual(f.errors, []); };
+        for(const requestPath of ['/AutomationStudioFuel3/fuelapi/automation/v1/queries/', 'fuelapi/automation/v1/queries/', 'https://mc.s50.marketingcloudapps.com/AutomationStudioFuel3/fuelapi/automation/v1/queries/']) {
+            const f=await fixture();
+            await f.page.evaluate(requestPath=>{
+                __wizardRoute=true;__path=requestPath;
+                document.querySelector('#native-copy').textContent='◻';
+            },requestPath);
+            await start(f);await f.page.clock.runFor(100);await finish(f);await f.page.clock.runFor(700);
+            const report=await f.page.evaluate(()=>sfmcfix.queryCopyNavigation.diagnostics());
+            assert.ok(f.page.url().endsWith(B), 'module-prefixed request failed: '+JSON.stringify(report));
+            assert.equal(report.result,'navigated');assert.equal(report.requests.length,1);
+            assert.equal(f.calls.filter(call=>call.method==='POST').length,1);
+            assert.deepEqual(f.errors,[]);await f.ctx.close();
+        }
         {
             const f = await fixture();
             await f.page.evaluate(() => {
@@ -313,7 +327,7 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
             assert.equal(await f.page.evaluate(()=>sfmcfix.queryCopyNavigation.diagnostics().result),'source-route-unrecognized');
             assert.deepEqual(f.errors,[]);await f.ctx.close();
         }
-        console.log('PASS actual Automation Studio bootstrap and native jQuery copy wizard: opens returned new Query Activity in the same tab after completion/close; no duplicate writes, unchanged SQL payload; ordinary save/clipboard Copy/cancel/error/invalid or source IDs/late results after cancel, BU change or navigation never redirect; native retry and explicit copy endpoint supported; temporary wizard route reproduces the supplied failure and now opens after native return; missing/expired source, late responses after cancel/BU/navigation never open; same-source native hashchange and canonicalization survive completion; icon-only launcher, exact Copy Query Activity title and non-Bootstrap wizard supported; edit/create/script wizards excluded; sanitized user-downloaded diagnostics for unknown requests; bottom-right diagnostic button available before Copy and after an entirely unrecognized Finish, removed off query details and restored once on return. Simulated Salesforce only.');
+        console.log('PASS actual Automation Studio bootstrap and native jQuery copy wizard: opens returned new Query Activity in the same tab after completion/close; no duplicate writes, unchanged SQL payload; ordinary save/clipboard Copy/cancel/error/invalid or source IDs/late results after cancel, BU change or navigation never redirect; native retry and explicit copy endpoint supported; exact module-prefixed POST URL supplied by the user, relative and absolute request URLs all open once; temporary wizard route reproduces the supplied failure and now opens after native return; missing/expired source, late responses after cancel/BU/navigation never open; same-source native hashchange and canonicalization survive completion; icon-only launcher, exact Copy Query Activity title and non-Bootstrap wizard supported; edit/create/script wizards excluded; sanitized user-downloaded diagnostics for unknown requests; bottom-right diagnostic button available before Copy and after an entirely unrecognized Finish, removed off query details and restored once on return. Simulated Salesforce only.');
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
 async function assertWait(check) { for (let i = 0; i < 100; i++) { if (check()) return; await new Promise(resolve => setTimeout(resolve, 20)); } throw Error('Request not captured'); }

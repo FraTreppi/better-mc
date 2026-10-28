@@ -4,7 +4,15 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.33 — 28 ottobre 2026
+## Versione attuale 1.1.34 — 28 ottobre 2026
+
+Il nuovo rapporto utente conferma la correzione precedente (origine, wizard e Finish riconosciuti), ma riporta native-request-unrecognized con requests vuoto. L’utente ha poi fornito Request Method POST e il percorso /AutomationStudioFuel3/fuelapi/automation/v1/queries/. Il filtro della 1.1.33 era ancorato a /fuelapi/automation/v1/queries/ e scartava questa richiesta prima di registrarne la risposta.
+
+La correzione normalizza il solo prefisso fisso /AutomationStudioFuel3 per il confronto dei percorsi. Non cambia URL, opzioni AJAX, metodo o payload e non emette nuove richieste. La validazione dell’origine resta obbligatoria; restano autorizzate alla navigazione soltanto le POST della collezione query o del copy/clone della sorgente, con un nuovo queryDefinitionId valido e procedura/BU coerenti.
+
+Prima della correzione, la fixture con il percorso prefissato riproduce la mancata intercettazione e requests vuoto. Dopo la correzione passano le varianti con URL assoluto, relativo e percorso completo corrispondente a quello fornito dall’utente; ogni caso verifica un’unica POST nativa e apertura della nuova query. Le altre regressioni di navigazione, isolamento e diagnostica continuano a passare. Passati i 56 test unit, la verifica sintattica di 48 file JavaScript e la rigenerazione della guida PDF 1.1.34. Le prove usano risposte simulate, senza creare attività reali in Salesforce.
+
+## Versione 1.1.33 — 28 ottobre 2026
 
 La diagnostica fornita dall’utente riporta copyWizardRecognized=true e finishRecognized=true insieme a sourceRouteRecognized=false, sourceQueryLoaded=false, result=source-route-unrecognized e nessuna richiesta osservata; dopo la chiusura runtime.queryDetail torna true. Il riconoscimento si interrompeva perché assumeva che il dettaglio originale fosse ancora nel percorso al clic su Finish.
 

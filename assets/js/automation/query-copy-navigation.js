@@ -2,7 +2,7 @@
     'use strict';
     const api = window.sfmcfix;
     if (api.queryCopyNavigation || !window.jQuery?.ajaxPrefilter) return;
-    const VERSION = '1.1.33';
+    const VERSION = '1.1.34';
     const GUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
     const guid = value => typeof value === 'string' && new RegExp(`^${GUID}$`, 'i').test(value) ? value.toLowerCase() : null;
     const routePattern = new RegExp(`^#ActivityDetails/(\\d{1,6})/(${GUID})/?$`, 'i');
@@ -202,11 +202,12 @@
         if (!task || !current(task) || task.submitAt === null || Date.now() - task.submitAt > 5000) return;
         let url;
         try { url = new URL(options.url, location.href); } catch (_) { return; }
-        if (url.origin !== location.origin || !/^\/fuelapi\/automation\/v1\/queries(?:\/|$)/i.test(url.pathname)) return;
+        const path = url.pathname.replace(/^\/AutomationStudioFuel3(?=\/fuelapi\/)/i, '');
+        if (url.origin !== location.origin || !/^\/fuelapi\/automation\/v1\/queries(?:\/|$)/i.test(path)) return;
         const method = String(options.type || options.method || 'GET').toUpperCase();
         if (!['POST', 'PUT', 'PATCH'].includes(method) || typeof xhr?.done !== 'function' || typeof xhr?.always !== 'function') return;
-        const createPath = /^\/fuelapi\/automation\/v1\/queries\/?$/i.test(url.pathname);
-        const copyPath = new RegExp(`^/fuelapi/automation/v1/queries/${task.source}/(?:copy|clone)/?$`, 'i').test(url.pathname);
+        const createPath = /^\/fuelapi\/automation\/v1\/queries\/?$/i.test(path);
+        const copyPath = new RegExp(`^/fuelapi/automation/v1/queries/${task.source}/(?:copy|clone)/?$`, 'i').test(path);
         const eligible = method === 'POST' && (createPath || copyPath);
         const entry = { method, endpoint: createPath ? 'query-collection' : copyPath ? 'source-query-copy' : 'other-query-path', eligible, status: null };
         if (report.requests.length < 10) report.requests.push(entry);

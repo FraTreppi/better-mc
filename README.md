@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.33
+# SFMC UI Fixer — Multi BU 1.1.34
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -39,7 +39,7 @@ Crea in ogni BU la DE **tester_content_builder** dentro **SFMC_UI_Fixer**, anche
 
 ## Sicurezza e dati
 
-La versione 1.1.33 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
+La versione 1.1.34 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
@@ -56,3 +56,5 @@ La 1.1.31 riconosce la copia anche dal pannello Copy Query Activity al clic su F
 La 1.1.32 rende Scarica diagnostica apertura sempre accessibile in basso a destra nel dettaglio della SQL Query Activity, indipendentemente dal riconoscimento di Copy/Finish e dalla chiusura della modale o dell’avviso.
 
 La 1.1.33 conserva il percorso originale prima della copia: gestisce il percorso temporaneo del wizard al clic su Finish e apre la nuova query dopo il ritorno nativo al dettaglio, correggendo source-route-unrecognized.
+
+La 1.1.34 corregge il riconoscimento delle richieste di creazione sotto AutomationStudioFuel3/fuelapi: la risposta nativa della copia viene ora osservata anche con il prefisso usato da Automation Studio.

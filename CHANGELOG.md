@@ -1,3 +1,9 @@
+# 1.1.34 — 28 ottobre 2026
+
+- Corretto il filtro delle richieste native di copia: riconosce POST /AutomationStudioFuel3/fuelapi/automation/v1/queries/, oltre al percorso senza prefisso. Il percorso effettivo è stato fornito dall’utente tramite Network.
+- Il prefisso del modulo viene normalizzato solo nel confronto; la richiesta Salesforce non viene modificata o ripetuta. Rimangono i controlli di origine, metodo, nuovo GUID, procedura e BU.
+- Riprodotta la mancata intercettazione con URL prefissato prima della correzione; verificati URL relativo, assoluto e quello corrispondente al percorso utente, con una sola creazione e apertura della nuova query. Guide aggiornate.
+
 # 1.1.33 — 28 ottobre 2026
 
 - Corretto source-route-unrecognized durante Copy Query Activity: il percorso della query originale viene conservato prima della copia e recuperato al clic su Finish anche se Salesforce mostra un percorso temporaneo del wizard.
