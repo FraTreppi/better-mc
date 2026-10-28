@@ -221,7 +221,46 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
             assert.equal(f.calls.filter(call => call.method === 'POST').length, 1);
             assert.deepEqual(f.errors, []); await f.ctx.close();
         }
-        console.log('PASS actual Automation Studio bootstrap and native jQuery copy wizard: opens returned new Query Activity in the same tab after completion/close; no duplicate writes, unchanged SQL payload; ordinary save/clipboard Copy/cancel/error/invalid or source IDs/late results after cancel, BU change or navigation never redirect; native retry and explicit copy endpoint supported; same-source native hashchange and canonicalization survive completion; icon-only launcher, exact Copy Query Activity title and non-Bootstrap wizard supported; edit/create/script wizards excluded; sanitized user-downloaded diagnostics for unknown requests. Simulated Salesforce only.');
+        {
+            const f = await fixture();
+            const button = f.page.locator('#sfmcfix-query-copy-tools').getByRole('button', {name:'Scarica diagnostica apertura',exact:true});
+            await button.waitFor({state:'visible'});
+            const bounds = await button.boundingBox(), viewport = f.page.viewportSize();
+            assert.ok(bounds.x > viewport.width / 2 && bounds.y > viewport.height / 2);
+            const idleDownload = f.page.waitForEvent('download'); await button.click();
+            const idle = JSON.parse(fs.readFileSync(await (await idleDownload).path(), 'utf8'));
+            assert.equal(idle.result, 'idle'); assert.equal(idle.runtime.queryDetail, true); assert.equal(idle.runtime.lastFinish, null);
+            assert.equal(f.calls.filter(call => call.method === 'POST').length, 0);
+            await f.page.evaluate(() => {
+                document.querySelector('#wizard h2').outerHTML = '<div data-native-title>Copy Query Activity</div>';
+            });
+            await start(f);
+            await f.page.evaluate(() => {
+                const backdrop=document.createElement('div');backdrop.className='modal-backdrop';backdrop.style.cssText='position:fixed;inset:0;z-index:1040;background:#0005';document.body.append(backdrop);
+                document.querySelector('#wizard').style.cssText='position:relative;z-index:1060;background:white';
+            });
+            const duringWizard=f.page.waitForEvent('download');await button.click();
+            assert.equal((await duringWizard).suggestedFilename(),'sfmc-query-copy-diagnostica.json');
+            assert.equal(f.calls.filter(call=>call.method==='POST').length,0); // The diagnostic sits above the native backdrop without submitting Finish.
+            await finish(f); await original(f);
+            assert.equal(await f.page.locator('#sfmcfix-query-copy-diagnostic').count(),0);
+            await button.waitFor({state:'visible'}); // No recognized wizard or auto-failure notice is required.
+            const download = f.page.waitForEvent('download'); await button.click();
+            const report = JSON.parse(fs.readFileSync(await (await download).path(), 'utf8'));
+            assert.equal(report.result, 'finish-unrecognized');
+            assert.deepEqual(report.runtime.lastFinish, {dialogFound:true,copyWizardRecognized:false,acceptClass:true});
+            for (const privateValue of [A,B,'SELECT 1','Nuova query','target-fixture']) assert.ok(!JSON.stringify(report).includes(privateValue));
+            assert.equal(f.calls.filter(call => call.method === 'POST').length,1);
+            await f.page.evaluate(() => { location.hash='#Overview'; });
+            await f.page.clock.runFor(100);
+            assert.equal(await f.page.locator('#sfmcfix-query-copy-tools').count(),0);
+            await f.page.evaluate(A => { location.hash='#ActivityDetails/300/'+A; }, A);
+            await f.page.clock.runFor(100);
+            await button.waitFor({state:'visible'});
+            assert.equal(await f.page.locator('#sfmcfix-query-copy-tools').count(),1);
+            assert.deepEqual(f.errors,[]); await f.ctx.close();
+        }
+        console.log('PASS actual Automation Studio bootstrap and native jQuery copy wizard: opens returned new Query Activity in the same tab after completion/close; no duplicate writes, unchanged SQL payload; ordinary save/clipboard Copy/cancel/error/invalid or source IDs/late results after cancel, BU change or navigation never redirect; native retry and explicit copy endpoint supported; same-source native hashchange and canonicalization survive completion; icon-only launcher, exact Copy Query Activity title and non-Bootstrap wizard supported; edit/create/script wizards excluded; sanitized user-downloaded diagnostics for unknown requests; bottom-right diagnostic button available before Copy and after an entirely unrecognized Finish, removed off query details and restored once on return. Simulated Salesforce only.');
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
 async function assertWait(check) { for (let i = 0; i < 100; i++) { if (check()) return; await new Promise(resolve => setTimeout(resolve, 20)); } throw Error('Request not captured'); }

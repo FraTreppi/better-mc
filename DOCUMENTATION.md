@@ -4,7 +4,15 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.31 — 28 ottobre 2026
+## Versione attuale 1.1.32 — 28 ottobre 2026
+
+La diagnostica della 1.1.31 dipendeva dal riconoscimento del flusso e dall’avviso rimosso al cambio di vista. Ora un controllo indipendente è montato direttamente nel body del dettaglio ActivityDetails/300, prima di Copy e senza richiedere metadati in cache. Rimane dopo la chiusura della modale o della nota, con un livello visivo sopra gli sfondi modali; si rimuove uscendo dal dettaglio SQL e si ricrea una sola volta al rientro. Il download continua a usare soltanto un Blob locale; non aggiunge richieste Salesforce. La nota automatica riutilizza il comando esistente, evitando due pulsanti uguali.
+
+Il rapporto aggiunge queryDetail, numero di client osservati, conteggio limitato delle modali visibili e soli flag dell’ultimo Finish. Un Finish non riconosciuto produce finish-unrecognized senza creare un intento di navigazione. Non vengono raccolti SQL, nomi, ID, MID o valori delle risposte.
+
+Verifica 1.1.32: prova browser con bootstrap Automation Studio e fixture Salesforce passata per diagnostica disponibile prima di Copy, download idle senza richieste aggiuntive, download cliccabile anche sopra uno sfondo modale simulato con z-index 1040, Finish con titolo non riconosciuto, assenza della nota automatica e permanenza del comando dopo la chiusura del wizard, rapporto senza dati applicativi, rimozione in Overview e ripristino unico al ritorno. Le regressioni di copia e navigazione continuano a passare, insieme ai 56 test unit; sintassi di 48 file JavaScript e guida PDF verificate. La conferma sul tenant resta da raccogliere attraverso il rapporto. Le verifiche non usano una sessione Salesforce autenticata né creano attività reali.
+
+## Versione 1.1.31 — 28 ottobre 2026
 
 Il mancato avvio con Copy a icona è stato riprodotto prima della correzione. Il wizard viene ora riconosciuto dal titolo Copy Query Activity al clic su Finish, senza dipendere dall’etichetta del comando iniziale. La fixture usa il markup Finish fornito dall’utente (button type=button, classi btn btn-primary accept, title e data-original-title vuoti). Il riconoscimento copre anche contenitori modali senza classe Bootstrap o ruolo dialog, richiedendo un contenitore modal/dialog/wizard/activityConfig e titolo esatto entro dodici antenati. Il percorso ActivityDetails valido insieme al wizard può identificare il flusso anche se la cache dell’estensione non contiene ancora i metadati della query.
 

@@ -2,18 +2,18 @@
     'use strict';
     const api = window.sfmcfix;
     if (api.queryCopyNavigation || !window.jQuery?.ajaxPrefilter) return;
-    const VERSION = '1.1.31';
+    const VERSION = '1.1.32';
     const GUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
     const guid = value => typeof value === 'string' && new RegExp(`^${GUID}$`, 'i').test(value) ? value.toLowerCase() : null;
     const routePattern = new RegExp(`^#ActivityDetails/(\\d{1,6})/(${GUID})/?$`, 'i');
-    const excluded = '.mcefix-activity-toolbar, #sfmcfix-context, #sfmcfix-query-copy-diagnostic, [data-sfmcfix-run-log]';
+    const excluded = '.mcefix-activity-toolbar, #sfmcfix-context, #sfmcfix-query-copy-diagnostic, #sfmcfix-query-copy-tools, [data-sfmcfix-run-log]';
     const copyLabels = new Set(['copy', 'duplicate', 'copia', 'duplica', 'copy query', 'copy activity', 'copy sql query', 'copia query', 'duplica query']);
     const finishLabels = new Set(['finish', 'save', 'done', 'create', 'complete', 'copy', 'duplicate', 'fine', 'salva', 'crea', 'completa', 'copia', 'duplica']);
     const cancelLabels = new Set(['cancel', 'close', 'annulla', 'chiudi']);
     const wizardTitles = new Set(['copy query activity', 'copy sql query activity', 'copia attività query', 'copia attivita query']);
     const headings = 'h1,h2,h3,h4,h5,h6,.modal-title,[role="heading"],.modal-header span';
     const normalize = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
-    let operation = null, timer = null, expiry = null, report = null, noticeDismissed = false;
+    let operation = null, timer = null, expiry = null, report = null, noticeDismissed = false, lastFinish = null, clientCount = 0;
 
     function visible(node) {
         return Boolean(node?.isConnected && node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden');
@@ -49,7 +49,33 @@
     }
     function diagnostics() {
         return { format: 'sfmcfix-query-copy-v1', extensionVersion: VERSION, capturedAt: new Date().toISOString(),
-            ...(report ? JSON.parse(JSON.stringify(report)) : { result: 'idle' }) };
+            ...(report ? JSON.parse(JSON.stringify(report)) : { result: 'idle' }),
+            runtime: { queryDetail: queryDetail(), nativeClientsObserved: clientCount,
+                visibleDialogs: Math.min(20, dialogs().length), lastFinish: lastFinish ? { ...lastFinish } : null } };
+    }
+    function queryDetail() {
+        const match = location.hash.match(routePattern);
+        return Boolean(match && match[1] === '300');
+    }
+    function downloadButton() {
+        const download = document.createElement('button');
+        download.type = 'button'; download.className = 'btn btn-default btn-sm';
+        download.textContent = 'Scarica diagnostica apertura';
+        download.onclick = () => {
+            const url = URL.createObjectURL(new Blob([JSON.stringify(diagnostics(), null, 2)], { type: 'application/json' }));
+            const link = document.createElement('a'); link.href = url; link.download = 'sfmc-query-copy-diagnostica.json'; link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+        return download;
+    }
+    function renderDiagnosticControl() {
+        const existing = document.getElementById('sfmcfix-query-copy-tools');
+        if (!queryDetail()) { existing?.remove(); return; }
+        if (existing) return;
+        const box = document.createElement('aside');
+        box.id = 'sfmcfix-query-copy-tools'; box.className = 'sfmcfix-query-copy-tools';
+        box.setAttribute('aria-label', 'Diagnostica copia Query Activity');
+        box.append(downloadButton()); document.body.append(box);
     }
     function notice() {
         if (noticeDismissed || document.getElementById('sfmcfix-query-copy-diagnostic')) return;
@@ -59,17 +85,11 @@
         box.className = 'sfmcfix-query-copy-diagnostic';
         const text = document.createElement('span');
         text.textContent = 'La copia non è stata aperta automaticamente. ';
-        const download = document.createElement('button');
-        download.type = 'button'; download.className = 'btn btn-default btn-sm';
-        download.textContent = 'Scarica diagnostica apertura';
-        download.onclick = () => {
-            const url = URL.createObjectURL(new Blob([JSON.stringify(diagnostics(), null, 2)], { type: 'application/json' }));
-            const link = document.createElement('a'); link.href = url; link.download = 'sfmc-query-copy-diagnostica.json'; link.click();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-        };
+        renderDiagnosticControl();
+        const download = document.getElementById('sfmcfix-query-copy-tools') ? null : downloadButton();
         const close = document.createElement('button');
         close.type = 'button'; close.className = 'btn btn-link btn-sm'; close.textContent = 'Chiudi'; close.onclick = () => { noticeDismissed = true; hideNotice(); };
-        box.append(text, download, close); document.body.append(box);
+        box.append(text); if (download) box.append(download); box.append(close); document.body.append(box);
     }
     function begin(dialog = null) {
         hideNotice(); dispose(); noticeDismissed = false;
@@ -122,6 +142,14 @@
         if (!button || button.closest(excluded) || !visible(button) || button.disabled || button.getAttribute('aria-disabled') === 'true' || button.classList.contains('disabled')) return;
         const labels = [button.value, button.textContent, button.getAttribute('aria-label'), button.title, button.getAttribute('data-original-title')].map(normalize).filter(Boolean);
         const dialog = dialogFor(button);
+        if (queryDetail() && labels.includes('finish')) {
+            lastFinish = { dialogFound: Boolean(dialog), copyWizardRecognized: copyWizard(dialog), acceptClass: button.classList.contains('accept') };
+            if (!lastFinish.copyWizardRecognized && !(operation && current(operation) && operation.dialog === dialog)) {
+                dispose();
+                report = { sourceRouteRecognized: true, copyWizardRecognized: false, finishRecognized: false,
+                    result: 'finish-unrecognized', requests: [] };
+            }
+        }
         if (dialog && visible(dialog)) {
             const recognized = copyWizard(dialog);
             if (labels.some(label => finishLabels.has(label)) && (recognized || operation && current(operation) && operation.dialog === dialog)) {
@@ -193,11 +221,13 @@
         }
         for (const client of clients) {
             if (typeof client?.ajaxPrefilter !== 'function' || observedClients.has(client)) continue;
-            observedClients.add(client); client.ajaxPrefilter(observeNative);
+            observedClients.add(client); clientCount++; client.ajaxPrefilter(observeNative);
         }
     }
     installObservers();
+    renderDiagnosticControl();
     window.addEventListener('hashchange', event => {
+        renderDiagnosticControl();
         const task = operation;
         if (task && sameSourceRoute(location.hash, task)) {
             // Salesforce can return to/re-dispatch the source detail after
@@ -213,7 +243,7 @@
         }
         cancel('route-changed');
     });
-    window.addEventListener('sfmcfix:contextchange', () => cancel('context-changed'));
+    window.addEventListener('sfmcfix:contextchange', () => { cancel('context-changed'); renderDiagnosticControl(); });
     window.addEventListener('pagehide', () => cancel('page-hidden'));
     api.queryCopyNavigation = { cancel, diagnostics };
 })();

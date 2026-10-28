@@ -1,3 +1,9 @@
+# 1.1.32 — 28 ottobre 2026
+
+- Scarica diagnostica apertura è ora un comando separato sempre presente in basso a destra nel dettaglio SQL Query Activity, prima di Copy e dopo la chiusura della modale. Non dipende dall’avviso o dal riconoscimento del wizard; Chiudi rimuove soltanto la nota.
+- Il comando resta cliccabile sopra gli sfondi modali e viene rimosso quando si lascia il dettaglio della query. Il rapporto aggiunge solo flag dell’ultimo Finish e conteggi di stato, senza SQL, nomi o identificativi.
+- Verificati il download prima della copia, Finish interamente non riconosciuto, chiusura della procedura e uscita/rientro nel dettaglio senza duplicati. Nessun nuovo permesso o richiesta Salesforce.
+
 # 1.1.31 — 28 ottobre 2026
 
 - Corretto l’avvio dell’apertura dopo Copy Query Activity quando il comando iniziale è soltanto un’icona. Il titolo nativo del wizard e il clic su Finish identificano la copia, anche senza un precedente Copy testuale riconosciuto.

@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.31
+# SFMC UI Fixer — Multi BU 1.1.32
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -39,7 +39,7 @@ Crea in ogni BU la DE **tester_content_builder** dentro **SFMC_UI_Fixer**, anche
 
 ## Sicurezza e dati
 
-La versione 1.1.31 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
+La versione 1.1.32 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
@@ -52,3 +52,5 @@ La 1.1.29 rimuove Tracking Test, Test History e le anteprime dallo storico. Rubr
 La 1.1.30 apre la nuova Query Activity dopo una copia nativa completata, nella stessa scheda. Annullamento, errore o cambio pagina/BU impediscono la navigazione automatica. Nessuna richiesta di copia o di esecuzione viene aggiunta.
 
 La 1.1.31 riconosce la copia anche dal pannello Copy Query Activity al clic su Finish, con Copy iniziale a sola icona; il ritorno nativo al percorso originale dopo la creazione non annulla più l’apertura. Un’apertura non riconosciuta offre una diagnostica scaricabile priva di SQL, nomi e identificativi.
+
+La 1.1.32 rende Scarica diagnostica apertura sempre accessibile in basso a destra nel dettaglio della SQL Query Activity, indipendentemente dal riconoscimento di Copy/Finish e dalla chiusura della modale o dell’avviso.

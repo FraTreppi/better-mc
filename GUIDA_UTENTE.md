@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.31 · Autore: Francesco Trepiccioni
+Versione 1.1.32 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -222,7 +222,7 @@ L’apertura usa l’identificativo della copia restituito dalla richiesta nativ
 
 L’automatismo riconosce il pannello **Copy Query Activity** e il suo pulsante **Finish**, anche quando il comando Copy iniziale è soltanto un’icona. Richiede il dettaglio della query con un percorso ActivityDetails riconosciuto e una risposta nativa di creazione con il nuovo identificativo. La copia non viene cercata per nome né scelta da una lista di risultati.
 
-Se la procedura si chiude ma rimani sulla query originale, può comparire **Scarica diagnostica apertura**. Il comando salva `sfmc-query-copy-diagnostica.json`, da condividere per l’assistenza senza usare la Console. Include versione, passaggi riconosciuti, categorie dei percorsi e stato HTTP; esclude nomi, ID delle query e della BU, SQL, record, credenziali e contenuti delle risposte. Il rapporto viene scaricato solo al clic; **Chiudi** rimuove l’avviso.
+Nel dettaglio della SQL Query Activity trovi sempre **Scarica diagnostica apertura**, in basso a destra. È un comando separato dalla modale e dall’avviso di errore: resta disponibile dopo la chiusura della procedura e compare anche prima di Copy o quando Finish non viene riconosciuto. Se l’apertura non riesce, ripeti la copia e premi il pulsante dopo Finish. Il comando salva `sfmc-query-copy-diagnostica.json`, da condividere per l’assistenza senza usare la Console. Include versione, passaggi riconosciuti, categorie dei percorsi e stato HTTP; esclude nomi, ID delle query e della BU, SQL, record, credenziali e contenuti delle risposte. Il rapporto viene scaricato solo al clic; **Chiudi** rimuove l’avviso ma lascia il comando di download. Il pulsante si rimuove uscendo dal dettaglio della Query Activity.
 
 ### Strumenti Query Activity
 
@@ -311,7 +311,7 @@ Il file `sfmc-email-studio-diagnostica.json` contiene percorsi e metadati di nav
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.31**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.32**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

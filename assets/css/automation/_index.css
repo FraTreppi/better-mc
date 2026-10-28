@@ -135,7 +135,7 @@ body #workflowPane .codeBlock .codeBlock-wrapper.type__verification .activityHea
 body #workflowPane .codeBlock .codeBlock-wrapper.type__wait { border-color: #666699;}
 body #workflowPane .codeBlock .codeBlock-wrapper.type__wait .activityHeader, body #workflow .sidebarContainer .sidebar .activityDetailContainer .workflowActivities .activityContainer .activityBox .activity-icon-container.type__wait { background: #666699;}
 
-.sfmcfix-query-copy-diagnostic {
+.sfmcfix-query-copy-diagnostic, .sfmcfix-query-copy-tools {
     position: fixed;
     bottom: 12px;
     right: 12px;
@@ -149,4 +149,6 @@ body #workflowPane .codeBlock .codeBlock-wrapper.type__wait .activityHeader, bod
     box-shadow: 0 2px 8px #0002;
     font-size: 12px;
 }
+.sfmcfix-query-copy-tools { z-index: 2147483000; }
+.sfmcfix-query-copy-diagnostic { bottom: 60px; }
 .sfmcfix-query-copy-diagnostic button { margin-left: 6px; }
