@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.36 · 2 novembre 2026
+Versione 1.1.37 · 2 novembre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -81,7 +81,7 @@ Le risposte vengono validate rispetto a conteggio e schema, con controllo delle 
 
 I CSV neutralizzano i valori con prefissi interpretabili come formule, oltre a gestire separatori e virgolette. Questa protezione può far importare numeri negativi come testo e non sostituisce le impostazioni del programma che apre il file.
 
-Le copie SQL e le esportazioni dell’archivio ammettono una lista di campi applicativi, escludendo proprietà arbitrarie come token o intestazioni eventualmente presenti in una risposta nativa. All’avvio, l’archivio SQL precedente viene ripulito dei campi non previsti; rimangono SQL e metadati utili. Le vecchie preferenze mantengono le rubriche e non conservano più modelli URL inutilizzati. Test History e Tracking Test sono stati rimossi con i relativi hook di invio, navigazione e diagnostica. Non vengono creati nuovi log dei test; quelli precedenti rimangono nello storage del sito. I recenti recuperano soltanto i riferimenti DE validi per compatibilità, senza copiarne destinatari o record.
+Le copie SQL e le esportazioni dell’archivio ammettono una lista di campi applicativi, escludendo proprietà arbitrarie come token o intestazioni eventualmente presenti in una risposta nativa. All’avvio, l’archivio SQL precedente viene ripulito dei campi non previsti; rimangono SQL e metadati utili. Le vecchie preferenze mantengono le rubriche e non conservano più modelli URL inutilizzati. Test History, gli hook di registrazione degli invii e le anteprime dai log restano rimossi. Dalla 1.1.37 è ripristinato soltanto Tracking Test: apre la cartella nativa degli invii di test in una nuova scheda, senza ripristinare la cronologia locale o un download di diagnostica. Non vengono creati nuovi log dei test; quelli precedenti rimangono nello storage del sito. I recenti recuperano soltanto i riferimenti DE validi per compatibilità, senza copiarne destinatari o record.
 
 Il SQL non viene riportato integralmente nella console. I messaggi di errore dei salvataggi non riportano la risposta completa contenente eventuali record.
 
@@ -104,3 +104,7 @@ Il content script CloudPages opera soltanto sul DOM in un mondo isolato e non at
 La nuova scheda usa ricerca e clic nativi, senza costruire endpoint privati o percorsi editor non osservati. La selezione richiede corrispondenza di ID e nome; messaggi limitati allo stack corrente collegano la shell HTTPS al suo iframe diretto. Interazione dell’utente, cambio modulo e scadenza interrompono l’apertura. Nessun nuovo permesso, accesso a record, pubblicazione o salvataggio di CloudPages.
 
 Tutto il codice resta nel pacchetto installato. GitHub distribuisce lo ZIP, ma non può sostituire automaticamente i file di una copia decompressa. Non viene aggiunto un caricatore di JavaScript remoto.
+
+## Collegamento Tracking Test
+
+Il link in Preview and Test usa lo stack corrente e apre Email Studio con un marcatore nel frammento. I due content script dedicati verificano shell, iframe C12 e origini HTTPS dello stesso stack; un MessageChannel legato al documento trasporta soltanto l’intento di navigazione e stati di avanzamento. Il modello di navigazione nativo seleziona Tracking, poi viene cliccata la cartella Test Send Emails riconosciuta per etichetta. Il codice non accede a destinatari, job specifici o record di tracking e non invia test. Nessun nuovo permesso o accesso allo storage; i due script non sono risorse web accessibili.

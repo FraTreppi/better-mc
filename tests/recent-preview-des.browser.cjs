@@ -138,7 +138,8 @@ const A = '00000000-0000-4000-8000-000000000001', B = '00000000-0000-4000-8000-0
         await page.locator('#status').getByText('Invio nativo simulato', { exact: true }).waitFor();
         assert.equal(requests.filter(request => request.path.endsWith('/preview/send')).length, 1);
         assert.equal(await page.evaluate(() => sfmcfix.local.getItem('testsendlogs')), legacyLog);
-        assert.equal(await page.locator('#testsendlog-viewer, [data-action="open-log-container"], #sfmcfix-test-tracking, #dempreview-iframe-modal').count(), 0);
+        assert.equal(await page.locator('#testsendlog-viewer, [data-action="open-log-container"], #dempreview-iframe-modal').count(), 0);
+        assert.equal(await page.locator('#send-test + #sfmcfix-test-tracking').count(), 1);
         assert.equal(await page.locator('[data-context-action="testers"]').count(), 1);
         assert.deepEqual(errors, []);
         console.log('PASS actual bootstrap + native jQuery picker: successful preview without send survives email change/reload; one BU history with twenty distinct DEs; three native pages keep one shortcut and 60 native folders; clear survives reload without erasing Test History or other histories; metadata uses native session and cache; 403 completes; records/HTML are not stored; simulated native send remains unmodified and writes no Test History; tester settings remain and removed controls are absent.');

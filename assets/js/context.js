@@ -165,6 +165,11 @@
         journey(id, version) {
             return `${this.shell()}/cloud/#app/Journey%20Builder/%23${encodeURIComponent(id)}/${encodeURIComponent(version)}`;
         },
+        testTracking() {
+            // Keep the working Email Studio bootstrap; select its native test
+            // folder after startup, without assuming a folder or send-job ID.
+            return `${this.shell()}/cloud/#app/Email/C12/Default.aspx?entityType=none&entityID=0&ks=ks%23Subscribers&sfmcfix_tracking=tests`;
+        },
         emailStudio(id) {
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) {
                 throw new Error('Identificativo della Data Extension non valido.');

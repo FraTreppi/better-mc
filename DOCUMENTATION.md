@@ -4,7 +4,17 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.36 — 2 novembre 2026
+## Versione attuale 1.1.37 — 2 novembre 2026
+
+Ripristinato soltanto il collegamento Tracking Test dalla versione precedente alla rimozione 1.1.29: posizionato dopo il pulsante nativo Send Test visibile, una sola istanza, nuova scheda con rel noopener noreferrer e stack corrente. Usa la stessa superficie Preview and Test del toolbox; viene rimosso fuori dal pannello e ricreato al ritorno, indipendentemente dall’opzione che nasconde Impostazioni SFMC.
+
+Ripristinati test-tracking-shell.js a document_start nella shell e test-tracking-main.js nel mondo MAIN del documento C12. Non sono risorse web accessibili e non usano API extension/storage. Il canale privato verifica origine, iframe e richiesta; la selezione usa _NavState e la voce Test Send Emails nei soli frame di navigazione nativi. Conservate le correzioni precedenti per curNavItem mancante, sectionId già Tracking, documenti ritardati e annullamento. Eliminato dal ripristino il download della diagnostica e il relativo rapporto; resta soltanto l’eventuale avviso chiudibile. Non vengono rimessi hook di invio, Test History o template delle preview dai log.
+
+Verifica 1.1.37: passati 56 test unit, sintassi di 53 file JavaScript, prova browser Tracking, regressioni browser rubrica tester e DE recenti; guida PDF rigenerata e testo/versione verificati. La verifica del pacchetto realmente caricato come estensione in Edge non è stata rieseguita in questa revisione.
+
+Le prove browser usano Backbone 0.9.10 e risposte simulate per verificare selezione Tracking/cartella una sola volta, recupero del menu, elenco già aperto, vista di base preservata, navigazione normale senza marcatore, annullamento e timeout. Le prove del bootstrap Content Builder verificano posizione/visibilità del link insieme alla rubrica tester e l’assenza di Test History; l’invio nativo simulato resta una sola richiesta e non modifica i vecchi log. Non è disponibile una sessione Salesforce autenticata per verificare la navigazione sul tenant.
+
+## Versione 1.1.36 — 2 novembre 2026
 
 Nuovo content script isolato cloudpages-links.js, privo di API storage o rete aggiuntive. Il markup fornito identifica tr.slds-hint-parent, celle Name/Location/Type/ID/Status/Modified/Actions e il suffisso SLDSDataTableRow-ID-SLDSDataTableRowActions. L’URL della shell fornito resta /cloud/#app/CloudPages/ anche con editor aperto: non viene assunto un percorso editor.
 

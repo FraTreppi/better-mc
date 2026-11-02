@@ -1,3 +1,10 @@
+# 1.1.37 — 2 novembre 2026
+
+- Ripristinato Tracking Test accanto a Send Test in Preview and Test: apre Email Studio → Tracking → Test Send Emails in una nuova scheda.
+- Ripristinata la navigazione nativa tramite shell e iframe C12 dello stack corrente, con attesa della cartella e annullamento uscendo da Email Studio. Il link rimane indipendente dalla visibilità dell’icona Impostazioni SFMC.
+- Test History, anteprime dai log, registrazione locale degli invii e download della diagnostica tracking restano assenti. Rubrica tester e DE recenti mantenuti.
+- Guide Markdown/PDF e verifiche browser aggiornate.
+
 # 1.1.36 — 2 novembre 2026
 
 - Aggiunto ↗ accanto al nome nell’elenco CloudPages per aprire l’editor in una nuova scheda, mantenendo l’elenco originale.

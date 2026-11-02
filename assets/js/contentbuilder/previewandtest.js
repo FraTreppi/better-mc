@@ -94,6 +94,27 @@
     document.body.appendChild(toolbox);
     sfmcfix.context.mountControls(toolbox);
     let queued = false;
+    const syncTrackingButton = active => {
+        const existing = document.getElementById('sfmcfix-test-tracking');
+        const labels = ['send test', 'send test email', 'send test emails', 'invia test', 'invia email di test'];
+        const send = active && Array.from(document.querySelectorAll('button, [role="button"], a.btn, input[type="submit"], input[type="button"]')).find(button =>
+            !button.closest('#sfmcfix-context') &&
+            labels.includes((button.value || button.textContent || '').trim().replace(/\s+/g, ' ').toLowerCase()) &&
+            button.getClientRects().length > 0 && getComputedStyle(button).visibility !== 'hidden');
+        if (!send || !sfmcfix.context.current().stack) { existing?.remove(); return; }
+        const link = existing || document.createElement('a');
+        if (!existing) {
+            link.id = 'sfmcfix-test-tracking';
+            link.className = 'btn btn-default sfmcfix-test-tracking';
+            link.textContent = 'Tracking Test';
+            link.title = 'Apri Email Studio → Tracking → Test Send Emails';
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+        }
+        const href = sfmcfix.links.testTracking();
+        if (link.href !== href) link.href = href;
+        if (send.nextElementSibling !== link) send.after(link);
+    };
     const syncVisibility = () => {
         queued = false;
         // This native surface belongs to Preview and Test. Its own tab can
@@ -104,6 +125,7 @@
             return panel && panel.getClientRects().length > 0 && getComputedStyle(panel).visibility !== 'hidden';
         });
         const showSettings = active && !sfmcfix.uiPreferences.get().hidePreviewIcons;
+        syncTrackingButton(active);
         if (toolbox.hidden === showSettings) toolbox.hidden = !showSettings;
         if (!showSettings) {
             const options = toolbox.querySelector('#sfmcfix-context-options');
@@ -115,6 +137,7 @@
     };
     syncVisibility();
     window.addEventListener('sfmcfix:ui-preferences', syncVisibility);
+    window.addEventListener('sfmcfix:contextchange', syncVisibility);
     const observer = new MutationObserver(() => {
         if (!queued) { queued = true; requestAnimationFrame(syncVisibility); }
     });

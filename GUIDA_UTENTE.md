@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.36 · Autore: Francesco Trepiccioni
+Versione 1.1.37 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -106,9 +106,17 @@ Il pannello di inserimento manuale e la scelta tra rubrica locale e DE sono stat
 
 Caricare, aggiornare o selezionare un tester **non invia email** e non modifica i record della DE. Per inviare rimane necessario il comando nativo **Send Test**.
 
+## Tracking Test
+
+In **Preview and Test**, accanto al pulsante nativo **Send Test**, trovi **Tracking Test**. Cliccalo per aprire **Email Studio → Tracking → Test Send Emails** in una nuova scheda, sullo stack Salesforce corrente.
+
+Il collegamento apre la cartella generale degli invii di test: cerca lì l’invio che vuoi consultare. Non apre automaticamente il singolo job dell’email corrente e non invia un nuovo test. Attendi il caricamento di Email Studio e della cartella; se non si completa, puoi aprire Test Send Emails dal menu Tracking. Un eventuale avviso si chiude con **Chiudi**.
+
+Tracking Test rimane disponibile anche se nascondi l’icona Impostazioni SFMC. Test History e la registrazione locale degli invii restano disattivati; la rubrica tester continua a funzionare.
+
 ## DE recenti in Preview and Test
 
-Dalla versione 1.1.29 i comandi Tracking Test e Test History e le anteprime dallo storico sono rimossi. La rubrica tester e Preview and Test di Salesforce restano disponibili. L’estensione non registra nuovi tentativi di invio; gli eventuali log precedenti rimangono nei dati locali del sito. Per consultare gli invii puoi usare il menu nativo Email Studio → Tracking → Test Send Emails.
+Test History e le anteprime dallo storico restano rimossi. La rubrica tester e Preview and Test di Salesforce sono disponibili. L’estensione non registra nuovi tentativi di invio; gli eventuali log precedenti rimangono nei dati locali del sito.
 
 Nel selettore delle DE per la preview trovi una sola cartella virtuale **DE recenti**, con le ultime **20 DE distinte** usate nella BU. Rimane disponibile cambiando email o template. Una preview riuscita con un record selezionato ricorda la DE senza richiedere un invio di test; un nuovo utilizzo la riporta in cima senza duplicarla.
 
@@ -320,7 +328,7 @@ Il file `sfmc-email-studio-diagnostica.json` contiene percorsi e metadati di nav
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.36**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.37**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.36
+# SFMC UI Fixer — Multi BU 1.1.37
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -27,7 +27,7 @@ I salvataggi locali sono separati fra Chrome, Edge e i relativi profili: non ven
 | --- | --- |
 | Contact Builder | Ricerca avanzata DE, visite recenti, prima/ultima pagina, CLONE, MULTI ROWS, CSV completo della DE con avanzamento e annullamento, analisi SMS locale, collegamento alla stessa DE in Email Studio. |
 | Content Builder | Ricerca Advanced per nome, Customer Key o ID su tutte le cartelle della BU, filtri per tipo/cartella/date, risultati paginati e apertura dei contenuti. |
-| Preview and Test | Caricamento e attivazione con un clic della rubrica DE tester_content_builder, fino a 1000 tester per BU, suggerimenti destinatari, cartella virtuale DE recenti con svuotamento. |
+| Preview and Test | Tracking Test accanto a Send Test per aprire il tracking Salesforce dei test in una nuova scheda; caricamento e attivazione con un clic della rubrica DE tester_content_builder, fino a 1000 tester per BU, suggerimenti destinatari, cartella virtuale DE recenti con svuotamento. |
 | Automation Studio | Apertura automatica della Query Activity appena copiata dal dettaglio dopo il completamento della procedura nativa; refresh automatico del Run Log ogni 5 secondi con pulsante ON/OFF, automation recenti, collegamenti alle attività e alla DE target, copia SQL, vista SQL validato, download JSON, copie locali prima della modifica. |
 | Query Studio | Bozze, recupero dell’editor, elenco query, copia campi e campi obbligatori, pannelli comprimibili. |
 | CloudPages | Pulsante accanto al nome per aprire l’editor in una nuova scheda, tramite selezione della pagina nell’elenco nativo. |
@@ -42,7 +42,7 @@ Crea in ogni BU la DE **tester_content_builder** dentro **SFMC_UI_Fixer**, anche
 
 ## Sicurezza e dati
 
-La versione 1.1.36 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
+La versione 1.1.37 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
@@ -50,4 +50,4 @@ Queste misure riducono i rischi individuati e non costituiscono una garanzia ass
 
 Vedi **[Sicurezza e limiti](SICUREZZA.md)** per le protezioni e i rischi residui. La [documentazione tecnica](DOCUMENTATION.md) e la [cronologia](CHANGELOG.md) sono separate dalla guida utente.
 
-La 1.1.36 aggiunge il collegamento all’editor CloudPages in una nuova scheda. La scheda di origine rimane sull’elenco; filtri e selezione nella nuova scheda usano i controlli nativi Salesforce.
+La 1.1.37 ripristina Tracking Test accanto a Send Test, mantenendo rimossa Test History. Il collegamento apre la cartella generale Test Send Emails di Email Studio in una nuova scheda; la rubrica tester resta disponibile.
