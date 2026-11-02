@@ -1,0 +1,6 @@
+node_modules/
+.mcdev-auth.json
+.sfmcgit-state/
+.env
+.env.*
+!.env.example

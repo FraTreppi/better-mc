@@ -1,10 +1,17 @@
-# SFMC UI Fixer — Multi BU 1.1.37
+# SFMC UI Fixer — Multi BU 1.2.0
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
 [Scarica lo ZIP per Chrome e Microsoft Edge](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-ui-fixer-multi-bu-diagnostica.zip)
 
 La **[Guida utente](GUIDA_UTENTE.md)**, disponibile anche come **[PDF](GUIDA_UTENTE.pdf)**, descrive tutte le funzionalità e come usarle: installazione, configurazione delle BU, rubrica tester, cronologie, strumenti DE, Automation Studio, Query Studio e Journey Builder.
+
+La 1.2.0 aggiunge **Esporta per Git** e il progetto locale **MC Code Project**: sorgenti nell’editor, backup, documentazione Markdown, storico Git e invio di modifiche revisionate a Salesforce. CloudPages apre ora il comando nativo **Actions → Edit**, con lo stile del collegamento Journey.
+
+- [Scarica la demo pronta da aprire in VS Code](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-code-project-demo.zip): dati fittizi, senza collegamento Salesforce.
+- [Scarica lo strumento locale](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-code-project.zip) e segui la [guida Codice e Git](tools/mc-project/README.md).
+
+L’esportazione puntuale usa la sessione browser; per backup dei tipi configurati e invio dall’editor serve un’integrazione Server-to-Server da configurare più avanti. Il progetto locale richiede Node.js 24.15+ e Git. I contenuti aziendali vanno in un repository GitHub **privato** dedicato. CloudPages Publish rimane in Salesforce; l’attivazione Journey è un comando separato.
 
 ## Installazione e aggiornamento
 
@@ -30,9 +37,10 @@ I salvataggi locali sono separati fra Chrome, Edge e i relativi profili: non ven
 | Preview and Test | Tracking Test accanto a Send Test per aprire il tracking Salesforce dei test in una nuova scheda; caricamento e attivazione con un clic della rubrica DE tester_content_builder, fino a 1000 tester per BU, suggerimenti destinatari, cartella virtuale DE recenti con svuotamento. |
 | Automation Studio | Apertura automatica della Query Activity appena copiata dal dettaglio dopo il completamento della procedura nativa; refresh automatico del Run Log ogni 5 secondi con pulsante ON/OFF, automation recenti, collegamenti alle attività e alla DE target, copia SQL, vista SQL validato, download JSON, copie locali prima della modifica. |
 | Query Studio | Bozze, recupero dell’editor, elenco query, copia campi e campi obbligatori, pannelli comprimibili. |
-| CloudPages | Pulsante accanto al nome per aprire l’editor in una nuova scheda, tramite selezione della pagina nell’elenco nativo. |
+| CloudPages | Collegamento nello stile Journey: apertura in nuova scheda tramite Actions → Edit; download del sorgente e dei metadati per Git. |
 | Journey Builder | Collegamento ai Journey referenziati e alla DE dell’entry quando identificabile. |
 | Pagina dell’estensione | Visibilità delle icone, consultazione ed esportazione delle versioni SQL, eliminazione delle copie locali, diagnostica Email Studio. |
+| Codice e Git | Export del contenuto salvato di asset, query e Journey; progetto locale con backup, sorgenti separati, documentazione, conflitti e piani di invio. |
 
 L’icona Impostazioni SFMC compare solo in Preview and Test e può essere nascosta dalla pagina dell’estensione. I collegamenti usano la sessione e la BU attive di Salesforce: non cambiano cliente automaticamente.
 
@@ -42,7 +50,7 @@ Crea in ogni BU la DE **tester_content_builder** dentro **SFMC_UI_Fixer**, anche
 
 ## Sicurezza e dati
 
-La versione 1.1.37 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
+La versione 1.2.0 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
@@ -50,4 +58,4 @@ Queste misure riducono i rischi individuati e non costituiscono una garanzia ass
 
 Vedi **[Sicurezza e limiti](SICUREZZA.md)** per le protezioni e i rischi residui. La [documentazione tecnica](DOCUMENTATION.md) e la [cronologia](CHANGELOG.md) sono separate dalla guida utente.
 
-La 1.1.37 ripristina Tracking Test accanto a Send Test, mantenendo rimossa Test History. Il collegamento apre la cartella generale Test Send Emails di Email Studio in una nuova scheda; la rubrica tester resta disponibile.
+Tracking Test rimane accanto a Send Test e apre la cartella generale Test Send Emails di Email Studio in una nuova scheda; la rubrica tester resta disponibile. Test History rimane rimossa.

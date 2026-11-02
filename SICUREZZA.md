@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.37 · 2 novembre 2026
+Versione 1.2.0 · 2 novembre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -99,9 +99,21 @@ Per dati che richiedono protezioni ulteriori serve una scelta architetturale: pe
 
 ## Collegamenti CloudPages
 
-Il content script CloudPages opera soltanto sul DOM in un mondo isolato e non attiva il ponte allo storage. Riconosce le colonne della tabella e l’identificativo del controllo azioni, aggiungendo collegamenti con target _blank e rel noopener noreferrer. ID e nome sono parametri temporanei dell’URL della nuova scheda e vengono rimossi al completamento o all’interruzione; non sono salvati nell’archivio dell’estensione.
+Il content script CloudPages opera in un mondo isolato e non attiva il ponte allo storage. Riconosce le colonne della tabella e l’identificativo del controllo azioni, aggiungendo collegamenti con target _blank e rel noopener noreferrer. ID e nome sono parametri temporanei dell’URL della nuova scheda e vengono rimossi al completamento o all’interruzione; non sono salvati nell’archivio dell’estensione.
 
-La nuova scheda usa ricerca e clic nativi, senza costruire endpoint privati o percorsi editor non osservati. La selezione richiede corrispondenza di ID e nome; messaggi limitati allo stack corrente collegano la shell HTTPS al suo iframe diretto. Interazione dell’utente, cambio modulo e scadenza interrompono l’apertura. Nessun nuovo permesso, accesso a record, pubblicazione o salvataggio di CloudPages.
+La nuova scheda usa All Pages, ricerca e Actions → Edit nativi, senza costruire percorsi editor non osservati. La selezione richiede corrispondenza di ID e nome; messaggi limitati allo stack corrente collegano la shell HTTPS al suo iframe diretto. Interazione dell’utente, cambio modulo e scadenza interrompono l’apertura. Nessun nuovo permesso, accesso a record, pubblicazione o salvataggio di CloudPages.
+
+L’export CloudPages, soltanto al clic sul download, legge tokenContext per il solo MID, il sito tramite l’endpoint sites?siteAssetId fornito dall’utente e l’asset sorgente associato. Sono GET same-origin con timeout; il MID viene ricontrollato prima del download. La URL pubblica rimane un metadato: non viene visitata, evitando di eseguire il codice della pagina per ottenere il sorgente. I campi di credenziali noti sono esclusi dal JSON.
+
+## Codice e Git: esportazioni e progetto locale
+
+Esporta per Git legge soltanto il contenuto salvato dell’asset/query/Journey aperto, con il client AJAX nativo sulla stessa origine. Richiede stack e MID, verifica l’identità e la versione richiesta e interrompe le risposte obsolete al cambio contenuto o BU. I file JSON includono intenzionalmente codice e struttura nativa, possono contenere dati aziendali e restano nei download del browser. Campi di credenziali riconoscibili sono rimossi; segreti scritti dentro al codice non possono essere esclusi automaticamente. Nessun invio a GitHub o a un server dell’estensione.
+
+MC Code Project è un programma Node separato dall’estensione. Usa SFMC DevTools 10.1.1 (MIT), fissato nel lockfile, per l’integrazione Server-to-Server. Le credenziali rimangono in .mcdev-auth.json locale, non cifrato, escluso da Git; non passano al browser. I processi del motore usano cartelle temporanee private nello stato locale, eliminate al termine; un arresto forzato può lasciarle sul disco. Non condividere .sfmcgit-state. Controlli di percorsi, symlink e dimensioni limitano le importazioni; il codice estratto viene scritto come testo, non eseguito.
+
+Pull confronta base, locale e remoto; un conflitto non sceglie automaticamente quale versione conservare. Il manifest sfmc-baselines.json conserva MID e SHA-256 senza credenziali e permette il confronto da un clone Git. Plan seleziona una risorsa esistente, blocca modifiche d’identità/cartella e confronta la baseline con MC. Apply ricontrolla MID, hash locali e remoti, scadenza di un’ora, archivia il contenuto precedente e consuma il piano prima della scrittura per impedire la ripetizione dopo un esito incerto. La rilettura verifica file e campi modificati. Il controllo non è una transazione Salesforce: un altro editor può intervenire tra lettura e scrittura.
+
+Il salvataggio non esegue query/script e non attiva automation. I blocchi riutilizzati possono essere letti a runtime e influire subito su altri contenuti. CloudPages Publish resta nativo. L’attivazione Journey è separata e richiede la conferma esatta MID/CustomerKey/Versione, versione Draft invariata e validazione; può avviare un Journey reale. Git commit/push non esegue deploy. Usa un repository privato per i contenuti e verifica il diff: il controllo dei file esclusi non è uno scanner completo di segreti.
 
 Tutto il codice resta nel pacchetto installato. GitHub distribuisce lo ZIP, ma non può sostituire automaticamente i file di una copia decompressa. Non viene aggiunto un caricatore di JavaScript remoto.
 

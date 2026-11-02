@@ -1,3 +1,11 @@
+# 1.2.0 — 2 novembre 2026
+
+- Aggiunti Esporta per Git per Content Builder, Query Activity e Journey, e download del sorgente CloudPages dall’elenco. Conservati JSON nativo e codice annidato, con controlli su identità, versione e BU.
+- Creato MC Code Project, strumento locale basato su SFMC DevTools 10.1.1: progetto per editor, backup multi BU, HTML/SQL/JS, inventario e dipendenze Markdown, diagrammi Journey, storico Git privato e conflitti a tre versioni anche da clone del team.
+- Aggiunti piani revisionabili per una risorsa, backup precedente, verifica del salvataggio e comando separato di validazione/attivazione Journey. CloudPages aggiorna contenuto esistente; creazione e Publish rimangono native. Nessun avvio automatico di query/script/automation.
+- Corretta apertura CloudPages tramite Actions → Edit invece del nome; supportati All Pages e host cloud-pages. Icona nello stile dei Journey.
+- Distribuiti ZIP dello strumento e demo offline senza credenziali; guide Markdown/PDF aggiornate. L’integrazione con una BU reale richiede configurazione Server-to-Server successiva.
+
 # 1.1.37 — 2 novembre 2026
 
 - Ripristinato Tracking Test accanto a Send Test in Preview and Test: apre Email Studio → Tracking → Test Send Emails in una nuova scheda.

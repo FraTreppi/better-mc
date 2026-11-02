@@ -1,7 +1,7 @@
 (function () {
     'use strict';
-    // DOM-only helper, also in embedded CloudPages documents. No storage bridge,
-    // private Salesforce APIs, guessed editor routes or remote code are needed.
+    // Navigation uses native controls, also in embedded CloudPages documents.
+    // Optional source export uses same-origin reads; no storage bridge or guessed editor routes.
     const host = location.hostname.match(/^(?:[a-z0-9-]+\.)?(s\d+)\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i);
     if (location.protocol !== 'https:' || !host) return;
     const stack = host[1].toLowerCase();
@@ -61,7 +61,7 @@
         if (!action?.id.endsWith(`-SLDSDataTableRow-${id}-SLDSDataTableRowActions`)) return null;
         const name = nameElement.getAttribute('title') || nameElement.textContent.trim();
         if (!name || name.length > 1000) return null;
-        return { id, name, nameCell, nameElement };
+        return { id, name, nameCell, nameElement, action };
     }
 
     function targetURL(info) {
@@ -74,22 +74,95 @@
 
     function decorate(row) {
         const info = rowInfo(row);
-        if (!info) { row?.querySelector?.(selector)?.remove(); return; }
+        if (!info) { row?.querySelector?.(selector)?.remove(); row?.querySelector?.('.sfmcfix-cloudpage-export')?.remove(); return; }
         let link = info.nameCell.querySelector(selector);
         if (!link) {
             link = document.createElement('a');
             link.className = 'slds-button slds-button_icon-border-filled sfmcfix-cloudpage-newtab';
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
-            link.textContent = '↗';
-            link.style.cssText = 'float:right;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-left:8px;text-decoration:none;font:18px Arial,sans-serif';
+            link.style.cssText = 'float:right;transform:scale(.7);margin-left:10px;';
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('class', 'slds-button__icon slds-button_icon-x-small');
+            svg.setAttribute('aria-hidden', 'true');
+            const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+            const nativeUse = info.action.querySelector('svg use');
+            let sprite = nativeUse?.getAttribute('href') || nativeUse?.getAttribute('xlink:href') || '/assets/icons/utility-sprite/svg/symbols.svg#down';
+            try {
+                const url = new URL(sprite, document.baseURI);
+                if (url.origin !== location.origin || !url.pathname.endsWith('/icons/utility-sprite/svg/symbols.svg')) throw Error();
+                sprite = url.pathname + '#link';
+            } catch (_) { sprite = '/assets/icons/utility-sprite/svg/symbols.svg#link'; }
+            use.setAttribute('href', sprite);
+            svg.append(use); link.append(svg);
             info.nameCell.prepend(link);
         }
         const href = targetURL(info);
         if (link.href !== href) link.href = href;
         const label = `Apri ${info.name} nell’editor in un’altra scheda`;
         if (link.title !== label) { link.title = label; link.setAttribute('aria-label', label); }
+        let download = info.nameCell.querySelector('.sfmcfix-cloudpage-export');
+        if (!download) {
+            download = document.createElement('button');
+            download.type = 'button';
+            download.className = 'slds-button slds-button_icon-border-filled sfmcfix-cloudpage-export';
+            download.style.cssText = 'float:right;transform:scale(.7);margin-left:6px;';
+            const icon = link.querySelector('svg').cloneNode(true);
+            const use = icon.querySelector('use'); use.setAttribute('href', use.getAttribute('href').replace(/#link$/, '#download'));
+            download.append(icon);
+            download.title = 'Esporta il sorgente salvato della CloudPage per Git';
+            download.setAttribute('aria-label', 'Esporta CloudPage per Git');
+            download.addEventListener('click', async event => {
+                event.preventDefault(); event.stopPropagation();
+                const current = rowInfo(download.closest('tr'));
+                if (!current || download.disabled) return;
+                download.disabled = true;
+                try { await exportPage(current); showStatus('CloudPage esportata. Nel progetto locale usa il comando import.'); }
+                catch (error) { showStatus(error.message, true); }
+                finally { download.disabled = false; }
+            });
+            info.nameCell.prepend(download);
+        }
         announce();
+    }
+
+    async function exportPage(info) {
+        const read = async path => {
+            const response = await fetch(path, { method: 'GET', credentials: 'same-origin', mode: 'same-origin', redirect: 'error',
+                headers: { Accept: 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(30000) });
+            if (!response.ok) throw Error('Esportazione CloudPage non disponibile (HTTP ' + response.status + '). Puoi usare il backup dal progetto locale.');
+            const text = await response.text();
+            if (text.length > 20 * 1024 * 1024) throw Error('Contenuto troppo grande: usa il backup dal progetto locale.');
+            return JSON.parse(text);
+        };
+        const context = await read('/fuelapi/platform/v1/tokenContext');
+        const mid = String(context?.organization?.id || '');
+        if (!validID(mid)) throw Error('BU della sessione non rilevata.');
+        // Exact site lookup supplied by the user. The public URL is metadata;
+        // it is never fetched or opened to obtain the editable source.
+        const sites = await read('/fuelapi/internal/v2/cloudpages/sites?siteAssetId=' + info.id);
+        if (sites.totalCount !== 1 || sites.entities?.length !== 1 || String(sites.entities[0].siteAssetId) !== info.id) throw Error('CloudPage assente o risposta ambigua.');
+        const asset = await read('/fuelapi/asset/v1/content/assets/' + info.id);
+        if (String(asset.id) !== info.id) throw Error('Asset CloudPage non corrispondente.');
+        const sources = [asset];
+        const associated = String(asset.meta?.thumbnailRefAssetId || '');
+        if (validID(associated) && associated !== info.id) {
+            const content = await read('/fuelapi/asset/v1/content/assets/' + associated);
+            if (String(content.id) !== associated) throw Error('Sorgente CloudPage non corrispondente.');
+            sources.push(content);
+        }
+        if (!sources.some(source => typeof source.views?.html?.content === 'string' ||
+            typeof source.content === 'string' && /<|%%|<%/.test(source.content))) throw Error('La risposta non include il sorgente modificabile. Usa il backup del progetto locale.');
+        const after = await read('/fuelapi/platform/v1/tokenContext');
+        if (String(after?.organization?.id) !== mid || rowInfo(info.nameCell.closest('tr'))?.id !== info.id) throw Error('Esportazione interrotta: BU o pagina cambiate.');
+        const data = { format: 'sfmc-git-export-v1', exportedAt: new Date().toISOString(), source: 'saved-in-salesforce',
+            context: { stack, mid }, items: [{ kind: 'cloudpage', id: info.id,
+                data: { name: sites.entities[0].name, site: sites.entities[0], asset, sourceAssets: sources } }] };
+        const text = JSON.stringify(data, (key, value) => /^(?:access_?token|refresh_?token|client_?secret|authorization|cookie|password)$/i.test(key) ? undefined : value, 2);
+        if (text.length > 20 * 1024 * 1024) throw Error('Contenuto troppo grande: usa il backup dal progetto locale.');
+        const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+        const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'sfmc-git-cloudpage-' + info.id + '.json';
+        anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     function clearMarker() {
@@ -110,7 +183,7 @@
             const close = document.createElement('button');
             close.type = 'button'; close.textContent = 'Chiudi';
             close.style.cssText = 'margin-left:12px;cursor:pointer';
-            close.addEventListener('click', () => { stop(); status.remove(); });
+            close.addEventListener('click', () => { if (pending || request) stop(); status.remove(); status = null; });
             status.append(close);
             document.body.append(status);
         }
@@ -151,13 +224,37 @@
         const matches = Array.from(document.querySelectorAll('tr.slds-hint-parent')).map(row => ({ row, info: rowInfo(row) }))
             .filter(item => item.row.getClientRects().length && item.info?.id === request.id && item.info.name === request.name);
         if (matches.length === 1) {
-            const element = matches[0].info.nameElement;
-            // Exactly one native row selection, only in the newly opened tab.
-            report('selected');
-            element.click();
+            const action = matches[0].info.action;
+            const trigger = action.querySelector('button[aria-haspopup="true"]');
+            if (!trigger || trigger.disabled) return;
+            if (!request.menuOpened) {
+                request.menuOpened = true;
+                trigger.click();
+                return;
+            }
+            if (trigger.getAttribute('aria-expanded') !== 'true') return;
+            let menus = Array.from(action.querySelectorAll('[role="menu"], .slds-dropdown'));
+            if (!menus.length) menus = Array.from(document.querySelectorAll('[role="menu"], .slds-dropdown')).filter(menu => menu.getClientRects().length);
+            menus = menus.filter(menu => !menus.some(other => menu !== other && menu.contains(other)));
+            if (menus.length !== 1) return;
+            const candidates = Array.from(menus[0].querySelectorAll('a, button, [role="menuitem"]')).filter(item =>
+                /^(edit|modifica)$/i.test(item.textContent.trim()) && item.getClientRects().length && !item.disabled);
+            const edits = candidates.filter(item => !candidates.some(other => item !== other && item.contains(other)));
+            if (edits.length === 1) {
+                const edit = edits[0];
+                report('selected');
+                edit.click();
+            }
             return;
         }
         if (matches.length > 1 || request.searched) return;
+        if (!request.allPagesSelected) {
+            const tabs = Array.from(document.querySelectorAll('[role="tab"], a, button')).filter(node =>
+                /^(all pages|tutte le pagine)$/i.test(node.textContent.trim()) && node.getClientRects().length && !node.disabled);
+            if (tabs.length === 1 && tabs[0].getAttribute('aria-selected') !== 'true') {
+                request.allPagesSelected = true; tabs[0].click(); return;
+            }
+        }
         // This placeholder is visible in the supplied CloudPages screenshot.
         // Keep native filtering/pagination; never construct a Salesforce API URL.
         const searches = Array.from(document.querySelectorAll('input[placeholder]')).filter(input =>
@@ -235,6 +332,9 @@
     }, true);
 
     function start() {
+        // The CloudPages host is now known from the user's Network evidence.
+        // Announce before its async library renders, including an initial Collections view.
+        if (/^cloud-pages\.s\d+\./i.test(location.hostname)) announce();
         document.querySelectorAll('tr.slds-hint-parent').forEach(decorate);
         emptyLibrary();
         const observer = new MutationObserver(records => {

@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.37 · Autore: Francesco Trepiccioni
+Versione 1.2.0 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -301,9 +301,52 @@ Dopo un cambio BU, conserva prima il testo che ti serve e premi **Clear** prima 
 
 Nell’elenco **CloudPages**, accanto al nome della pagina compare il pulsante **↗**. Cliccalo per aprire l’editor Salesforce in una nuova scheda; l’elenco originale rimane aperto. Il pulsante apre l’editor anche per le pagine non pubblicate.
 
-La nuova scheda carica CloudPages e seleziona la pagina con lo stesso ID e nome. Se la riga non è già presente, compila la ricerca nativa con il nome e attende i risultati. Il comando compare anche sulle righe aggiunte da Load More.
+La nuova scheda carica CloudPages, passa ad All Pages quando disponibile e cerca la pagina con lo stesso ID e nome. Se la riga non è già presente, compila la ricerca nativa con il nome e attende i risultati. Poi apre **Actions → Edit**, come faresti manualmente. Il pulsante ha lo stesso stile del collegamento nei Journey e compare anche sulle righe aggiunte da Load More.
 
 Attendi il caricamento. Se inizi a usare la nuova scheda, l’apertura automatica si interrompe. Se la pagina non viene trovata o CloudPages non completa il caricamento, compare un messaggio chiudibile: puoi cercarla manualmente nella nuova scheda. Il comando dipende dall’elenco e dalla ricerca resi disponibili da Salesforce; non pubblica né modifica la CloudPage.
+
+Accanto al collegamento trovi un’icona **download**: esporta la configurazione della CloudPage e gli asset del sorgente salvato in un file JSON. La pagina pubblicata non viene visitata per ricavare il codice. Se il sorgente non è accessibile tramite la sessione, usa il backup dal progetto locale descritto sotto.
+
+## Codice, editor e storico GitHub
+
+**MC Code Project** affianca l’estensione con una cartella di lavoro per VS Code o un altro editor. Contiene sorgenti HTML/SQL/JS, metadati e documentazione Markdown. I Journey sono conservati come definizioni JSON, con diagramma del flusso quando disponibile.
+
+### Prova senza configurare Salesforce
+
+1. Scarica il [progetto demo](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-code-project-demo.zip) ed estrailo.
+2. In VS Code scegli **File → Apri cartella** e apri la cartella estratta.
+3. In `retrieve/demo/BU-demo` trovi email, template, CloudPage, query e Journey fittizi. Apri e modifica i sorgenti; in `docs/demo/BU-demo` trovi inventario e documentazione.
+
+Non servono credenziali per aprire questi file. La demo è offline e non invia modifiche a Salesforce. Per usare i comandi del progetto servono Node.js **24.15 o successivo** e Git. Lo [strumento locale](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-code-project.zip) può creare nuovi progetti e nuove demo; include anche gli avvii `DEMO.cmd` per Windows e `demo.command` per macOS.
+
+### Esporta il contenuto sul quale lavori
+
+Apri un’email, template o blocco in Content Builder, una Query Activity o una versione Journey e premi **Esporta per Git**. In CloudPages usa l’icona download nell’elenco. Viene scaricato il contenuto **già salvato in Salesforce**: salva prima le modifiche nell’editor MC se vuoi includerle.
+
+Dal progetto locale usa l’attività VS Code **MC: importa esportazione browser**, oppure `npm run mc -- import percorso-del-file.json`. La cartella `browser` conserva il JSON originale e i campi di codice separati, inclusi i blocchi annidati. L’importazione successiva aggiorna gli stessi file e segnala eventuali conflitti con modifiche locali. Questi snapshot servono da backup leggibile; per reinviare modifiche si parte dal backup API in `retrieve`.
+
+### Collega il progetto quando sarai pronto
+
+Per leggere più risorse e salvare modifiche dall’editor serve una registrazione dell’integrazione in Marketing Cloud, chiamata **Installed Package Server-to-Server**. La prepara un amministratore: non è un programma da installare sul PC. I dati di accesso si inseriscono nel wizard locale **MC: collega Salesforce**, mai nella chat o su GitHub.
+
+La [guida del progetto locale](tools/mc-project/README.md) contiene i passaggi di preparazione e i permessi da richiedere. Dopo il collegamento:
+
+1. **MC: backup e sincronizzazione** scarica i tipi configurati nella BU scelta: asset di codice, CloudPages, query, script, Journey, automation ed eventi, con i riferimenti necessari.
+2. Modifica i file in `retrieve`; usa Source Control di VS Code per confronti, branch, commit e Pull Request in un repository GitHub **privato** del team.
+3. **MC: prepara invio** seleziona una risorsa e crea il confronto. Leggi `docs/INVIO.md` e usa **MC: confronto del piano**.
+4. **MC: invia modifica revisionata** ricontrolla BU, file e versione Salesforce, salva un backup precedente e invia soltanto quel piano. Se MC è cambiato, interrompe l’invio per risolvere il conflitto.
+
+Il progetto include `sfmc-baselines.json`: conserva MID e impronte dei file dell’ultimo backup e va versionato insieme ai sorgenti. Permette anche a un collega che clona il repository di confrontare modifiche locali e remote. Ogni collega configura sul proprio PC le credenziali, escluse da Git. Il normale commit o push GitHub non pubblica nulla in MC.
+
+| Risorsa | Cosa puoi inviare |
+| --- | --- |
+| Email, template e blocchi | Contenuto salvato; Preview and Test rimane in MC. I blocchi richiamati a runtime possono influire subito sui contenuti che li usano. |
+| CloudPages | Contenuto di pagine esistenti. Creazione e **Publish** rimangono in Salesforce. |
+| Query e script | Definizione e codice; nessuna esecuzione automatica. |
+| Journey | Modifiche a una versione Draft. L’attività separata **MC: valida e attiva Journey** richiede MID, Customer Key e versione esatti e può avviare un Journey reale. |
+| Automation | Backup e documentazione. Query/script collegati si modificano separatamente; workflow, pianificazione e avvio restano in MC. |
+
+I backup non includono i record delle DE o tutte le immagini/allegati e non ricostruiscono modifiche precedenti al primo salvataggio Git. Conserva il codice aziendale in un repository privato e controlla il diff prima di pubblicarlo: anche un sorgente può contenere credenziali scritte direttamente nel testo.
 
 ## Journey Builder
 
@@ -328,7 +371,7 @@ Il file `sfmc-email-studio-diagnostica.json` contiene percorsi e metadati di nav
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.37**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.2.0**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

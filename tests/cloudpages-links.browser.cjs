@@ -2,17 +2,17 @@ const fs = require('node:fs'), path = require('node:path'), assert = require('no
 const { chromium } = require(process.env.SFMCFIX_PLAYWRIGHT_MODULE || 'playwright');
 const code = fs.readFileSync(path.resolve(__dirname, '../assets/js/cloudpages-links.js'), 'utf8');
 const shell = 'https://mc.s10.exacttarget.com';
-const app = 'https://cloudpages.s10.marketingcloudapps.com'; // Synthetic embedded app, not a claimed Salesforce route.
+const app = 'https://cloud-pages.s10.marketingcloudapps.com'; // Host observed in the supplied Network request; the fixture path is synthetic.
 function row(id, name) {
     const escape = text => text.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const value = escape(name);
-    return `<tr class="slds-hint-parent"><td data-label=""><div data-testid="cb-thumbnail-data-cell"></div></td><td data-label="Name"><div class="slds-truncate" title="${value}">${value}</div></td><td data-label="Location">Folder</td><td data-label="Type">Landing Page</td><td data-label="ID"><div class="slds-truncate" title="${id}">${id}</div></td><td data-label="Status">Published</td><td data-label="Modified">Today</td><td data-label="Actions"><div id="fixture-SLDSDataTableRow-${id}-SLDSDataTableRowActions"><button>Actions</button></div></td></tr>`;
+    return `<tr class="slds-hint-parent"><td data-label=""><div data-testid="cb-thumbnail-data-cell"></div></td><td data-label="Name"><div class="slds-truncate" title="${value}">${value}</div></td><td data-label="Location">Folder</td><td data-label="Type">Landing Page</td><td data-label="ID"><div class="slds-truncate" title="${id}">${id}</div></td><td data-label="Status">Published</td><td data-label="Modified">Today</td><td data-label="Actions"><div id="fixture-SLDSDataTableRow-${id}-SLDSDataTableRowActions"><button aria-haspopup="true" aria-expanded="false"><svg><use href="assets/icons/utility-sprite/svg/symbols.svg#down"></use></svg>Actions</button></div></td></tr>`;
 }
 const targetName = 'Pagina <test> & "nome"';
 (async () => {
     const browser = await chromium.launch({ executablePath: '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
     try {
-        async function fixture({ missing = false, delayed = false, direct = false, empty = false, loaded = false, wrong = false } = {}) {
+        async function fixture({ missing = false, delayed = false, direct = false, empty = false, loaded = false, wrong = false, collections = false } = {}) {
             const context = await browser.newContext();
             const errors = [], requests = [];
             context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
@@ -21,13 +21,21 @@ const targetName = 'Pagina <test> & "nome"';
             await context.route('https://**/*', async route => {
                 requests.push({ method: route.request().method(), url: route.request().url() });
                 const url = new URL(route.request().url());
+                if (url.pathname === '/fuelapi/platform/v1/tokenContext') return route.fulfill({ json: { organization: { id: 123 }, accessToken: 'DO_NOT_EXPORT_SESSION' } });
+                if (url.pathname === '/fuelapi/internal/v2/cloudpages/sites') return route.fulfill({ json: { totalCount: 1, entities: [{ siteId: 987654, siteAssetId: 123456, name: targetName, url: 'https://pages.example.com/demo' }] } });
+                if (url.pathname === '/fuelapi/asset/v1/content/assets/123456') return route.fulfill({ json: { id: 123456, assetType: { id: 247 }, meta: { thumbnailRefAssetId: 333444 } } });
+                if (url.pathname === '/fuelapi/asset/v1/content/assets/333444') return route.fulfill({ json: { id: 333444, assetType: { id: 205 }, views: { html: { content: '<h1>CloudPage %%FirstName%%</h1>' } } } });
                 if (url.origin === shell && !direct) return route.fulfill({ contentType: 'text/html', body: `<html><body><iframe src="${app}/fixture-library"></iframe></body></html>` });
                 const initial = libraries++ === 0;
-                const body = `<html><body><input placeholder="Enter at least three characters to search"><table><thead><tr>${['Name', 'Location', 'Type', 'ID', 'Status', 'Modified'].map(label => `<th>${label}</th>`).join('')}</tr></thead><tbody>${initial || loaded ? row('123456', targetName) : empty ? '' : row('987654', 'Altra pagina')}</tbody></table><script>
+                const body = `<html><body>${collections && !initial ? '<button role="tab" aria-selected="false" id="all-pages">All Pages</button><div id="library-content" hidden>' : ''}<input placeholder="Enter at least three characters to search"><table><thead><tr>${['Name', 'Location', 'Type', 'ID', 'Status', 'Modified'].map(label => `<th>${label}</th>`).join('')}</tr></thead><tbody>${initial || loaded ? row('123456', targetName) : empty ? '' : row('987654', 'Altra pagina')}</tbody></table>${collections && !initial ? '</div>' : ''}<script>
                     window.__selected = []; window.__searches = [];
+                    document.querySelector('#all-pages')?.addEventListener('click',event=>{ event.target.setAttribute('aria-selected','true'); document.querySelector('#library-content').hidden=false; });
                     document.querySelector('tbody').addEventListener('click', event => {
                         const row = event.target.closest('tr');
-                        if (!row || event.target.closest('button')) return;
+                        if (!row) return;
+                        const trigger=event.target.closest('button[aria-haspopup]');
+                        if(trigger){trigger.setAttribute('aria-expanded','true');trigger.parentElement.insertAdjacentHTML('beforeend','<div class="slds-dropdown"><div role="menu"><div role="menuitem"><button>Edit</button></div><div role="menuitem"><button>Delete</button></div></div></div>');return;}
+                        if(!event.target.closest('[role="menuitem"]') || event.target.textContent!=='Edit')return;
                         __selected.push(row.querySelector('[data-label="ID"] .slds-truncate').textContent);
                         document.querySelector('table').remove();
                         document.body.insertAdjacentHTML('beforeend','<main id="native-editor">Editor nativo</main>');
@@ -45,7 +53,7 @@ const targetName = 'Pagina <test> & "nome"';
             await frame.locator('.sfmcfix-cloudpage-newtab').waitFor();
             return { context, page, frame, errors, requests };
         }
-        for (const options of [{ direct: true }, { empty: true }, { loaded: true }]) {
+        for (const options of [{ direct: true }, { empty: true }, { loaded: true }, { collections: true }]) {
             const f = await fixture(options);
             const popupPromise = f.context.waitForEvent('page');
             await f.frame.locator('.sfmcfix-cloudpage-newtab').click();
@@ -62,11 +70,28 @@ const targetName = 'Pagina <test> & "nome"';
         console.log('PASS direct shell rendering, initially empty library and already-loaded target; selection requires the exact ID and name.');
         {
             const f = await fixture();
+            const downloaded = f.page.waitForEvent('download');
+            await f.frame.getByRole('button', { name: 'Esporta CloudPage per Git' }).click();
+            const file = await downloaded;
+            const bundle = JSON.parse(fs.readFileSync(await file.path(), 'utf8'));
+            assert.equal(bundle.format, 'sfmc-git-export-v1');
+            assert.equal(bundle.items[0].kind, 'cloudpage');
+            assert.equal(bundle.items[0].data.sourceAssets[1].views.html.content, '<h1>CloudPage %%FirstName%%</h1>');
+            assert.ok(!JSON.stringify(bundle).includes('DO_NOT_EXPORT_SESSION'));
+            assert.ok(!f.requests.some(request => request.url.startsWith('https://pages.example.com')));
+            assert.ok(f.requests.every(request => request.method === 'GET')); assert.deepEqual(f.errors, []);
+            await f.context.close();
+            console.log('PASS observed sites lookup maps siteAssetId to associated source asset; exports editable HTML and metadata without visiting the published page or exporting the session.');
+        }
+        {
+            const f = await fixture();
             const link = f.frame.locator('.sfmcfix-cloudpage-newtab');
             const href = new URL(await link.getAttribute('href'));
             assert.equal(href.origin, shell); assert.equal(href.hash, '#app/CloudPages/');
             assert.equal(href.searchParams.get('sfmcfix_cloudpage'), '123456');
             assert.equal(href.searchParams.get('sfmcfix_cloudpage_name'), targetName);
+            assert.equal(await link.locator('svg use').getAttribute('href'), '/assets/icons/utility-sprite/svg/symbols.svg#link');
+            assert.ok((await link.getAttribute('style')).includes('scale(0.7)'));
             assert.equal(await link.getAttribute('target'), '_blank');
             assert.equal(await link.getAttribute('rel'), 'noopener noreferrer');
             assert.ok((await link.getAttribute('aria-label')).includes(targetName));
