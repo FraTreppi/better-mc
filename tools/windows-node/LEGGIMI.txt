@@ -1,0 +1,68 @@
+NODE E FNM NELLA PROPRIA UTENZA - WINDOWS X64
+
+1. Estrai tutto lo ZIP in una cartella, ad esempio sul Desktop.
+2. Avvia INSTALLA.cmd con un doppio clic, senza Esegui come amministratore.
+3. Attendi il download e l'installazione. La finestra deve indicare
+   Installazione completata e mostrare fnm 1.39.0, Node v24.22.2 e npm.
+4. Chiudi tutte le finestre di Visual Studio Code.
+5. Avvia Apri-terminale-Node.cmd: apre PowerShell con fnm inizializzato.
+6. In quel terminale scrivi code.cmd seguito dal percorso del tuo progetto.
+   Esempio (sostituisci il percorso con quello reale):
+
+   code.cmd "C:\Users\TUO-NOME\Documents\MarketingCloud\MC-Progetto"
+
+7. Nel nuovo VS Code, Terminale > Nuovo terminale > Prompt dei comandi.
+   Controlla node --version e fnm --version. Node deve essere v24.22.2.
+   Per npm su Windows usa npm.cmd se PowerShell blocca il file npm.ps1.
+   Esempio nel progetto: npm.cmd run mc -- import esportazione.json
+
+DOVE INSTALLA
+
+%LOCALAPPDATA%\MC-Code-Tools\fnm
+
+Node viene estratto nella cartella node-versions\v24.22.2\installation
+di fnm. Il comando fnm default registra questa versione come predefinita.
+Il download e l'estrazione usano PowerShell e i certificati di Windows.
+Non serve scaricare nuovamente Node attraverso fnm durante questa procedura.
+Per aggiornamenti successivi puoi usare fnm install e fnm default
+dal terminale inizializzato, secondo i permessi di rete aziendali.
+
+La procedura imposta FNM_DIR e aggiunge fnm e il suo alias default al PATH
+della sola utenza. Il PATH precedente viene salvato sotto MC-Code-Tools.
+Se esiste un FNM_DIR utente diverso, si ferma conservando la configurazione.
+Un'installazione ripetuta non elimina le versioni Node gia presenti.
+Non installa nvm e non modifica profili PowerShell, ExecutionPolicy,
+impostazioni di sistema o regole aziendali.
+
+Per usare fnm use in un PowerShell aperto normalmente, inizializza prima:
+
+fnm env --shell powershell | Out-String | Invoke-Expression
+
+In alternativa usa sempre Apri-terminale-Node.cmd.
+Una sessione gia aperta di VS Code puo mantenere il vecchio ambiente:
+chiudila completamente prima di avviarla dal terminale Node.
+
+FONTI UFFICIALI E VERIFICA
+
+Lo ZIP contiene soltanto gli script e queste istruzioni.
+INSTALLA.cmd scarica i binari originali, controlla SHA256 e li estrae
+nell'utenza che lo avvia. Nessun token, password o accesso MC e richiesto.
+
+fnm 1.39.0 (GPL-3.0):
+https://github.com/Schniz/fnm/releases/tag/v1.39.0
+Sorgente: https://github.com/Schniz/fnm/tree/v1.39.0
+SHA256 archivio Windows:
+8183BED4348CB78FDFD8ABB3D1247FBEAB7B2082F941363929C61E747C001E10
+Riscontro: manifest Schniz.fnm 1.39.0 di microsoft/winget-pkgs.
+
+Node.js 24.22.2 (licenze incluse nell'archivio ufficiale):
+https://nodejs.org/dist/v24.22.2/
+SHA256 node-v24.22.2-win-x64.zip:
+CA1BFF5D8EAD13C9F2EA404A176DB46BD430704D5B5113734049FA365E7799E2
+Riscontro: SHASUMS256.txt ufficiale di Node.js.
+
+Sono stati verificati download, checksum e sintassi PowerShell.
+L'installazione non e stata eseguita su un PC Windows aziendale:
+la conferma dell'esito avviene sul tuo PC con i controlli delle versioni.
+Se un criterio aziendale blocca download o esecuzione, conserva il messaggio
+e chiedi all'IT l'autorizzazione del programma.
