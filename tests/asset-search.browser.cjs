@@ -83,6 +83,9 @@ const root = path.resolve(__dirname, '..');
         const page = await ctx.newPage(); page.on('pageerror', error => errors.push(error.message));
         await page.goto('https://content-builder.s50.marketingcloudapps.com/#folder/999');
         const trigger = page.getByRole('button', { name: 'Advanced', exact: true }); await trigger.waitFor();
+        await page.addScriptTag({ content: fs.readFileSync(root + '/assets/js/components/code-project.js', 'utf8') });
+        const exportButton = page.getByRole('button', { name: 'Esporta per Git', exact: true });
+        assert.equal(await exportButton.isVisible(), false);
         const bypassStatus = await page.evaluate(async () => (await fetch('/fuelapi/asset/v1/content/assets/query?scope=ours', {
             method: 'POST', headers: sfmcfix.nativeSession.headers(), credentials: 'same-origin',
             body: JSON.stringify({ page: { page: 1, pageSize: 50 }, query: { property: 'id', simpleOperator: 'greaterThan', value: 0 } })
@@ -110,8 +113,11 @@ const root = path.resolve(__dirname, '..');
         // Cold open: the target is off-screen and no asset route has been learned.
         await dialog.getByRole('button', { name: 'Apri Newsletter 050', exact: true }).click();
         await page.locator('#native-editor[data-asset-id="1051"]').waitFor();
+        await exportButton.waitFor({ state: 'visible' });
+        assert.equal(await page.evaluate(() => sfmcfix.codeProject.describe().id), 1051);
         await dialog.waitFor({ state: 'detached' });
         await page.getByRole('button', { name: 'Torna alla libreria' }).click();
+        await exportButton.waitFor({ state: 'hidden' });
         await trigger.click(); await term.fill('Newsletter');
         await dialog.getByRole('button', { name: 'Cerca', exact: true }).click();
         await dialog.locator('[data-status]').getByText('1–50 di 51 risultati.', { exact: true }).waitFor();

@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.2.0
+# SFMC UI Fixer — Multi BU 1.2.1
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -7,6 +7,8 @@
 La **[Guida utente](GUIDA_UTENTE.md)**, disponibile anche come **[PDF](GUIDA_UTENTE.pdf)**, descrive tutte le funzionalità e come usarle: installazione, configurazione delle BU, rubrica tester, cronologie, strumenti DE, Automation Studio, Query Studio e Journey Builder.
 
 La 1.2.0 aggiunge **Esporta per Git** e il progetto locale **MC Code Project**: sorgenti nell’editor, backup, documentazione Markdown, storico Git e invio di modifiche revisionate a Salesforce. CloudPages apre ora il comando nativo **Actions → Edit**, con lo stile del collegamento Journey.
+
+La **1.2.1** porta i comandi accanto a **Save** in Content Builder e aggiunge **Scarica HTML**: download diretto del documento completo dell’editor, comprese le modifiche non salvate. HTML e AMPscript vengono conservati come codice, senza eseguire l’anteprima. Esporta per Git conserva invece la versione salvata e i metadati. Corretto il pulsante nascosto quando l’editor era stato caricato prima dell’estensione.
 
 - [Scarica la demo pronta da aprire in VS Code](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-code-project-demo.zip): dati fittizi, senza collegamento Salesforce.
 - [Scarica lo strumento locale](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-code-project.zip) e segui la [guida Codice e Git](tools/mc-project/README.md).
@@ -50,7 +52,7 @@ Crea in ogni BU la DE **tester_content_builder** dentro **SFMC_UI_Fixer**, anche
 
 ## Sicurezza e dati
 
-La versione 1.2.0 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
+La versione 1.2.1 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 

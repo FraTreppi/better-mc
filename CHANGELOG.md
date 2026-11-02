@@ -1,3 +1,10 @@
+# 1.2.1 — 2 novembre 2026
+
+- Aggiunto Scarica HTML accanto a Save in Content Builder: esporta il documento completo dell’editor, comprese modifiche non salvate e AMPscript, senza richieste API o importazione JSON.
+- Spostato Esporta per Git accanto a Save e corretto il riconoscimento dell’asset quando il caricamento nativo precede gli hook dell’estensione. Il backup Git continua a usare il contenuto salvato e i metadati Salesforce.
+- Gestiti rendering asincrono della barra, navigazione Backbone pushState, ritorno alla libreria e identificativi di percorso/query non ambigui.
+- Guide Markdown/PDF e regressioni browser aggiornate per documenti virtualizzati, più editor, sorgente completo e posizione dei comandi.
+
 # 1.2.0 — 2 novembre 2026
 
 - Aggiunti Esporta per Git per Content Builder, Query Activity e Journey, e download del sorgente CloudPages dall’elenco. Conservati JSON nativo e codice annidato, con controlli su identità, versione e BU.

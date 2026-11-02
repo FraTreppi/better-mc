@@ -4,7 +4,19 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.2.0 — 2 novembre 2026
+## Versione attuale 1.2.1 — 2 novembre 2026
+
+Segnalato Esporta per Git assente nell’editor HTML. Il riconoscimento richiedeva insieme un percorso con ID e lastloadedasset intercettato dopo l’avvio: un editor già caricato poteva lasciare il comando nascosto. Ora si legge l’identità esplicita dal router/percorso interno o da assetId, verificando valori numerici concordanti ed escludendo cartelle e percorsi ambigui. Non viene usato l’ultimo asset caricato da un pannello secondario come identità del contenuto corrente. Un editor riconosciuto senza identità mostra il comando ma interrompe l’export API con un messaggio prima di qualsiasi richiesta.
+
+I comandi vengono inseriti prima del gruppo Save, preservando pulsante e menu nativi. Un MutationObserver e gli eventi Backbone/popstate/hashchange gestiscono barra ritardata, navigazione pushState e ritorno alla libreria. Non si modificano il router o gli endpoint di Salesforce. L’URL esterno della shell fornito dall’utente resta fisso; non viene trattato come ID del contenuto.
+
+Nuovo Scarica HTML: usa il modello completo dell’editor nativo visibile (CodeMirror 5/6, Ace, Monaco, oppure textarea HTML riconosciuta), senza ricostruire codice dalle righe DOM virtualizzate. Esporta il documento attuale, incluse modifiche non salvate, con UTF-8 e Blob di testo semplice nominato .html, limite 20 MB e nessuna richiesta API/storage. Sorgenti diversi contemporaneamente visibili vengono rifiutati. Anteprima renderizzata, codice AMPscript/JS e richiami a blocchi non vengono eseguiti o risolti. Il backup JSON Esporta per Git continua invece a leggere soltanto il contenuto salvato in MC.
+
+Verifica 1.2.1: 56 test unit dell’estensione passati; prove browser dei nuovi export salvati/HTML, Advanced con Backbone reale 0.9.10, rubrica tester e DE recenti passate su fixture simulate. La regressione dell’editor senza cache lascia Esporta per Git nascosto con il codice 1.2.0 e passa con la correzione. Verificati header asincrono, posizionamento prima di Save, rotte interne e parametro assetId, percorso senza ID per il solo download HTML, documenti di oltre 1.000 righe, sorgente non salvato diverso dal contenuto API, preservazione AMPscript/Unicode, lettori completi dei cinque tipi di editor supportati, esclusione degli editor nascosti, ambiguità e ritorno alla libreria. Nessun invio o salvataggio nativo viene aggiunto. Sintassi e guide Markdown/PDF aggiornate.
+
+Non è disponibile una sessione Salesforce autenticata o un browser Edge con l’estensione caricata per confermare il DOM dell’editor sul tenant. Le prove riproducono le superfici e i modelli nativi; la compatibilità del contenitore effettivo resta da confermare dopo l’aggiornamento. Nessun nuovo permesso.
+
+## Versione 1.2.0 — 2 novembre 2026
 
 Nuovo components/code-project.js nel bootstrap dei moduli Content Builder, Automation Studio e Journey. L’export al clic legge la risorsa salvata tramite GET nativa, richiede stack/MID corrente, controlla ID e versione e scarta risposte tardive dopo cambio BU/contenuto. L’archivio sfmc-git-export-v1 mantiene il JSON completo e il codice annidato, eliminando campi di credenziali noti. Non acquisisce modifiche non salvate e non scrive in MC. Il componente CloudPages aggiunge export same-origin tramite sites?siteAssetId (endpoint fornito dall’utente), asset e thumbnailRefAssetId quando presente, senza visitare il sito pubblicato.
 

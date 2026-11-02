@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.2.0 · Autore: Francesco Trepiccioni
+Versione 1.2.1 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -321,7 +321,13 @@ Non servono credenziali per aprire questi file. La demo è offline e non invia m
 
 ### Esporta il contenuto sul quale lavori
 
-Apri un’email, template o blocco in Content Builder, una Query Activity o una versione Journey e premi **Esporta per Git**. In CloudPages usa l’icona download nell’elenco. Viene scaricato il contenuto **già salvato in Salesforce**: salva prima le modifiche nell’editor MC se vuoi includerle.
+Nell’editor di Content Builder, accanto al pulsante **Save**, trovi **Scarica HTML** ed **Esporta per Git**.
+
+**Scarica HTML** esporta direttamente un file `.html` apribile in VS Code o in un altro editor. Apri la scheda **Content** e la vista del codice HTML: viene letto il documento completo dell’editor, anche quando sullo schermo sono visibili solo alcune righe. Il file comprende le **modifiche non ancora salvate**, conserva HTML e AMPscript e non modifica il contenuto in Salesforce. I richiami a blocchi e le espressioni rimangono nel sorgente; non viene eseguita la personalizzazione per ottenere l’anteprima. Se sono presenti più sorgenti HTML diversi, il comando chiede di aprire solo quello da esportare.
+
+Puoi mettere il file scaricato nella cartella del tuo progetto e versionarlo con Git. Questo download diretto non richiede l’importazione JSON o il collegamento Server-to-Server.
+
+**Esporta per Git** scarica invece il contenuto **già salvato in Salesforce**, con struttura e metadati. Salva prima le modifiche nell’editor MC se vuoi includerle. Il comando è disponibile anche nel dettaglio di una Query Activity o di una versione Journey. In CloudPages usa l’icona download nell’elenco.
 
 Dal progetto locale usa l’attività VS Code **MC: importa esportazione browser**, oppure `npm run mc -- import percorso-del-file.json`. La cartella `browser` conserva il JSON originale e i campi di codice separati, inclusi i blocchi annidati. L’importazione successiva aggiorna gli stessi file e segnala eventuali conflitti con modifiche locali. Questi snapshot servono da backup leggibile; per reinviare modifiche si parte dal backup API in `retrieve`.
 
@@ -371,7 +377,7 @@ Il file `sfmc-email-studio-diagnostica.json` contiene percorsi e metadati di nav
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.2.0**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.2.1**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

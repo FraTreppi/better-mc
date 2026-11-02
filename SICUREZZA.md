@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.2.0 · 2 novembre 2026
+Versione 1.2.1 · 2 novembre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -107,7 +107,11 @@ L’export CloudPages, soltanto al clic sul download, legge tokenContext per il 
 
 ## Codice e Git: esportazioni e progetto locale
 
+Scarica HTML legge soltanto il documento completo dell’editor di codice nativo visibile, tramite il suo modello (CodeMirror, Ace o Monaco) o un campo sorgente HTML riconosciuto. Non ricostruisce il file dalle righe virtualizzate e non legge l’HTML dell’anteprima renderizzata. Il file include intenzionalmente le modifiche non salvate e non necessita di richieste API, MID o storage. Più sorgenti HTML diversi producono un errore invece di una scelta automatica. Il Blob è testo semplice con estensione .html e limite di 20 MB: la funzione non esegue il codice e non lo invia a server. Il sorgente può contenere dati aziendali o segreti scritti direttamente nel testo.
+
 Esporta per Git legge soltanto il contenuto salvato dell’asset/query/Journey aperto, con il client AJAX nativo sulla stessa origine. Richiede stack e MID, verifica l’identità e la versione richiesta e interrompe le risposte obsolete al cambio contenuto o BU. I file JSON includono intenzionalmente codice e struttura nativa, possono contenere dati aziendali e restano nei download del browser. Campi di credenziali riconoscibili sono rimossi; segreti scritti dentro al codice non possono essere esclusi automaticamente. Nessun invio a GitHub o a un server dell’estensione.
+
+L’identità dell’asset viene letta dai percorsi interni espliciti o dal parametro assetId, senza dipendere dalla cache dell’ultima risposta AJAX. Cartelle, percorsi ambigui e identificativi discordanti vengono rifiutati. Il comando può essere mostrato accanto a Save anche con un editor riconosciuto senza ID: in quel caso il clic segnala l’identità non disponibile e non invia richieste. Osservazione del DOM e degli eventi del router aggiorna i controlli senza modificare i percorsi Salesforce.
 
 MC Code Project è un programma Node separato dall’estensione. Usa SFMC DevTools 10.1.1 (MIT), fissato nel lockfile, per l’integrazione Server-to-Server. Le credenziali rimangono in .mcdev-auth.json locale, non cifrato, escluso da Git; non passano al browser. I processi del motore usano cartelle temporanee private nello stato locale, eliminate al termine; un arresto forzato può lasciarle sul disco. Non condividere .sfmcgit-state. Controlli di percorsi, symlink e dimensioni limitano le importazioni; il codice estratto viene scritto come testo, non eseguito.
 

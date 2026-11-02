@@ -30,6 +30,8 @@ Installa anche Git per lo storico. L’inizializzazione prepara Git, file esclus
 
 ### Esportazioni dal browser, senza integrazione API
 
+Per un file direttamente apribile nell’editor, **Scarica HTML** accanto a Save in Content Builder esporta il sorgente completo della vista codice, comprese le modifiche non ancora salvate. Puoi conservarlo nel progetto e versionarlo con Git senza importazione JSON o collegamento Salesforce. HTML e AMPscript restano codice, senza eseguire la personalizzazione o espandere richiami dinamici a blocchi.
+
 Nell’estensione aggiornata, **Esporta per Git** scarica il contenuto **salvato in MC** per email/template/blocchi aperti in Content Builder, Query Activity e versione Journey aperta. Nell’elenco CloudPages il pulsante con icona download esporta configurazione della pagina e asset associato del sorgente. Le modifiche non salvate nell’editor non vengono esportate.
 
 Copia il file scaricato nel progetto e importalo:
