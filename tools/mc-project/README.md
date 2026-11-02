@@ -16,6 +16,10 @@ Puoi anche scaricare direttamente il [progetto demo](https://github.com/FraTrepp
 
 ## Crea il tuo progetto
 
+Su Windows estrai tutto lo [ZIP dello strumento](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-code-project.zip), chiudi le vecchie finestre di VS Code e fai doppio clic su **CREA-PROGETTO.cmd**. Crea `MC-Progetto` nella cartella della tua utenza e lo apre in VS Code, usando percorsi completi anche se il terminale precedente era in System32. Riconosce Node installato dal pacchetto fnm dell’utenza. Un progetto gia presente viene aperto; una cartella non vuota senza configurazione viene conservata e segnalata.
+
+Da terminale, su tutti i sistemi, puoi invece usare questi comandi dalla cartella dello strumento:
+
 ```sh
 node bin/mc-project.mjs init ../MC-Progetto
 cd ../MC-Progetto
