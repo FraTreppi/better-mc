@@ -1,3 +1,10 @@
+# 1.1.36 — 2 novembre 2026
+
+- Aggiunto ↗ accanto al nome nell’elenco CloudPages per aprire l’editor in una nuova scheda, mantenendo l’elenco originale.
+- Usati il markup della riga e l’URL shell forniti dall’utente. Poiché l’URL esterno resta fisso, la nuova scheda carica la libreria, usa la ricerca nativa se necessaria e seleziona soltanto la riga con ID e nome esatti. Nessun percorso editor o endpoint privato indovinato.
+- Gestiti caricamenti asincroni, elenco vuoto, righe riutilizzate e Load More senza duplicati; interazione utente, cambio modulo e timeout annullano l’apertura.
+- Chiarito nelle guide che una copia decompressa non si aggiorna scaricando codice da GitHub: gli aggiornamenti automatici del browser richiedono distribuzione tramite store.
+
 # 1.1.35 — 28 ottobre 2026
 
 - Rimossi completamente Scarica diagnostica apertura, gli avvisi della copia query, il relativo download JSON e gli stili dedicati. Il comando non ricompare in caso di errore o timeout.

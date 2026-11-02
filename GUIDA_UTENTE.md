@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.35 · Autore: Francesco Trepiccioni
+Versione 1.1.36 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
 
@@ -13,6 +13,8 @@ L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegament
 5. Aggiorna le schede Marketing Cloud già aperte.
 
 Per aggiornare una copia già installata, sostituisci i file nella **stessa cartella**, premi **Ricarica** sulla scheda dell’estensione e aggiorna Marketing Cloud. Evita di disinstallare l’estensione per un normale aggiornamento: la disinstallazione rimuove rubrica e versioni SQL conservate dall’estensione.
+
+Premere Ricarica non scarica i nuovi file da GitHub. L’aggiornamento automatico del browser richiede l’installazione da Chrome Web Store o Microsoft Edge Add-ons, sui quali questo pacchetto non è pubblicato. Per questa installazione usa la sostituzione dei file descritta sopra.
 
 Lo stesso ZIP è compatibile con **Google Chrome e Microsoft Edge basato su Chromium**. Usa una versione aggiornata del browser; il requisito Chromium minimo è 111. Non servono Node, npm, un server o password da inserire nell’estensione. Il file ZIP va estratto: non si installa con un doppio clic. L’installazione descritta è manuale, in modalità sviluppatore; non richiede l’opzione che consente estensioni da altri store.
 
@@ -287,6 +289,14 @@ Non vengono generate automaticamente clausole FROM o JOIN.
 
 Dopo un cambio BU, conserva prima il testo che ti serve e premi **Clear** prima di salvare nel nuovo contesto. Quando il MID non è riconosciuto, le copie rimangono temporanee per il documento corrente.
 
+## CloudPages: aprire l’editor in un’altra scheda
+
+Nell’elenco **CloudPages**, accanto al nome della pagina compare il pulsante **↗**. Cliccalo per aprire l’editor Salesforce in una nuova scheda; l’elenco originale rimane aperto. Il pulsante apre l’editor anche per le pagine non pubblicate.
+
+La nuova scheda carica CloudPages e seleziona la pagina con lo stesso ID e nome. Se la riga non è già presente, compila la ricerca nativa con il nome e attende i risultati. Il comando compare anche sulle righe aggiunte da Load More.
+
+Attendi il caricamento. Se inizi a usare la nuova scheda, l’apertura automatica si interrompe. Se la pagina non viene trovata o CloudPages non completa il caricamento, compare un messaggio chiudibile: puoi cercarla manualmente nella nuova scheda. Il comando dipende dall’elenco e dalla ricerca resi disponibili da Salesforce; non pubblica né modifica la CloudPage.
+
 ## Journey Builder
 
 Nei riquadri riconosciuti che referenziano un Journey può comparire un’icona di collegamento: apre il Journey e la versione indicati in una nuova scheda.
@@ -310,7 +320,7 @@ Il file `sfmc-email-studio-diagnostica.json` contiene percorsi e metadati di nav
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.35**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.36**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.

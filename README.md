@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.35
+# SFMC UI Fixer — Multi BU 1.1.36
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -15,6 +15,8 @@ Lo stesso ZIP funziona su **Google Chrome e Microsoft Edge basato su Chromium**.
 
 Usa un browser aggiornato; il requisito Chromium minimo è 111. Lo ZIP è per l’installazione manuale in modalità sviluppatore: non è una pubblicazione su Microsoft Edge Add-ons o Chrome Web Store.
 
+La pubblicazione dello ZIP su GitHub non aggiorna una copia decompressa: **Ricarica** rilegge soltanto i file sul PC. Gli aggiornamenti automatici del browser richiedono una distribuzione tramite Chrome Web Store o Microsoft Edge Add-ons; questa versione non è pubblicata su questi store.
+
 Per aggiornare, sostituisci i file nella stessa cartella e premi **Ricarica** sull’estensione. Poi aggiorna le schede Marketing Cloud. Non serve disinstallarla; mantenere la stessa installazione conserva i suoi salvataggi.
 
 I salvataggi locali sono separati fra Chrome, Edge e i relativi profili: non vengono trasferiti automaticamente. In Edge verifica la BU rilevata e premi Carica tester dalla DE; la DE condivisa può fornire la stessa rubrica a entrambi i browser.
@@ -28,6 +30,7 @@ I salvataggi locali sono separati fra Chrome, Edge e i relativi profili: non ven
 | Preview and Test | Caricamento e attivazione con un clic della rubrica DE tester_content_builder, fino a 1000 tester per BU, suggerimenti destinatari, cartella virtuale DE recenti con svuotamento. |
 | Automation Studio | Apertura automatica della Query Activity appena copiata dal dettaglio dopo il completamento della procedura nativa; refresh automatico del Run Log ogni 5 secondi con pulsante ON/OFF, automation recenti, collegamenti alle attività e alla DE target, copia SQL, vista SQL validato, download JSON, copie locali prima della modifica. |
 | Query Studio | Bozze, recupero dell’editor, elenco query, copia campi e campi obbligatori, pannelli comprimibili. |
+| CloudPages | Pulsante accanto al nome per aprire l’editor in una nuova scheda, tramite selezione della pagina nell’elenco nativo. |
 | Journey Builder | Collegamento ai Journey referenziati e alla DE dell’entry quando identificabile. |
 | Pagina dell’estensione | Visibilità delle icone, consultazione ed esportazione delle versioni SQL, eliminazione delle copie locali, diagnostica Email Studio. |
 
@@ -39,7 +42,7 @@ Crea in ogni BU la DE **tester_content_builder** dentro **SFMC_UI_Fixer**, anche
 
 ## Sicurezza e dati
 
-La versione 1.1.35 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
+La versione 1.1.36 restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
@@ -47,4 +50,4 @@ Queste misure riducono i rischi individuati e non costituiscono una garanzia ass
 
 Vedi **[Sicurezza e limiti](SICUREZZA.md)** per le protezioni e i rischi residui. La [documentazione tecnica](DOCUMENTATION.md) e la [cronologia](CHANGELOG.md) sono separate dalla guida utente.
 
-La 1.1.35 rimuove completamente il pulsante e gli avvisi di diagnostica della copia query. L’apertura automatica della Query Activity appena copiata resta attiva.
+La 1.1.36 aggiunge il collegamento all’editor CloudPages in una nuova scheda. La scheda di origine rimane sull’elenco; filtri e selezione nella nuova scheda usano i controlli nativi Salesforce.

@@ -4,7 +4,19 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.35 — 28 ottobre 2026
+## Versione attuale 1.1.36 — 2 novembre 2026
+
+Nuovo content script isolato cloudpages-links.js, privo di API storage o rete aggiuntive. Il markup fornito identifica tr.slds-hint-parent, celle Name/Location/Type/ID/Status/Modified/Actions e il suffisso SLDSDataTableRow-ID-SLDSDataTableRowActions. L’URL della shell fornito resta /cloud/#app/CloudPages/ anche con editor aperto: non viene assunto un percorso editor.
+
+Un link HTTPS alla shell dello stack corrente apre una nuova scheda con ID e nome temporanei nella query string. La shell riconosce il proprio iframe diretto tramite origine HTTPS Salesforce dello stesso stack ed event.source; il frame dichiara la libreria solo dopo aver riconosciuto la tabella. La selezione viene eseguita una volta con il clic nativo sulla cella del nome e richiede ID/nome esatti e riga visibile. Se manca la riga, il campo identificato dal placeholder presente nella schermata utente riceve input/change/Enter nativi con il nome. Non vengono osservati o costruiti endpoint. Il rendering diretto nella shell e una tabella inizialmente vuota sono gestiti.
+
+L’osservatore DOM aggiorna le sole righe aggiunte/modificate; l’attesa periodica esiste solo nella nuova scheda con apertura pendente. Scadenze di 30 secondi nel frame e 45 nella shell, cambio modulo e interazioni utente interrompono la selezione. Nessuna scrittura Salesforce o accesso allo storage. La risposta selected conferma l’invio del clic nativo, non certifica il caricamento remoto dell’editor: l’apertura effettiva dipende dal comportamento Salesforce.
+
+Verifica 1.1.36: passati i 56 test unit e la sintassi di 50 file JavaScript. La prova browser CloudPages passa per apertura in nuova scheda con origine invariata, ricerca e selezione una sola volta, nomi con caratteri speciali, rendering in iframe o direttamente nella shell, elenco inizialmente vuoto, riga già presente, Load More, riuso e rinomina delle righe, rifiuto di ID/nome non corrispondenti, timeout, interazione utente e risposte tardive dopo cambio modulo. Guida PDF rigenerata e verificata per testo/versione.
+
+Le prove browser usano il markup strutturale fornito con nomi/ID sintetici, shell e iframe simulati. Non è disponibile una sessione tenant per verificare il contenitore, i filtri e il caricamento effettivo dell’editor. La pubblicazione GitHub resta una distribuzione ZIP manuale: nessuna promessa di aggiornamento automatico per copie decompresse e nessun caricamento di codice remoto.
+
+## Versione 1.1.35 — 28 ottobre 2026
 
 Dopo la conferma utente di apertura riuscita nella 1.1.34 (navigated e creazione HTTP 201), rimossi interamente dall’interfaccia il pulsante Scarica diagnostica apertura, l’avviso automatico, la generazione/download del JSON e il relativo CSS. Non esiste un ripiego che li mostri dopo errori o timeout. Lo stato tecnico interno in memoria resta disponibile alle verifiche automatiche.
 

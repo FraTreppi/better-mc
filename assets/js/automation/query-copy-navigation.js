@@ -2,7 +2,7 @@
     'use strict';
     const api = window.sfmcfix;
     if (api.queryCopyNavigation || !window.jQuery?.ajaxPrefilter) return;
-    const VERSION = '1.1.35';
+    const VERSION = '1.1.36';
     const GUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
     const guid = value => typeof value === 'string' && new RegExp(`^${GUID}$`, 'i').test(value) ? value.toLowerCase() : null;
     const routePattern = new RegExp(`^#ActivityDetails/(\\d{1,6})/(${GUID})/?$`, 'i');

@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.35 · 28 ottobre 2026
+Versione 1.1.36 · 2 novembre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -96,3 +96,11 @@ CLONE e MULTI ROWS possono produrre scritture reali nella DE, usando i permessi 
 - **Distribuzione e aggiornamenti.** Il pacchetto è un’estensione caricata in modalità sviluppatore. Installa versioni provenienti dal repository atteso e mantieni aggiornati il browser e il sistema operativo. Una distribuzione aziendale tramite browser gestiti, Microsoft Edge Add-ons o Chrome Web Store può migliorare controllo delle versioni e provenienza; non è una garanzia automatica di assenza di vulnerabilità.
 
 Per dati che richiedono protezioni ulteriori serve una scelta architetturale: per esempio rinunciare al salvataggio locale del SQL, oppure introdurre un archivio cifrato con una chiave gestita fuori dal codice dell’estensione. Inserire una chiave fissa nel pacchetto non renderebbe sicuro l’archivio.
+
+## Collegamenti CloudPages
+
+Il content script CloudPages opera soltanto sul DOM in un mondo isolato e non attiva il ponte allo storage. Riconosce le colonne della tabella e l’identificativo del controllo azioni, aggiungendo collegamenti con target _blank e rel noopener noreferrer. ID e nome sono parametri temporanei dell’URL della nuova scheda e vengono rimossi al completamento o all’interruzione; non sono salvati nell’archivio dell’estensione.
+
+La nuova scheda usa ricerca e clic nativi, senza costruire endpoint privati o percorsi editor non osservati. La selezione richiede corrispondenza di ID e nome; messaggi limitati allo stack corrente collegano la shell HTTPS al suo iframe diretto. Interazione dell’utente, cambio modulo e scadenza interrompono l’apertura. Nessun nuovo permesso, accesso a record, pubblicazione o salvataggio di CloudPages.
+
+Tutto il codice resta nel pacchetto installato. GitHub distribuisce lo ZIP, ma non può sostituire automaticamente i file di una copia decompressa. Non viene aggiunto un caricatore di JavaScript remoto.
