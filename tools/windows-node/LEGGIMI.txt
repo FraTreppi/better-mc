@@ -5,11 +5,14 @@ NODE E FNM NELLA PROPRIA UTENZA - WINDOWS X64
 3. Attendi il download e l'installazione. La finestra deve indicare
    Installazione completata e mostrare fnm 1.39.0, Node v24.22.2 e npm.
 4. Chiudi tutte le finestre di Visual Studio Code.
-5. Avvia Apri-terminale-Node.cmd: apre PowerShell con fnm inizializzato.
-6. In quel terminale scrivi code.cmd seguito dal percorso del tuo progetto.
-   Esempio (sostituisci il percorso con quello reale):
-
-   code.cmd "C:\Users\TUO-NOME\Documents\MarketingCloud\MC-Progetto"
+5. Avvia Apri-terminale-Node.cmd: inizializza fnm e chiede quale cartella aprire.
+6. Seleziona MC-Progetto, MC-Demo oppure Strumento (con bin e lib),
+   secondo il punto della configurazione a cui sei arrivato.
+   Il terminale si posiziona nella cartella scelta e apre VS Code su quel
+   percorso esplicito, se il comando code.cmd e disponibile.
+   Se annulli la scelta, non viene aperta alcuna cartella.
+   Se VS Code non e nel PATH, aprilo e usa File > Open Folder per scegliere
+   la stessa cartella. Windows e le sue sottocartelle vengono rifiutati.
 
 7. Nel nuovo VS Code, Terminale > Nuovo terminale > Prompt dei comandi.
    Controlla node --version e fnm --version. Node deve essere v24.22.2.
@@ -39,6 +42,10 @@ Per usare fnm use in un PowerShell aperto normalmente, inizializza prima:
 fnm env --shell powershell | Out-String | Invoke-Expression
 
 In alternativa usa sempre Apri-terminale-Node.cmd.
+Se una vecchia procedura ha aperto System32, usa File > Open Folder
+e seleziona la cartella del tuo progetto. Il punto in code.cmd . indica
+la cartella corrente, quindi non usarlo da un terminale in System32.
+
 Una sessione gia aperta di VS Code puo mantenere il vecchio ambiente:
 chiudila completamente prima di avviarla dal terminale Node.
 
