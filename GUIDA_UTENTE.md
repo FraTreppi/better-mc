@@ -1,8 +1,8 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.2.1 · Autore: Francesco Trepiccioni
+Versione 1.1.38 · Autore: Francesco Trepiccioni
 
-L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Lavora con la sessione Salesforce già aperta.
+L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Le funzioni dell’interfaccia lavorano con la sessione Salesforce già aperta. La nuova analisi degli utilizzi DE richiede anche un collegamento API in sola lettura, descritto sotto.
 
 ## Installazione e aggiornamento
 
@@ -16,11 +16,31 @@ Per aggiornare una copia già installata, sostituisci i file nella **stessa cart
 
 Premere Ricarica non scarica i nuovi file da GitHub. L’aggiornamento automatico del browser richiede l’installazione da Chrome Web Store o Microsoft Edge Add-ons, sui quali questo pacchetto non è pubblicato. Per questa installazione usa la sostituzione dei file descritta sopra.
 
-Lo stesso ZIP è compatibile con **Google Chrome e Microsoft Edge basato su Chromium**. Usa una versione aggiornata del browser; il requisito Chromium minimo è 111. Non servono Node, npm, un server o password da inserire nell’estensione. Il file ZIP va estratto: non si installa con un doppio clic. L’installazione descritta è manuale, in modalità sviluppatore; non richiede l’opzione che consente estensioni da altri store.
+Lo stesso ZIP è compatibile con **Google Chrome e Microsoft Edge basato su Chromium**. Usa una versione aggiornata del browser; il requisito Chromium minimo è 111. Per le funzioni preesistenti non serve Node. **Dove viene usata** richiede invece Node 24.15 o successivo e il componente locale Analisi DE; le credenziali Salesforce si inseriscono soltanto nella configurazione locale sul PC. Il file ZIP va estratto: non si installa con un doppio clic. L’installazione descritta è manuale, in modalità sviluppatore; non richiede l’opzione che consente estensioni da altri store.
 
 I dati locali di Chrome e Edge sono **separati**, anche sullo stesso computer. Installare l’estensione in Edge non importa automaticamente tester locali, cronologie, preferenze o copie SQL da Chrome. Imposta la BU nel nuovo browser e premi Carica tester dalla DE; se usi la DE `tester_content_builder`, gli stessi contatti possono essere letti da entrambi. Anche il login a Marketing Cloud deve essere effettuato nel browser nel quale lavori.
 
 Se il browser aziendale impedisce l’attivazione della modalità sviluppatore o il caricamento, chiedi all’amministratore IT di autorizzare l’estensione.
+
+## Dove viene usata una Data Extension
+
+Questa funzione cerca gli utilizzi della DE nelle **Query Activities e nelle automation della sola BU configurata**. Non gestisce scansioni o cambi BU.
+
+Prima dell’utilizzo, l’amministratore deve predisporre un **Installed Package Server-to-Server** con accesso alla BU e lettura di Data Extensions, Query Activities e Automations. Servono MID, stack, Authentication Base URI, Client ID e Client Secret. Non inviare il Client Secret in chat.
+
+1. Scarica il [componente locale Analisi DE](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-de-usage-reader.zip) ed estrailo in una cartella personale separata dall’estensione. Serve Node 24.15 o successivo; Git non serve.
+2. Apri **CONFIGURA.cmd**, inserisci i dati del pacchetto e poi apri **AVVIA.cmd**. Lascia aperta la finestra.
+3. Clicca l’icona dell’estensione → **Collegamento Analisi DE**. Incolla il codice mostrato da AVVIA.cmd e premi **Verifica e salva collegamento**. Il codice locale è riservato; non è il Client Secret.
+4. In **Contact Builder → Data Extensions**, apri le proprietà o i record di una DE. Premi **Dove viene usata**, sopra il dettaglio della DE.
+5. Attendi la prima lettura dei metadati. Le successive ricerche riusano l’indice in memoria; usa **Aggiorna analisi** dopo modifiche a query o automation.
+
+Ogni riga mostra una query che **legge**, **scrive** o **legge e scrive** la DE. La scrittura indica Append, Update o Overwrite quando disponibile. Sono mostrate tutte le occorrenze trovate nelle automation, con step, posizione e stato. I nomi aprono query e automation in una nuova scheda, usando la sessione corrente. Lo stato non dimostra che un’esecuzione abbia elaborato record recentemente.
+
+**Analisi parziale** segnala SQL non supportato, nomi ambigui, target o relazioni automation non leggibili. Consulta i contatori e **Riferimenti da verificare**. Un elenco vuoto non certifica che la DE sia inutilizzata: la ricerca copre soltanto i metadati accessibili alla BU e al pacchetto. Se Salesforce non espone attività o step tramite le API autorizzate, il pannello mantiene i riferimenti alle query e segnala i collegamenti automation incompleti.
+
+Sono esclusi gli utilizzi in email, AMPscript, SSJS, Journey, import, estrazioni e integrazioni esterne. I riferimenti a schemi esterni come ENT restano da verificare, senza interrogare altre BU. Non vengono letti record o eseguite query. Client Secret e token restano nel componente locale; il file di configurazione sul PC non è cifrato e deve rimanere nella cartella personale.
+
+La verifica del codice conferma il collegamento locale; OAuth e permessi Salesforce vengono verificati al primo avvio dell’analisi. Se il componente è spento, avvia AVVIA.cmd. Se il MID non corrisponde o non viene rilevato, riapri Contact Builder nella BU configurata. Per errori API, chiedi all’amministratore di verificare accesso e permessi. Le [istruzioni del componente](https://github.com/FraTreppi/better-mc/blob/main/tools/de-usage/README.md) descrivono configurazione, rete e limiti.
 
 ## Business Unit, MID e accesso ai dati locali
 
@@ -301,58 +321,9 @@ Dopo un cambio BU, conserva prima il testo che ti serve e premi **Clear** prima 
 
 Nell’elenco **CloudPages**, accanto al nome della pagina compare il pulsante **↗**. Cliccalo per aprire l’editor Salesforce in una nuova scheda; l’elenco originale rimane aperto. Il pulsante apre l’editor anche per le pagine non pubblicate.
 
-La nuova scheda carica CloudPages, passa ad All Pages quando disponibile e cerca la pagina con lo stesso ID e nome. Se la riga non è già presente, compila la ricerca nativa con il nome e attende i risultati. Poi apre **Actions → Edit**, come faresti manualmente. Il pulsante ha lo stesso stile del collegamento nei Journey e compare anche sulle righe aggiunte da Load More.
+La nuova scheda carica CloudPages e seleziona la pagina con lo stesso ID e nome. Se la riga non è già presente, compila la ricerca nativa con il nome e attende i risultati. Il comando compare anche sulle righe aggiunte da Load More.
 
 Attendi il caricamento. Se inizi a usare la nuova scheda, l’apertura automatica si interrompe. Se la pagina non viene trovata o CloudPages non completa il caricamento, compare un messaggio chiudibile: puoi cercarla manualmente nella nuova scheda. Il comando dipende dall’elenco e dalla ricerca resi disponibili da Salesforce; non pubblica né modifica la CloudPage.
-
-Accanto al collegamento trovi un’icona **download**: esporta la configurazione della CloudPage e gli asset del sorgente salvato in un file JSON. La pagina pubblicata non viene visitata per ricavare il codice. Se il sorgente non è accessibile tramite la sessione, usa il backup dal progetto locale descritto sotto.
-
-## Codice, editor e storico GitHub
-
-**MC Code Project** affianca l’estensione con una cartella di lavoro per VS Code o un altro editor. Contiene sorgenti HTML/SQL/JS, metadati e documentazione Markdown. I Journey sono conservati come definizioni JSON, con diagramma del flusso quando disponibile.
-
-### Prova senza configurare Salesforce
-
-1. Scarica il [progetto demo](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-code-project-demo.zip) ed estrailo.
-2. In VS Code scegli **File → Apri cartella** e apri la cartella estratta.
-3. In `retrieve/demo/BU-demo` trovi email, template, CloudPage, query e Journey fittizi. Apri e modifica i sorgenti; in `docs/demo/BU-demo` trovi inventario e documentazione.
-
-Non servono credenziali per aprire questi file. La demo è offline e non invia modifiche a Salesforce. Per usare i comandi del progetto servono Node.js **24.15 o successivo** e Git. Lo [strumento locale](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-code-project.zip) può creare nuovi progetti e nuove demo; include anche gli avvii `DEMO.cmd` per Windows e `demo.command` per macOS.
-
-### Esporta il contenuto sul quale lavori
-
-Nell’editor di Content Builder, accanto al pulsante **Save**, trovi **Scarica HTML** ed **Esporta per Git**.
-
-**Scarica HTML** esporta direttamente un file `.html` apribile in VS Code o in un altro editor. Apri la scheda **Content** e la vista del codice HTML: viene letto il documento completo dell’editor, anche quando sullo schermo sono visibili solo alcune righe. Il file comprende le **modifiche non ancora salvate**, conserva HTML e AMPscript e non modifica il contenuto in Salesforce. I richiami a blocchi e le espressioni rimangono nel sorgente; non viene eseguita la personalizzazione per ottenere l’anteprima. Se sono presenti più sorgenti HTML diversi, il comando chiede di aprire solo quello da esportare.
-
-Puoi mettere il file scaricato nella cartella del tuo progetto e versionarlo con Git. Questo download diretto non richiede l’importazione JSON o il collegamento Server-to-Server.
-
-**Esporta per Git** scarica invece il contenuto **già salvato in Salesforce**, con struttura e metadati. Salva prima le modifiche nell’editor MC se vuoi includerle. Il comando è disponibile anche nel dettaglio di una Query Activity o di una versione Journey. In CloudPages usa l’icona download nell’elenco.
-
-Dal progetto locale usa l’attività VS Code **MC: importa esportazione browser**, oppure `npm run mc -- import percorso-del-file.json`. La cartella `browser` conserva il JSON originale e i campi di codice separati, inclusi i blocchi annidati. L’importazione successiva aggiorna gli stessi file e segnala eventuali conflitti con modifiche locali. Questi snapshot servono da backup leggibile; per reinviare modifiche si parte dal backup API in `retrieve`.
-
-### Collega il progetto quando sarai pronto
-
-Per leggere più risorse e salvare modifiche dall’editor serve una registrazione dell’integrazione in Marketing Cloud, chiamata **Installed Package Server-to-Server**. La prepara un amministratore: non è un programma da installare sul PC. I dati di accesso si inseriscono nel wizard locale **MC: collega Salesforce**, mai nella chat o su GitHub.
-
-La [guida del progetto locale](tools/mc-project/README.md) contiene i passaggi di preparazione e i permessi da richiedere. Dopo il collegamento:
-
-1. **MC: backup e sincronizzazione** scarica i tipi configurati nella BU scelta: asset di codice, CloudPages, query, script, Journey, automation ed eventi, con i riferimenti necessari.
-2. Modifica i file in `retrieve`; usa Source Control di VS Code per confronti, branch, commit e Pull Request in un repository GitHub **privato** del team.
-3. **MC: prepara invio** seleziona una risorsa e crea il confronto. Leggi `docs/INVIO.md` e usa **MC: confronto del piano**.
-4. **MC: invia modifica revisionata** ricontrolla BU, file e versione Salesforce, salva un backup precedente e invia soltanto quel piano. Se MC è cambiato, interrompe l’invio per risolvere il conflitto.
-
-Il progetto include `sfmc-baselines.json`: conserva MID e impronte dei file dell’ultimo backup e va versionato insieme ai sorgenti. Permette anche a un collega che clona il repository di confrontare modifiche locali e remote. Ogni collega configura sul proprio PC le credenziali, escluse da Git. Il normale commit o push GitHub non pubblica nulla in MC.
-
-| Risorsa | Cosa puoi inviare |
-| --- | --- |
-| Email, template e blocchi | Contenuto salvato; Preview and Test rimane in MC. I blocchi richiamati a runtime possono influire subito sui contenuti che li usano. |
-| CloudPages | Contenuto di pagine esistenti. Creazione e **Publish** rimangono in Salesforce. |
-| Query e script | Definizione e codice; nessuna esecuzione automatica. |
-| Journey | Modifiche a una versione Draft. L’attività separata **MC: valida e attiva Journey** richiede MID, Customer Key e versione esatti e può avviare un Journey reale. |
-| Automation | Backup e documentazione. Query/script collegati si modificano separatamente; workflow, pianificazione e avvio restano in MC. |
-
-I backup non includono i record delle DE o tutte le immagini/allegati e non ricostruiscono modifiche precedenti al primo salvataggio Git. Conserva il codice aziendale in un repository privato e controlla il diff prima di pubblicarlo: anche un sorgente può contenere credenziali scritte direttamente nel testo.
 
 ## Journey Builder
 
@@ -377,7 +348,7 @@ Il file `sfmc-email-studio-diagnostica.json` contiene percorsi e metadati di nav
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.2.1**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.38**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.
@@ -394,6 +365,9 @@ Non serve disinstallare l’estensione o cancellare i dati locali. Il messaggio 
 | DE recenti, automation recenti e bozze Query Studio | Dati locali del sito/modulo nel profilo browser; temporanei se manca un contesto completo. |
 | Scelta di mostrare l’icona Impostazioni SFMC | Impostazione generale dell’estensione per quel profilo. |
 | Record modificati o inseriti nelle DE | Salesforce, dopo il salvataggio reale. |
+| Configurazione Analisi DE e Client Secret | File locale non cifrato config.local.json nella cartella personale del componente sul PC. |
+| Codice di collegamento Analisi DE | Storage protetto del profilo dell’estensione; da trattare come dato riservato. |
+| Indice degli utilizzi DE | Memoria del componente locale, fino alla sua chiusura; aggiornabile dal pannello. |
 | CSV, versioni esportate e diagnostica scaricata | File nella posizione scelta per i download. |
 
 I salvataggi locali non si sincronizzano automaticamente con altri browser o colleghi. La rubrica DE è invece condivisa tramite Salesforce con chi può leggere quella DE. Il rinnovo di una conferma non cancella i dati già presenti. Un profilo nuovo, la disinstallazione, la pulizia dei dati del browser o il raggiungimento delle quote possono renderli indisponibili.

@@ -1,17 +1,10 @@
-# 1.2.1 — 2 novembre 2026
+# 1.1.38 — 12 novembre 2026
 
-- Aggiunto Scarica HTML accanto a Save in Content Builder: esporta il documento completo dell’editor, comprese modifiche non salvate e AMPscript, senza richieste API o importazione JSON.
-- Spostato Esporta per Git accanto a Save e corretto il riconoscimento dell’asset quando il caricamento nativo precede gli hook dell’estensione. Il backup Git continua a usare il contenuto salvato e i metadati Salesforce.
-- Gestiti rendering asincrono della barra, navigazione Backbone pushState, ritorno alla libreria e identificativi di percorso/query non ambigui.
-- Guide Markdown/PDF e regressioni browser aggiornate per documenti virtualizzati, più editor, sorgente completo e posizione dei comandi.
-
-# 1.2.0 — 2 novembre 2026
-
-- Aggiunti Esporta per Git per Content Builder, Query Activity e Journey, e download del sorgente CloudPages dall’elenco. Conservati JSON nativo e codice annidato, con controlli su identità, versione e BU.
-- Creato MC Code Project, strumento locale basato su SFMC DevTools 10.1.1: progetto per editor, backup multi BU, HTML/SQL/JS, inventario e dipendenze Markdown, diagrammi Journey, storico Git privato e conflitti a tre versioni anche da clone del team.
-- Aggiunti piani revisionabili per una risorsa, backup precedente, verifica del salvataggio e comando separato di validazione/attivazione Journey. CloudPages aggiorna contenuto esistente; creazione e Publish rimangono native. Nessun avvio automatico di query/script/automation.
-- Corretta apertura CloudPages tramite Actions → Edit invece del nome; supportati All Pages e host cloud-pages. Icona nello stile dei Journey.
-- Distribuiti ZIP dello strumento e demo offline senza credenziali; guide Markdown/PDF aggiornate. L’integrazione con una BU reale richiede configurazione Server-to-Server successiva.
+- Ripartenza dalla 1.1.37 dello ZIP fornito; accantonati esportazione template e strumenti progetto/Git successivi.
+- Aggiunto **Dove viene usata** nel dettaglio DE di Contact Builder: query in lettura/scrittura, modalità target, automation e posizioni, link e aggiornamento dell’indice.
+- Analisi limitata alla singola BU configurata, senza scansione o cambio BU. Riferimenti incerti e recuperi SOAP non supportati sono esplicitamente parziali.
+- Componente locale Node separato, con Installed Package S2S in lettura, credenziali fuori dall’estensione e collegamento loopback autenticato. Nessuna lettura record o esecuzione query per l’analisi.
+- Guide e pacchetti estensione/componente aggiornati. Verifica sul tenant richiesta per API e permessi effettivi.
 
 # 1.1.37 — 2 novembre 2026
 

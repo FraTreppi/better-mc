@@ -8,6 +8,7 @@
         sfmcfix.addCss('contactbuilder/de');
         sfmcfix.addJs('components/de-csv-export', () => sfmcfix.addJs('contactbuilder/de'));
         sfmcfix.addJs('contactbuilder/email-studio');
+        sfmcfix.addJs('contactbuilder/de-usage-context');
     }
     window.addEventListener('hashchange', init);
     init();

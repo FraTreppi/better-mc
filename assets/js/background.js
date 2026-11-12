@@ -1,7 +1,7 @@
 // Privileged storage stays in the extension. Page scripts receive only an
 // explicitly approved BU view, never the full archive or a network proxy.
 'use strict';
-const VERSION = '1.2.1';
+const VERSION = '1.1.38';
 function failure(code, message) { return Object.assign(new Error(message), { code }); }
 const SETTINGS = 'SFMCFIX---SETTINGS-V2';
 const UI = 'SFMCFIX---UI-PREFERENCES';
@@ -298,3 +298,4 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }).catch(() => console.error('SFMC Fixer: notifica preferenze non disponibile.'));
 });
 chrome.action.onClicked.addListener(() => chrome.tabs.create({ url: chrome.runtime.getURL('assets/html/activity-versioning.html') }));
+if (typeof importScripts === 'function') importScripts('de-usage-worker.js');

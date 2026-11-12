@@ -281,10 +281,6 @@
         return;
     }
 
-    if (/^content-builder\.|^jbinteractions\./i.test(location.hostname) || /^\/AutomationStudioFuel3(?:\/|$)/i.test(location.pathname)) {
-        sfmcfix.addJs('components/code-project');
-    }
-
     if(window.location.href.indexOf('querystudio') != -1) {
         
         //query studio fixes

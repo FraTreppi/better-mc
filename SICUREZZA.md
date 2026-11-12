@@ -1,8 +1,18 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.2.1 · 2 novembre 2026
+Versione 1.1.38 · 12 novembre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
+
+## Analisi DE nella singola BU
+
+La nuova funzione usa un componente locale separato: OAuth Server-to-Server con account_id fisso, SOAP Describe/Retrieve per soli metadati DataExtension, QueryDefinition, Automation, AutomationTask e AutomationActivity, ClientIDs esplicito e QueryAllAccounts=false. Non usa cookie del browser e non effettua operazioni Create, Update, Perform o letture dei record. Le definizioni SQL sono elaborate in memoria e non vengono inviate all’estensione.
+
+Il nuovo permesso HTTP è limitato a 127.0.0.1; i match pattern Chromium non distinguono le porte, ma il worker usa soltanto la porta 17638 e percorsi predefiniti. Il servizio ascolta soltanto sull’interfaccia loopback, verifica Host, origine extension se presente, chiave Bearer e MID/stack. Non è un proxy generico. Il pannello isolato avvia le letture solo dopo un clic utente e richiede GUID della DE aperta e scope corrispondenti alla configurazione. Il MID deriva dal contesto dell’interfaccia e non costituisce un’autenticazione indipendente; il perimetro API è imposto anche dal servizio.
+
+La pagina privata dell’estensione conserva una chiave di collegamento locale nello storage protetto e non la espone al ponte della pagina. Client Secret e configurazione sono nel file locale non cifrato config.local.json, escluso da Git e dai pacchetti; token e indice rimangono nel processo. I permessi 0600 sono richiesti dove supportati, mentre su Windows valgono le ACL dell’account. Un processo locale compromesso con accesso a quel file può leggere le credenziali. La chiave va trattata come un dato riservato e rinnovata con CONFIGURA.cmd se esposta.
+
+Timeout, paginazione controllata, limiti di dimensione e parsing SQL in worker limitano il carico. Risposte parziali, SQL non risolti e proprietà SOAP non supportate impediscono di dichiarare completa l’analisi. L’indice resta un inventario statico degli oggetti leggibili, non una prova di assenza di ogni utilizzo o uno storico di esecuzione. Le dipendenze sono fissate nel lockfile del componente e installate senza script npm.
 
 ## Compatibilità con Chrome e Edge
 
@@ -99,25 +109,9 @@ Per dati che richiedono protezioni ulteriori serve una scelta architetturale: pe
 
 ## Collegamenti CloudPages
 
-Il content script CloudPages opera in un mondo isolato e non attiva il ponte allo storage. Riconosce le colonne della tabella e l’identificativo del controllo azioni, aggiungendo collegamenti con target _blank e rel noopener noreferrer. ID e nome sono parametri temporanei dell’URL della nuova scheda e vengono rimossi al completamento o all’interruzione; non sono salvati nell’archivio dell’estensione.
+Il content script CloudPages opera soltanto sul DOM in un mondo isolato e non attiva il ponte allo storage. Riconosce le colonne della tabella e l’identificativo del controllo azioni, aggiungendo collegamenti con target _blank e rel noopener noreferrer. ID e nome sono parametri temporanei dell’URL della nuova scheda e vengono rimossi al completamento o all’interruzione; non sono salvati nell’archivio dell’estensione.
 
-La nuova scheda usa All Pages, ricerca e Actions → Edit nativi, senza costruire percorsi editor non osservati. La selezione richiede corrispondenza di ID e nome; messaggi limitati allo stack corrente collegano la shell HTTPS al suo iframe diretto. Interazione dell’utente, cambio modulo e scadenza interrompono l’apertura. Nessun nuovo permesso, accesso a record, pubblicazione o salvataggio di CloudPages.
-
-L’export CloudPages, soltanto al clic sul download, legge tokenContext per il solo MID, il sito tramite l’endpoint sites?siteAssetId fornito dall’utente e l’asset sorgente associato. Sono GET same-origin con timeout; il MID viene ricontrollato prima del download. La URL pubblica rimane un metadato: non viene visitata, evitando di eseguire il codice della pagina per ottenere il sorgente. I campi di credenziali noti sono esclusi dal JSON.
-
-## Codice e Git: esportazioni e progetto locale
-
-Scarica HTML legge soltanto il documento completo dell’editor di codice nativo visibile, tramite il suo modello (CodeMirror, Ace o Monaco) o un campo sorgente HTML riconosciuto. Non ricostruisce il file dalle righe virtualizzate e non legge l’HTML dell’anteprima renderizzata. Il file include intenzionalmente le modifiche non salvate e non necessita di richieste API, MID o storage. Più sorgenti HTML diversi producono un errore invece di una scelta automatica. Il Blob è testo semplice con estensione .html e limite di 20 MB: la funzione non esegue il codice e non lo invia a server. Il sorgente può contenere dati aziendali o segreti scritti direttamente nel testo.
-
-Esporta per Git legge soltanto il contenuto salvato dell’asset/query/Journey aperto, con il client AJAX nativo sulla stessa origine. Richiede stack e MID, verifica l’identità e la versione richiesta e interrompe le risposte obsolete al cambio contenuto o BU. I file JSON includono intenzionalmente codice e struttura nativa, possono contenere dati aziendali e restano nei download del browser. Campi di credenziali riconoscibili sono rimossi; segreti scritti dentro al codice non possono essere esclusi automaticamente. Nessun invio a GitHub o a un server dell’estensione.
-
-L’identità dell’asset viene letta dai percorsi interni espliciti o dal parametro assetId, senza dipendere dalla cache dell’ultima risposta AJAX. Cartelle, percorsi ambigui e identificativi discordanti vengono rifiutati. Il comando può essere mostrato accanto a Save anche con un editor riconosciuto senza ID: in quel caso il clic segnala l’identità non disponibile e non invia richieste. Osservazione del DOM e degli eventi del router aggiorna i controlli senza modificare i percorsi Salesforce.
-
-MC Code Project è un programma Node separato dall’estensione. Usa SFMC DevTools 10.1.1 (MIT), fissato nel lockfile, per l’integrazione Server-to-Server. Le credenziali rimangono in .mcdev-auth.json locale, non cifrato, escluso da Git; non passano al browser. I processi del motore usano cartelle temporanee private nello stato locale, eliminate al termine; un arresto forzato può lasciarle sul disco. Non condividere .sfmcgit-state. Controlli di percorsi, symlink e dimensioni limitano le importazioni; il codice estratto viene scritto come testo, non eseguito.
-
-Pull confronta base, locale e remoto; un conflitto non sceglie automaticamente quale versione conservare. Il manifest sfmc-baselines.json conserva MID e SHA-256 senza credenziali e permette il confronto da un clone Git. Plan seleziona una risorsa esistente, blocca modifiche d’identità/cartella e confronta la baseline con MC. Apply ricontrolla MID, hash locali e remoti, scadenza di un’ora, archivia il contenuto precedente e consuma il piano prima della scrittura per impedire la ripetizione dopo un esito incerto. La rilettura verifica file e campi modificati. Il controllo non è una transazione Salesforce: un altro editor può intervenire tra lettura e scrittura.
-
-Il salvataggio non esegue query/script e non attiva automation. I blocchi riutilizzati possono essere letti a runtime e influire subito su altri contenuti. CloudPages Publish resta nativo. L’attivazione Journey è separata e richiede la conferma esatta MID/CustomerKey/Versione, versione Draft invariata e validazione; può avviare un Journey reale. Git commit/push non esegue deploy. Usa un repository privato per i contenuti e verifica il diff: il controllo dei file esclusi non è uno scanner completo di segreti.
+La nuova scheda usa ricerca e clic nativi, senza costruire endpoint privati o percorsi editor non osservati. La selezione richiede corrispondenza di ID e nome; messaggi limitati allo stack corrente collegano la shell HTTPS al suo iframe diretto. Interazione dell’utente, cambio modulo e scadenza interrompono l’apertura. Nessun nuovo permesso, accesso a record, pubblicazione o salvataggio di CloudPages.
 
 Tutto il codice resta nel pacchetto installato. GitHub distribuisce lo ZIP, ma non può sostituire automaticamente i file di una copia decompressa. Non viene aggiunto un caricatore di JavaScript remoto.
 
