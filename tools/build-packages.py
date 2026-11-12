@@ -1,4 +1,4 @@
-"""Build reproducible extension/companion ZIPs; no dependencies or local credentials."""
+"""Build the self-contained extension ZIP; no node_modules or local credentials."""
 from pathlib import Path
 import zipfile
 import json
@@ -19,13 +19,10 @@ def archive(name, files, base):
     with zipfile.ZipFile(DIST / name) as check:
         assert check.testzip() is None
         print(name, len(check.namelist()), 'files,', (DIST / name).stat().st_size, 'bytes')
-files = [ROOT / 'manifest.json'] + [ROOT / name for name in ['README.md','GUIDA_UTENTE.md','GUIDA_UTENTE.pdf','SICUREZZA.md','DOCUMENTATION.md','CHANGELOG.md']]
-for directory in ['assets','esempi','tests']:
+files = [ROOT / 'manifest.json'] + [ROOT / name for name in ['README.md','GUIDA_UTENTE.md','GUIDA_UTENTE.pdf','SICUREZZA.md','DOCUMENTATION.md','CHANGELOG.md','package.json','package-lock.json']]
+for directory in ['assets','esempi','tests','src']:
     files.extend(p for p in (ROOT / directory).rglob('*') if p.is_file())
+files.append(ROOT / 'tools/build-extension.mjs')
 archive('sfmc-ui-fixer-multi-bu-diagnostica.zip', files, ROOT)
-companion = ROOT / 'tools/de-usage'
-files = [p for p in companion.iterdir() if p.is_file() and p.name in {'README.md','package.json','package-lock.json','CONFIGURA.cmd','AVVIA.cmd','configure.mjs','server.mjs','soap.mjs','index.mjs','sql.mjs'}]
-files.extend((companion / 'test').glob('*.mjs'))
-archive('sfmc-de-usage-reader.zip', files, companion)
 with zipfile.ZipFile(DIST / 'sfmc-ui-fixer-multi-bu-diagnostica.zip') as check:
-    assert json.loads(check.read('manifest.json'))['version'] == '1.1.38'
+    assert json.loads(check.read('manifest.json'))['version'] == '1.1.39'

@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import http from 'node:http';
-import { sources, SQLReader } from '../sql.mjs';
-import { buildIndex, report } from '../index.mjs';
-import { SOAPReader, validateConfig } from '../soap.mjs';
-import { createService, PORT } from '../server.mjs';
+import { sources } from '../src/de-usage/sql.mjs';
+import { createEngine } from '../src/de-usage/engine.mjs';
+import { buildIndex as build, report } from '../src/de-usage/index.mjs';
+import { SOAPReader, validateConfig } from '../src/de-usage/soap.mjs';
+const buildIndex = (reader, config, progress) => build(reader, config, progress, sources);
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const config = { mid: '123', stack: 's10', pairingKey: 'a'.repeat(64), authUrl: 'https://fixture.auth.marketingcloudapis.com/', clientId: 'fixture-client', clientSecret: 'fixture-secret' };
 const de = (n, name) => ({ ObjectID: id(n), CustomerKey: 'key' + n, Name: name });
@@ -21,11 +21,7 @@ test('SQL resolves physical sources through CTEs, unions and subqueries without 
     assert.throws(() => sources('DELETE FROM Customers'));
     assert.throws(() => sources('x'.repeat(500001)));
 });
-test('SQL worker recovers after a malformed query', async () => {
-    const sql = new SQLReader();
-    try { await assert.rejects(sql.analyze('not SQL')); assert.equal((await sql.analyze('SELECT * FROM Customers'))[0].name, 'Customers'); }
-    finally { await sql.close(); }
-});
+test('parser rejects malformed roots rather than treating them as no references', () => { assert.throws(() => sources('not SQL')); assert.throws(() => sources('invalid SQL')); });
 test('index preserves read/write and all automation occurrences with native step numbering', async () => {
     const auto = (n, tasks) => ({ ObjectID: id(n), ProgramID: id(n + 100), Name: 'Automation ' + n, Status: 6, AutomationTasks: { AutomationTask: tasks } });
     const index = await buildIndex(reader({ Automation: [auto(20, [{ Sequence: 0, Activities: { AutomationActivity: [activity(10)] } }, { Sequence: 1, Activities: { AutomationActivity: [activity(10), activity(10)] } }]), auto(21, [{ Sequence: 1, Activities: { AutomationActivity: activity(10) } }])] }), config);
@@ -91,33 +87,33 @@ test('SOAP faults and entities cannot turn into successful empty scans or expose
     await assert.rejects(soapFixture([envelope('<s:Fault><faultstring>PRIVATE_SECRET</faultstring></s:Fault>')]).reader.retrieve('DataExtension', ['ObjectID']), e => !e.message.includes('PRIVATE_SECRET'));
     await assert.rejects(soapFixture(['<!DOCTYPE x [<!ENTITY x "bad">]>']).reader.retrieve('DataExtension', ['ObjectID']), /non valida/);
 });
-test('local service enforces authentication, host, origin, MID, pagination revision and scan coalescing', async () => {
-    let scans = 0;
-    const service = createService(config, () => { scans++; return reader(scans > 1 ? { QueryDefinition: Error('Metadati non leggibili') } : {}); });
-    await new Promise(resolve => service.listen(0, '127.0.0.1', resolve));
-    const request = (path, extra = {}) => new Promise((resolve, reject) => {
-        const req = http.request({ hostname: '127.0.0.1', port: service.address().port, path, method: extra.method || 'GET', headers: { Host: '127.0.0.1:' + PORT, Authorization: 'Bearer ' + config.pairingKey, ...extra.headers } }, res => {
-            let body = ''; res.on('data', c => body += c); res.on('end', () => resolve({ status: res.statusCode, value: JSON.parse(body) }));
-        }); req.on('error', reject); req.end();
-    });
-    const path = '/v1/de/' + id(1) + '?mid=123&stack=s10';
-    try {
-        assert.equal((await request(path, { headers: { Authorization: '' } })).status, 401);
-        assert.equal((await request(path, { headers: { Host: 'evil.example' } })).status, 403);
-        assert.equal((await request(path, { headers: { Origin: 'https://mc.s10.exacttarget.com' } })).status, 403);
-        assert.equal((await request(path.replace('123', '999'))).status, 409); assert.equal(scans, 0);
-        assert.equal((await request(path)).value.state, 'building'); await request(path); assert.equal(scans, 1);
-        let result;
-        for (let i = 0; i < 100; i++) { result = await request(path); if (result.value.state !== 'building') break; await new Promise(resolve => setTimeout(resolve, 20)); }
-        assert.equal(result.value.state, 'ready'); assert.equal(result.value.result.totalRows, 1);
-        assert.equal((await request(path + '&revision=stale')).status, 409);
-        assert.equal((await request(path + '&offset=-1')).status, 400);
-        assert.equal((await request('/v1/anything?mid=123&stack=s10')).status, 404);
-        assert.ok(!JSON.stringify(result).includes(config.clientSecret));
-        const revision = result.value.result.generatedAt;
-        await request('/v1/refresh?mid=123&stack=s10', { method: 'POST' });
-        for (let i = 0; i < 100; i++) { result = await request(path); if (result.value.state !== 'building') break; await new Promise(resolve => setTimeout(resolve, 20)); }
-        assert.equal(result.value.state, 'error'); assert.equal(result.value.result.generatedAt, revision);
-        assert.match(result.value.error, /non leggibili/);
-    } finally { await new Promise(resolve => service.close(resolve)); }
+test('browser engine shares a scan, reuses credentials and retains dated results after a failed refresh', async () => {
+    let scans = 0, auth = 0;
+    const instance = reader(); instance.authenticate = async () => { auth++; };
+    const retrieve = instance.retrieve;
+    instance.retrieve = async type => { if (type === 'DataExtension') scans++; if (scans > 1 && type === 'QueryDefinition') throw Error('PRIVATE_RESPONSE'); return retrieve(type); };
+    const engine = createEngine(() => instance, sources), message = { mid:'123',stack:'s10',configVersion:'v1',deId:id(1) };
+    await engine({action:'configure',config:{...config,version:'v1'}});
+    assert.equal((await engine({...message,action:'lookup'})).state,'building'); await engine({...message,action:'lookup'});
+    let response;
+    for(let i=0;i<20;i++){ await new Promise(resolve=>setImmediate(resolve)); response=await engine({...message,action:'lookup'});if(response.state !== 'building')break; }
+    assert.equal(response.state,'ready'); assert.equal(response.result.rows.length,1); assert.equal(scans,1); assert.equal(auth,1);
+    assert.ok(!JSON.stringify(response).includes(config.clientSecret)); assert.ok(!JSON.stringify(response).includes('QueryText'));
+    assert.equal((await engine({...message,action:'lookup',mid:'999'})).state,'not-configured');
+    assert.equal((await engine({...message,action:'lookup',configVersion:'old'})).state,'not-configured');
+    await assert.rejects(engine({...message,action:'lookup',offset:-1}));
+    const date=response.result.generatedAt;
+    await engine({...message,action:'refresh'});
+    for(let i=0;i<20;i++){ await new Promise(resolve=>setImmediate(resolve)); response=await engine({...message,action:'lookup'});if(response.state !== 'building')break; }
+    assert.equal(response.state,'error');assert.equal(response.result.generatedAt,date);assert.ok(!response.error.includes('PRIVATE_RESPONSE'));
+    await engine({action:'clear'});assert.equal((await engine({...message,action:'lookup'})).state,'not-configured');
+});
+test('clearing the browser engine prevents a delayed login or scan from reviving removed configuration', async () => {
+    let release, cancelled=0;
+    const instance=reader();instance.authenticate=()=>new Promise(resolve=>{release=resolve;});instance.cancel=()=>cancelled++;
+    const engine=createEngine(()=>instance,sources), configuring=engine({action:'configure',config:{...config,version:'v1'}});
+    await engine({action:'clear'});release();await assert.rejects(configuring,/sostituita/);
+    assert.equal((await engine({action:'status',mid:'123',stack:'s10',configVersion:'v1'})).state,'not-configured');
+    instance.authenticate=async()=>{};await engine({action:'configure',config:{...config,version:'v2'}});
+    await engine({action:'clear'});assert.equal(cancelled,2);
 });

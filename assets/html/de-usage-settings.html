@@ -1,10 +1,18 @@
-<!DOCTYPE html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Collegamento Analisi DE</title>
-<style>body{max-width:720px;margin:40px auto;padding:20px;font:15px/1.6 system-ui;color:#243746}input{box-sizing:border-box;width:100%;padding:10px;margin:8px 0}button{padding:10px;margin:8px 8px 8px 0}a{color:#0062a8}#status{white-space:pre-wrap}</style></head>
-<body><h1>Collegamento Analisi DE</h1>
-<p>Il componente locale legge i metadati Salesforce di una sola BU tramite un Installed Package autorizzato in lettura. Client Secret e token rimangono sul PC, fuori dall’estensione.</p>
-<ol><li>Scarica il componente e leggi le istruzioni incluse.</li><li>Con i dati forniti dall’amministratore esegui CONFIGURA.cmd, poi AVVIA.cmd.</li><li>Copia il codice mostrato da AVVIA.cmd nel campo seguente.</li></ol>
-<p><a href="https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-de-usage-reader.zip">Scarica il componente Analisi DE per il PC</a></p>
-<form id="connection"><label for="code">Codice di collegamento (stack:MID:codice)</label><input id="code" type="password" autocomplete="off" spellcheck="false" required placeholder="Incolla il codice da AVVIA.cmd"><button type="submit">Verifica e salva collegamento</button><button id="clear" type="button">Rimuovi collegamento</button></form>
-<p id="status" role="status"></p><p>Il collegamento del componente locale viene verificato al salvataggio. La lettura Salesforce viene verificata al primo avvio dell’analisi. Non inserire Client Secret in questa pagina.</p>
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Analisi DE · API e consenso BU</title>
+<style>[hidden]{display:none!important}body{max-width:760px;margin:32px auto;padding:20px;font:15px/1.6 system-ui;color:#243746}input:not([type=checkbox]){box-sizing:border-box;width:100%;padding:10px;margin:5px 0 14px}button{padding:10px;margin:8px 8px 8px 0}fieldset{border:1px solid #c8d4df;padding:18px;margin:20px 0}a{color:#0062a8}#status{white-space:pre-wrap}.consent{display:block;background:#edf4fa;padding:15px}label{display:block}small{display:block}</style></head>
+<body><h1>Analisi DE · API e consenso BU</h1>
+<p>L’analisi funziona interamente nell’estensione, nella sola BU configurata. Inserisci qui una volta i dati dell’Installed Package Salesforce Server-to-Server con lettura Data Extensions e Automations. I permessi effettivi sono quelli assegnati al pacchetto dall’amministratore.</p>
+<p id="status" role="status"></p>
+<form id="connection" autocomplete="off"><fieldset><legend>Collegamento Salesforce della BU</legend>
+<label for="mid">MID della BU</label><input id="mid" required inputmode="numeric" pattern="[1-9][0-9]{0,14}">
+<label for="stack">Stack</label><input id="stack" required pattern="s[0-9]+" placeholder="s10" spellcheck="false">
+<label for="authUrl">Authentication Base URI</label><input id="authUrl" required type="url" placeholder="https://…auth.marketingcloudapis.com/" spellcheck="false">
+<label for="clientId">Client ID</label><input id="clientId" required autocomplete="off" spellcheck="false">
+<label for="clientSecret">Client Secret</label><input id="clientSecret" required type="password" autocomplete="new-password" spellcheck="false">
+<small>Le credenziali sono conservate nello storage locale protetto dell’estensione in questo profilo browser, senza cifratura aggiuntiva. Non vengono inserite nello ZIP né comunicate alla pagina Salesforce. Non inviarle in chat.</small></fieldset>
+<p id="approvalStatus" role="status"></p><label id="consent" class="consent"><input id="approveBU" type="checkbox" required> Autorizzo gli strumenti della BU indicata: rubrica tester, copie SQL locali e analisi in lettura dei metadati di query e automation. Un unico consenso condiviso fra i moduli Salesforce supportati della stessa BU, durante la sessione del browser, fino a 12 ore. Non autorizza invii o esecuzioni di query.</label>
+<button type="submit">Salva e autorizza questa BU</button><button id="clear" type="button">Rimuovi credenziali API</button></form>
+<p>I token vengono rinnovati automaticamente. Alla scadenza del consenso o al riavvio del browser verrà richiesta la sola approvazione BU; non devi reinserire le credenziali salvate. Puoi ripristinare i consensi dalle impostazioni dell’estensione.</p>
+<p>Dopo il salvataggio apri una DE in <b>Contact Builder → Data Extensions</b> e premi <b>Dove viene usata</b>. Non servono Node, Git o programmi locali. <a href="https://github.com/FraTreppi/better-mc/blob/main/GUIDA_UTENTE.md#dove-viene-usata-una-data-extension" target="_blank" rel="noopener noreferrer">Guida alla configurazione</a></p>
 <p><a href="activity-versioning.html">Torna alle impostazioni</a></p><script src="../js/de-usage-settings.js"></script></body></html>

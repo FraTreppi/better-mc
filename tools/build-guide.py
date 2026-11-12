@@ -55,6 +55,6 @@ for line in (ROOT / 'GUIDA_UTENTE.md').read_text().splitlines():
 flush(); flush_table()
 def footer(canvas, doc):
     canvas.setFont('Guide', 8); canvas.setFillColor(colors.HexColor('#526477'))
-    canvas.drawString(42, 24, 'SFMC UI Fixer · Guida utente 1.1.38')
+    canvas.drawString(42, 24, 'SFMC UI Fixer · Guida utente 1.1.39')
     canvas.drawRightString(A4[0]-42, 24, str(doc.page))
-SimpleDocTemplate(str(ROOT / 'GUIDA_UTENTE.pdf'), pagesize=A4, rightMargin=42, leftMargin=42, topMargin=38, bottomMargin=42, title='SFMC UI Fixer 1.1.38 — Guida utente', author='Francesco Trepiccioni').build(story, onFirstPage=footer, onLaterPages=footer)
+SimpleDocTemplate(str(ROOT / 'GUIDA_UTENTE.pdf'), pagesize=A4, rightMargin=42, leftMargin=42, topMargin=38, bottomMargin=42, title='SFMC UI Fixer 1.1.39 — Guida utente', author='Francesco Trepiccioni').build(story, onFirstPage=footer, onLaterPages=footer)

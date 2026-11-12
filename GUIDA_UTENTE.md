@@ -1,8 +1,8 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.38 · Autore: Francesco Trepiccioni
+Versione 1.1.39 · Autore: Francesco Trepiccioni
 
-L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Le funzioni dell’interfaccia lavorano con la sessione Salesforce già aperta. La nuova analisi degli utilizzi DE richiede anche un collegamento API in sola lettura, descritto sotto.
+L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Le funzioni dell’interfaccia lavorano con la sessione Salesforce già aperta. L’analisi degli utilizzi DE collega direttamente l’estensione alle API Salesforce in sola lettura.
 
 ## Installazione e aggiornamento
 
@@ -16,7 +16,7 @@ Per aggiornare una copia già installata, sostituisci i file nella **stessa cart
 
 Premere Ricarica non scarica i nuovi file da GitHub. L’aggiornamento automatico del browser richiede l’installazione da Chrome Web Store o Microsoft Edge Add-ons, sui quali questo pacchetto non è pubblicato. Per questa installazione usa la sostituzione dei file descritta sopra.
 
-Lo stesso ZIP è compatibile con **Google Chrome e Microsoft Edge basato su Chromium**. Usa una versione aggiornata del browser; il requisito Chromium minimo è 111. Per le funzioni preesistenti non serve Node. **Dove viene usata** richiede invece Node 24.15 o successivo e il componente locale Analisi DE; le credenziali Salesforce si inseriscono soltanto nella configurazione locale sul PC. Il file ZIP va estratto: non si installa con un doppio clic. L’installazione descritta è manuale, in modalità sviluppatore; non richiede l’opzione che consente estensioni da altri store.
+Lo stesso ZIP è compatibile con **Google Chrome e Microsoft Edge basato su Chromium**. Usa una versione aggiornata del browser; il requisito Chromium minimo è 116. Non servono Node, npm, Git o programmi locali. Per **Dove viene usata**, le credenziali del pacchetto API si inseriscono una volta nella pagina privata dell’estensione. Il file ZIP va estratto: non si installa con un doppio clic. L’installazione descritta è manuale, in modalità sviluppatore; non richiede l’opzione che consente estensioni da altri store.
 
 I dati locali di Chrome e Edge sono **separati**, anche sullo stesso computer. Installare l’estensione in Edge non importa automaticamente tester locali, cronologie, preferenze o copie SQL da Chrome. Imposta la BU nel nuovo browser e premi Carica tester dalla DE; se usi la DE `tester_content_builder`, gli stessi contatti possono essere letti da entrambi. Anche il login a Marketing Cloud deve essere effettuato nel browser nel quale lavori.
 
@@ -24,23 +24,29 @@ Se il browser aziendale impedisce l’attivazione della modalità sviluppatore o
 
 ## Dove viene usata una Data Extension
 
-Questa funzione cerca gli utilizzi della DE nelle **Query Activities e nelle automation della sola BU configurata**. Non gestisce scansioni o cambi BU.
+La funzione cerca gli utilizzi nelle **Query Activities e nelle automation della sola BU configurata**. Funziona interamente nell’estensione, senza Node, Git, CONFIGURA.cmd, AVVIA.cmd o un servizio sul PC. Non gestisce scansioni o cambi BU.
 
-Prima dell’utilizzo, l’amministratore deve predisporre un **Installed Package Server-to-Server** con accesso alla BU e lettura di Data Extensions, Query Activities e Automations. Servono MID, stack, Authentication Base URI, Client ID e Client Secret. Non inviare il Client Secret in chat.
+L’amministratore deve predisporre un **Installed Package → API Integration → Server-to-Server**, con accesso alla BU e permessi **Data → Data Extensions: Read** (`data_extensions_read`) e **Automation → Automations: Read** (`automations_read`), inclusi i metadati delle query. Le etichette possono variare nel pannello Salesforce. Non sono richiesti scrittura, invio o esecuzione. Il consenso locale dell’estensione non assegna permessi Salesforce al pacchetto.
 
-1. Scarica il [componente locale Analisi DE](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-de-usage-reader.zip) ed estrailo in una cartella personale separata dall’estensione. Serve Node 24.15 o successivo; Git non serve.
-2. Apri **CONFIGURA.cmd**, inserisci i dati del pacchetto e poi apri **AVVIA.cmd**. Lascia aperta la finestra.
-3. Clicca l’icona dell’estensione → **Collegamento Analisi DE**. Incolla il codice mostrato da AVVIA.cmd e premi **Verifica e salva collegamento**. Il codice locale è riservato; non è il Client Secret.
-4. In **Contact Builder → Data Extensions**, apri le proprietà o i record di una DE. Premi **Dove viene usata**, sopra il dettaglio della DE.
+1. Clicca l’icona dell’estensione → **Collegamento Analisi DE**.
+2. Inserisci una volta **MID**, **stack** (per esempio s10), **Authentication Base URI**, **Client ID** e **Client Secret** del pacchetto. Non inviare il Client Secret in chat.
+3. Se la BU non è ancora approvata, spunta l’autorizzazione e premi **Salva e autorizza questa BU**. Se hai già approvato la BU in un altro modulo, la richiesta viene nascosta e premi **Salva collegamento API**, riutilizzando la scelta esistente senza prolungarne la scadenza. Il programma verifica OAuth prima di salvare. Il consenso comprende rubrica tester, copie SQL locali e analisi DE: se già approvato qui, non compare un secondo popup aprendo la DE.
+4. In **Contact Builder → Data Extensions**, apri proprietà o record di una DE e premi **Dove viene usata**, sopra il dettaglio. MID e stack rilevati devono coincidere con la configurazione.
 5. Attendi la prima lettura dei metadati. Le successive ricerche riusano l’indice in memoria; usa **Aggiorna analisi** dopo modifiche a query o automation.
 
-Ogni riga mostra una query che **legge**, **scrive** o **legge e scrive** la DE. La scrittura indica Append, Update o Overwrite quando disponibile. Sono mostrate tutte le occorrenze trovate nelle automation, con step, posizione e stato. I nomi aprono query e automation in una nuova scheda, usando la sessione corrente. Lo stato non dimostra che un’esecuzione abbia elaborato record recentemente.
+Le credenziali salvate rimangono nel profilo browser e non vengono richieste a ogni DE o rientro. I token OAuth vengono rinnovati automaticamente. Il **consenso BU** è condiviso tra i moduli Salesforce supportati della stessa BU, fino a 12 ore nella sessione del browser. Alla scadenza, al riavvio del browser o alla ricarica dell’estensione può essere richiesta una sola nuova approvazione BU, mantenendo le credenziali salvate. Una diversa BU o stack richiede un proprio consenso e questa analisi rimane vincolata alla configurazione originale. Al primo utilizzo dopo l’aggiornamento è richiesta la nuova approvazione comprensiva dell’analisi DE.
 
-**Analisi parziale** segnala SQL non supportato, nomi ambigui, target o relazioni automation non leggibili. Consulta i contatori e **Riferimenti da verificare**. Un elenco vuoto non certifica che la DE sia inutilizzata: la ricerca copre soltanto i metadati accessibili alla BU e al pacchetto. Se Salesforce non espone attività o step tramite le API autorizzate, il pannello mantiene i riferimenti alle query e segnala i collegamenti automation incompleti.
+Ogni riga mostra una query che **legge**, **scrive** o **legge e scrive** la DE, con Append, Update o Overwrite quando disponibili. Sono mostrate tutte le occorrenze nelle automation, con step, posizione, stato e collegamenti di apertura nella sessione corrente. Lo stato configurato non dimostra che un’esecuzione abbia elaborato record di recente.
 
-Sono esclusi gli utilizzi in email, AMPscript, SSJS, Journey, import, estrazioni e integrazioni esterne. I riferimenti a schemi esterni come ENT restano da verificare, senza interrogare altre BU. Non vengono letti record o eseguite query. Client Secret e token restano nel componente locale; il file di configurazione sul PC non è cifrato e deve rimanere nella cartella personale.
+**Analisi parziale** segnala SQL non supportato, nomi ambigui, target o relazioni automation non leggibili. Consulta contatori e **Riferimenti da verificare**. Un elenco vuoto non certifica che la DE sia inutilizzata: la ricerca copre solo i metadati accessibili al pacchetto nella BU. Se Salesforce non espone attività o step tramite API autorizzate, le query restano visibili e le relazioni automation sono indicate come incomplete.
 
-La verifica del codice conferma il collegamento locale; OAuth e permessi Salesforce vengono verificati al primo avvio dell’analisi. Se il componente è spento, avvia AVVIA.cmd. Se il MID non corrisponde o non viene rilevato, riapri Contact Builder nella BU configurata. Per errori API, chiedi all’amministratore di verificare accesso e permessi. Le [istruzioni del componente](https://github.com/FraTreppi/better-mc/blob/main/tools/de-usage/README.md) descrivono configurazione, rete e limiti.
+Sono esclusi gli utilizzi in email, AMPscript, SSJS, Journey, import, estrazioni e integrazioni esterne. Schemi esterni come ENT restano da verificare, senza cercare in altre BU. L’analisi non legge record e non esegue query. L’indice non è uno storico di esecuzione e non è una fotografia transazionale del tenant.
+
+Per errori OAuth o permessi, verifica con l’amministratore dati e accesso del pacchetto. I permessi sui metadati vengono verificati durante la scansione; l’autenticazione riuscita non garantisce che ogni oggetto o relazione sia leggibile. Per errori di rete, verifica le policy aziendali di Edge/Chrome verso i domini API Salesforce. Non vengono usati cookie, token della sessione web o API private come ripiego.
+
+**Gestione dei dati:** Client Secret e configurazione sono nello storage locale dell’estensione, protetto dall’accesso diretto delle pagine ma **senza cifratura aggiuntiva**. Le credenziali non sono incluse nello ZIP né esposte al ponte Salesforce; chi controlla il profilo browser può accedervi. Token, SQL elaborato e indice sono in memoria nel browser. **Rimuovi credenziali API** cancella la configurazione e ferma l’analisi; per revocare il pacchetto Salesforce interviene l’amministratore. **Ripristina le conferme di accesso locale** ferma l’analisi e cancella il suo indice, mantenendo credenziali, rubrica e copie SQL.
+
+La scansione è limitata a dieci minuti, 100 MB complessivi, 100.000 elementi per tipo e 1.000 pagine. Ogni SQL ha limiti di dimensione e tempo; il superamento viene segnalato come analisi incompleta o fallita. Un refresh fallito conserva i risultati precedenti con un avviso. Chiudere il browser o ripristinare i consensi cancella l’indice, senza trasferirlo a un servizio esterno.
 
 ## Business Unit, MID e accesso ai dati locali
 
@@ -52,7 +58,7 @@ In Content Builder il MID viene cercato automaticamente nel contesto della sessi
 
 Se Salesforce non rende disponibile il MID automatico, scegli **Imposta MID** e inserisci quello della BU selezionata in Salesforce. Al ricaricamento può comparire **Conferma MID <numero>**: verifica il valore prima di confermarlo. Inserire un MID nell’estensione non cambia la BU in Salesforce.
 
-Prima di rendere disponibile la rubrica o di salvare copie SQL, compare una **conferma di accesso ai dati locali**. Controlla dominio, MID e stack e accetta solo se corrispondono al contesto nel quale vuoi lavorare. La scelta viene ricordata per **dominio, modulo e BU durante la sessione del browser, fino a 12 ore**. Se esci da Content Builder e rientri, ricarichi o apri un’altra scheda sullo stesso dominio e sulla stessa BU, non devi ripetere l’OK. Una BU, un dominio o un modulo diverso richiedono una propria conferma; tornare a una BU già autorizzata riutilizza la scelta. Chiudere il browser, ricaricare l’estensione o raggiungere la scadenza può richiedere una nuova conferma. Ogni pagina riceve soltanto i dati autorizzati della BU richiesta.
+Rubrica tester, copie SQL e analisi DE usano una **sola approvazione locale per stack e MID**, condivisa fra i moduli Salesforce supportati. Controlla la BU mostrata prima di accettare. La scelta vale nella sessione del browser, fino a 12 ore dalla decisione, senza rinnovo implicito a ogni visita. Cambiare modulo, dominio Salesforce supportato, documento o scheda della stessa BU non ripete il popup. Ogni documento riceve comunque soltanto i dati previsti per il proprio modulo. Una diversa BU o stack richiede un consenso distinto. Se hai già premuto **Salva e autorizza questa BU** nella configurazione API, quel consenso viene riutilizzato.
 
 Anche il rifiuto viene ricordato nello stesso ambito e per lo stesso periodo, per evitare domande ripetute. Puoi continuare a usare i collegamenti e gli altri strumenti. Per cambiare scelta prima della scadenza, clicca l’icona dell’estensione e premi **Ripristina le conferme di accesso locale** nella pagina delle impostazioni: la domanda verrà riproposta al prossimo utilizzo dei dati locali. Il comando azzera tutte le scelte della sessione e conserva rubrica e versioni SQL salvate. Questa conferma non è un accesso a Salesforce e non verifica da sola quale BU sia selezionata nel tenant.
 
@@ -348,7 +354,7 @@ Il file `sfmc-email-studio-diagnostica.json` contiene percorsi e metadati di nav
 
 Se compare un errore di collegamento, di versione o di registrazione del documento:
 
-1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.38**.
+1. Controlla che la scheda su **edge://extensions** in Edge o **chrome://extensions** in Chrome mostri la versione **1.1.39**.
 2. Dopo aver sostituito tutti i file nella stessa cartella, premi **Ricarica** sulla scheda dell’estensione.
 3. Ricarica tutte le schede Marketing Cloud già aperte, oppure chiudile e riaprile. Ricaricare soltanto l’estensione lascia i vecchi script nelle pagine aperte.
 4. Nella sezione **Errori** premi **Cancella tutto**: le vecchie segnalazioni possono rimanere elencate anche dopo la correzione.
@@ -365,9 +371,8 @@ Non serve disinstallare l’estensione o cancellare i dati locali. Il messaggio 
 | DE recenti, automation recenti e bozze Query Studio | Dati locali del sito/modulo nel profilo browser; temporanei se manca un contesto completo. |
 | Scelta di mostrare l’icona Impostazioni SFMC | Impostazione generale dell’estensione per quel profilo. |
 | Record modificati o inseriti nelle DE | Salesforce, dopo il salvataggio reale. |
-| Configurazione Analisi DE e Client Secret | File locale non cifrato config.local.json nella cartella personale del componente sul PC. |
-| Codice di collegamento Analisi DE | Storage protetto del profilo dell’estensione; da trattare come dato riservato. |
-| Indice degli utilizzi DE | Memoria del componente locale, fino alla sua chiusura; aggiornabile dal pannello. |
+| Configurazione Analisi DE e Client Secret | Storage locale protetto dell’estensione, senza cifratura aggiuntiva, nel profilo browser. |
+| Indice degli utilizzi DE | Memoria del browser, fino a chiusura o ripristino consensi; aggiornabile dal pannello. |
 | CSV, versioni esportate e diagnostica scaricata | File nella posizione scelta per i download. |
 
 I salvataggi locali non si sincronizzano automaticamente con altri browser o colleghi. La rubrica DE è invece condivisa tramite Salesforce con chi può leggere quella DE. Il rinnovo di una conferma non cancella i dati già presenti. Un profilo nuovo, la disinstallazione, la pulizia dei dati del browser o il raggiungimento delle quote possono renderli indisponibili.

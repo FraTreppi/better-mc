@@ -8,9 +8,17 @@
     const send = payload => new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({ __sfmcfixDEUsage: true, ...payload, deId: openedId || route(), scope }, response => {
             if (chrome.runtime.lastError) return reject(Error('Collegamento all’estensione interrotto. Ricarica estensione e scheda MC.'));
-            response?.ok ? resolve(response.result) : reject(Error(response?.error || 'Analisi DE non disponibile.'));
+            response?.ok ? resolve(response.result) : reject(Object.assign(Error(response?.error || 'Analisi DE non disponibile.'), { code: response?.code }));
         });
     });
+    const authorized = async payload => {
+        try { return await send(payload); }
+        catch (error) {
+            if (error.code !== 'LOCAL_ACCESS_REQUIRED' || !globalThis.sfmcfixLocalAccess) throw error;
+            await globalThis.sfmcfixLocalAccess.ensure(scope, true);
+            return send(payload);
+        }
+    };
     const context = () => new Promise((resolve, reject) => {
         const id = crypto.randomUUID(), timeout = setTimeout(() => { window.removeEventListener('message', answer); reject(Error('BU non rilevata. Riapri Contact Builder e verifica il contesto Salesforce.')); }, 3000);
         function answer(event) {
@@ -82,10 +90,10 @@
             if (scope && scope !== current) throw Error('La BU aperta non corrisponde a questa analisi. Riapri il pannello.');
             scope = current;
             if (ticket !== generation || route() !== id) return;
-            if (refresh) await send({ action: 'refresh' });
-            const value = await send({ action: 'lookup', offset, ...(offset ? { revision } : {}) });
+            if (refresh) await authorized({ action: 'refresh' });
+            const value = await authorized({ action: 'lookup', offset, ...(offset ? { revision } : {}) });
             if (ticket !== generation || route() !== id || !dialog.open) return;
-            if (value.state === 'setup-required') { status.textContent = 'Collega il componente locale Analisi DE per leggere i metadati della BU. Premi Collega Analisi DE.'; return; }
+            if (value.state === 'setup-required') { status.textContent = 'Configura una volta il pacchetto API Salesforce e autorizza questa BU. Premi Collega Analisi DE: la lettura avviene direttamente nell’estensione.'; return; }
             if (value.state === 'building') {
                 status.textContent = (value.progress?.phase || 'Analisi in corso') + (value.progress?.total ? ' · ' + value.progress.current + '/' + value.progress.total : '');
                 timer = setTimeout(() => { if (route() === id && dialog.open) void lookup(); }, 1500); return;
@@ -111,6 +119,10 @@
         }
         if (button.parentElement !== container) container.prepend(button);
     }
+    chrome.runtime.onMessage?.addListener((message, sender) => {
+        if (sender.id !== chrome.runtime.id || !message?.__sfmcfixLocalAccessReset) return;
+        close(); dialog?.querySelector('tbody').replaceChildren();
+    });
     let queued = false;
     const queue = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; sync(); }); } };
     new MutationObserver(queue).observe(document.body, { subtree: true, childList: true });

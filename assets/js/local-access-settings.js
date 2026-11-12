@@ -6,7 +6,7 @@
         try {
             const response = await chrome.runtime.sendMessage({ __sfmcfixStorage: true, action: 'resetLocalAccess' });
             if (!response?.ok) throw new Error(response?.error || 'Operazione non riuscita.');
-            status.textContent = 'Conferme ripristinate. Verranno richieste al prossimo utilizzo dei dati locali. Rubrica e versioni salvate sono conservate.';
+            status.textContent = 'Conferme ripristinate. Verranno richieste al prossimo utilizzo dei dati locali. Rubrica, versioni e credenziali API sono conservate. Analisi DE interrotta e indice cancellato.';
         } catch (_) { status.textContent = 'Impossibile ripristinare le conferme. Riapri questa pagina e riprova.'; }
         finally { button.disabled = false; }
     });

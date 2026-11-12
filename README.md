@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.38
+# SFMC UI Fixer — Multi BU 1.1.39
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -13,7 +13,7 @@ Lo stesso ZIP funziona su **Google Chrome e Microsoft Edge basato su Chromium**.
 - **Edge:** apri `edge://extensions`, attiva **Modalità sviluppatore**, premi **Carica decompressa** e seleziona la cartella contenente `manifest.json`.
 - **Chrome:** apri `chrome://extensions`, attiva **Modalità sviluppatore** e scegli **Carica estensione non pacchettizzata** sulla stessa cartella.
 
-Usa un browser aggiornato; il requisito Chromium minimo è 111. Lo ZIP è per l’installazione manuale in modalità sviluppatore: non è una pubblicazione su Microsoft Edge Add-ons o Chrome Web Store.
+Usa un browser aggiornato; il requisito Chromium minimo è 116. Lo ZIP è per l’installazione manuale in modalità sviluppatore: non è una pubblicazione su Microsoft Edge Add-ons o Chrome Web Store.
 
 La pubblicazione dello ZIP su GitHub non aggiorna una copia decompressa: **Ricarica** rilegge soltanto i file sul PC. Gli aggiornamenti automatici del browser richiedono una distribuzione tramite Chrome Web Store o Microsoft Edge Add-ons; questa versione non è pubblicata su questi store.
 
@@ -25,7 +25,7 @@ I salvataggi locali sono separati fra Chrome, Edge e i relativi profili: non ven
 
 | Modulo | Strumenti |
 | --- | --- |
-| Contact Builder | Ricerca avanzata DE, visite recenti, prima/ultima pagina, CLONE, MULTI ROWS, CSV completo della DE con avanzamento e annullamento, analisi SMS locale, collegamento alla stessa DE in Email Studio. |
+| Contact Builder | Ricerca avanzata DE, visite recenti, prima/ultima pagina, CLONE, MULTI ROWS, CSV completo della DE con avanzamento e annullamento, analisi SMS locale, collegamento alla stessa DE in Email Studio, Dove viene usata per query e automation della BU. |
 | Content Builder | Ricerca Advanced per nome, Customer Key o ID su tutte le cartelle della BU, filtri per tipo/cartella/date, risultati paginati e apertura dei contenuti. |
 | Preview and Test | Tracking Test accanto a Send Test per aprire il tracking Salesforce dei test in una nuova scheda; caricamento e attivazione con un clic della rubrica DE tester_content_builder, fino a 1000 tester per BU, suggerimenti destinatari, cartella virtuale DE recenti con svuotamento. |
 | Automation Studio | Apertura automatica della Query Activity appena copiata dal dettaglio dopo il completamento della procedura nativa; refresh automatico del Run Log ogni 5 secondi con pulsante ON/OFF, automation recenti, collegamenti alle attività e alla DE target, copia SQL, vista SQL validato, download JSON, copie locali prima della modifica. |
@@ -44,11 +44,13 @@ Crea in ogni BU la DE **tester_content_builder** dentro **SFMC_UI_Fixer**, anche
 
 In **Contact Builder → Data Extensions**, apri una DE e premi **Dove viene usata** sopra il dettaglio. Il pannello mostra le query che leggono o scrivono la DE e le automation/step associati, nella **sola BU configurata**. SQL o collegamenti non risolti sono segnalati come analisi parziale.
 
-Questa funzione richiede un **Installed Package Salesforce autorizzato in lettura** e il [componente locale Analisi DE](https://github.com/FraTreppi/better-mc/raw/refs/heads/main/dist/sfmc-de-usage-reader.zip), con Node 24.15 o successivo. Le credenziali Salesforce restano sul PC, fuori dall’estensione. [Configurazione e limiti](tools/de-usage/README.md). Le altre funzioni conservano il funzionamento della versione 1.1.37 caricata come base.
+Tutto avviene nell’estensione: **non servono Node, Git o programmi locali**. Serve un **Installed Package Server-to-Server Salesforce autorizzato in lettura**: Data Extensions (`data_extensions_read`) e Automations (`automations_read`), con accesso alla BU interessata. Clicca l’icona dell’estensione → **Collegamento Analisi DE**, inserisci una volta MID, stack, Authentication Base URI, Client ID e Client Secret, quindi **Salva e autorizza questa BU**. Se la BU è già approvata, basta **Salva collegamento API**, senza una nuova approvazione.
+
+La configurazione API rimane nello storage locale protetto dell’estensione. Il consenso BU comprende anche l’analisi DE e viene riutilizzato fra i moduli Salesforce supportati, nella sessione del browser, fino a 12 ore. Il rinnovo del token OAuth è automatico e non richiede ulteriori consensi. [Configurazione e limiti](GUIDA_UTENTE.md#dove-viene-usata-una-data-extension).
 
 ## Sicurezza e dati
 
-La versione attuale restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Per usare la rubrica o salvare copie SQL è richiesta una conferma locale con dominio, MID e stack. La scelta viene ricordata per dominio, modulo e BU durante la sessione del browser, fino a 12 ore: rientrare nello stesso modulo o aprire una nuova scheda non ripete la domanda. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
+La versione attuale restringe l’accesso ai dati locali al modulo, al documento e alla BU autorizzati. Rubrica, copie SQL e analisi DE usano un unico consenso locale per stack e MID, condiviso fra i moduli Salesforce supportati durante la sessione del browser, fino a 12 ore. Ogni documento mantiene un’autorizzazione limitata al proprio modulo e ai soli dati previsti. Dalla pagina dell’estensione puoi ripristinare le conferme senza cancellare i dati. Rifiutare non disabilita le altre funzioni.
 
 Il proxy di rete generico è stato rimosso. Il controllo SMS è interamente locale. I CSV proteggono dai prefissi che i fogli di calcolo potrebbero interpretare come formule.
 
@@ -57,3 +59,7 @@ Queste misure riducono i rischi individuati e non costituiscono una garanzia ass
 Vedi **[Sicurezza e limiti](SICUREZZA.md)** per le protezioni e i rischi residui. La [documentazione tecnica](DOCUMENTATION.md) e la [cronologia](CHANGELOG.md) sono separate dalla guida utente.
 
 La 1.1.37 ripristina Tracking Test accanto a Send Test, mantenendo rimossa Test History. Il collegamento apre la cartella generale Test Send Emails di Email Studio in una nuova scheda; la rubrica tester resta disponibile.
+
+## Sviluppo
+
+Per ricostruire i bundle già inclusi nello ZIP: `npm ci --ignore-scripts`, poi `npm run build`. Per i test: `npm test`. Node/npm servono soltanto allo sviluppo. I bundle e le licenze delle dipendenze sono inclusi nel pacchetto, senza caricamento di codice remoto.

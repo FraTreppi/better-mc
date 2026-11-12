@@ -92,12 +92,14 @@ test('page storage is limited to an explicitly authorized document, module and B
 
 test('privileged pages are private and network permissions remain limited', () => {
     const manifest = JSON.parse(read('manifest.json'));
-    assert.deepEqual(manifest.permissions, ['storage']);
+    assert.deepEqual(manifest.permissions, ['storage', 'offscreen']);
     assert.ok(!manifest.host_permissions.some(value => value.includes('sfmc-content.com')));
     const patterns = manifest.web_accessible_resources.flatMap(entry => entry.resources);
     const accessible = file => patterns.some(pattern => new RegExp('^' + pattern.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$').test(file));
-    for (const file of ['assets/js/background.js', 'assets/js/loader.js', 'assets/js/cloudpages-links.js', 'assets/js/test-tracking-shell.js', 'assets/js/test-tracking-main.js', 'assets/js/activity-versioning.js', 'assets/js/local-access-settings.js', 'assets/html/activity-versioning.html', 'assets/html/email-studio-diagnostics.html', 'assets/js/de-usage-worker.js', 'assets/js/de-usage-content.js', 'assets/js/de-usage-settings.js', 'assets/html/de-usage-settings.html']) assert.equal(accessible(file), false, file);
-    assert.deepEqual(manifest.host_permissions.filter(value => value.startsWith('http:')), ['http://127.0.0.1/*']);
+    for (const file of ['assets/js/background.js', 'assets/js/loader.js', 'assets/js/cloudpages-links.js', 'assets/js/test-tracking-shell.js', 'assets/js/test-tracking-main.js', 'assets/js/activity-versioning.js', 'assets/js/local-access-settings.js', 'assets/html/activity-versioning.html', 'assets/html/email-studio-diagnostics.html', 'assets/js/de-usage-worker.js', 'assets/js/de-usage-content.js', 'assets/js/de-usage-settings.js', 'assets/html/de-usage-settings.html', 'assets/html/de-usage-offscreen.html', 'assets/js/de-usage-offscreen.js', 'assets/js/de-usage-sql-worker.js']) assert.equal(accessible(file), false, file);
+    assert.deepEqual(manifest.host_permissions.filter(value => value.startsWith('http:')), []);
+    assert.ok(manifest.host_permissions.includes('https://*.auth.marketingcloudapis.com/*'));
+    assert.ok(manifest.host_permissions.includes('https://*.soap.marketingcloudapis.com/*'));
     for (const file of ['assets/js/content.js', 'assets/js/context.js', 'assets/js/contentbuilder/tester-source.js', 'assets/html/modals/advanced-de-search.html']) assert.equal(accessible(file), true, file);
     assert.ok(manifest.content_security_policy.extension_pages.includes("frame-ancestors 'none'"));
     assert.ok(manifest.content_security_policy.extension_pages.includes("script-src 'self'"));
@@ -147,10 +149,20 @@ test('a synchronous storage protection failure still returns a fail-closed error
     assert.equal(response.code, 'STORAGE_INIT');
     assert.ok(!JSON.stringify(response).includes('mario@example.com'));
 });
+test('API credentials never enter the page storage bridge or document notifications, and legacy grants require combined consent', async () => {
+    const w=workerFixture(), sender=w.from('https://content-builder.s50.marketingcloudapps.com/');
+    const key='SFMCFIX---DE-USAGE-API';w.state.local[key]={clientSecret:'PRIVATE_API_SECRET'};
+    await w.request(sender,'authorize',{},'s50:123');
+    assert.equal((await w.request(sender,'get',{keys:[key]},'s50:123')).ok,false);
+    w.emit({[key]:{newValue:w.state.local[key]}});await new Promise(resolve=>setImmediate(resolve));
+    assert.ok(!JSON.stringify(w.messages).includes('PRIVATE_API_SECRET'));
+    const grant=w.state.session['SFMCFIX---DOCUMENT-GRANTS'][sender.documentId];delete grant.consentVersion;
+    assert.equal((await w.request(sender,'get',{keys:[SETTINGS]},'s50:123')).code,'LOCAL_ACCESS_REQUIRED');
+});
 
 const APPROVALS = 'SFMCFIX---SESSION-APPROVALS', DOCUMENTS = 'SFMCFIX---DOCUMENT-GRANTS';
 const lifetime = 12 * 60 * 60 * 1000;
-test('session consent resumes for new documents and tabs, isolated by origin, module and BU', async () => {
+test('one combined BU consent resumes across supported modules and documents, with distinct grants and fixed expiry', async () => {
     const w = workerFixture(), url = 'https://content-builder.s50.marketingcloudapps.com/';
     const first = w.from(url), next = w.from(url, 2);
     const access = (sender, scope) => w.request(sender, 'requestAccess', {}, scope);
@@ -168,9 +180,10 @@ test('session consent resumes for new documents and tabs, isolated by origin, mo
     assert.equal((await access(next, 's50:999')).result.state, 'ask');
     for (const [otherURL, scope] of [
         ['https://content-builder.s50.exacttarget.com/', 's50:123'],
-        ['https://content-builder.s10.marketingcloudapps.com/', 's10:123'],
-        ['https://mc.s50.marketingcloudapps.com/AutomationStudioFuel3/', 's50:123']
-    ]) assert.equal((await access(w.from(otherURL, 3), scope)).result.state, 'ask');
+        ['https://mc.s50.marketingcloudapps.com/AutomationStudioFuel3/', 's50:123'],
+        ['https://mc.s50.exacttarget.com/contactsmeta/admin.html#admin/data-extension/' + id(1) + '/properties', 's50:123']
+    ]) assert.equal((await access(w.from(otherURL, 3), scope)).result.state, 'granted');
+    assert.equal((await access(w.from('https://content-builder.s10.marketingcloudapps.com/', 4), 's10:123')).result.state, 'ask');
     assert.equal((await access(next, 's10:123')).ok, false);
     // Re-registering a document cannot extend the absolute decision expiry.
     assert.equal((await w.request(first, 'register', {})).ok, true);

@@ -1,3 +1,11 @@
+# 1.1.39 — 12 novembre 2026
+
+- Analisi DE interamente nell’estensione: rimossi servizio loopback, codice di collegamento, avviatori Windows e ZIP del componente locale. Non serve Node sul PC dell’utente.
+- Configurazione privata dell’Installed Package con Salva e autorizza questa BU: Client Secret nel solo storage locale protetto, OAuth diretto, token in memoria e rinnovo automatico.
+- Unico consenso BU per rubrica, copie SQL e analisi DE, condiviso fra i moduli Salesforce supportati per stack/MID, nella sessione del browser fino a 12 ore. Vecchi consensi da riconfermare una volta; controlli per documento e ruolo conservati.
+- Motore offscreen e Web Worker SQL inclusi nel pacchetto, senza codice remoto. Ripristino consensi o rimozione credenziali interrompono l’analisi e svuotano l’indice.
+- Permessi HTTPS limitati alle API auth/SOAP Salesforce, nuovo permesso offscreen e minimo Chromium 116. Guida Markdown/PDF e test aggiornati.
+
 # 1.1.38 — 12 novembre 2026
 
 - Ripartenza dalla 1.1.37 dello ZIP fornito; accantonati esportazione template e strumenti progetto/Git successivi.

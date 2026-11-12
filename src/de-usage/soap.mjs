@@ -1,23 +1,25 @@
 import { XMLParser } from 'fast-xml-parser';
-import { createHash } from 'node:crypto';
+const bytes = value => new TextEncoder().encode(value);
+const size = value => bytes(value).byteLength;
 const parser = new XMLParser({ removeNSPrefix: true, ignoreAttributes: false, parseTagValue: false, processEntities: true });
 const xml = value => String(value).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
 export const array = value => value == null || value === '' ? [] : Array.isArray(value) ? value : [value];
 const yes = value => value === true || value === 'true';
 export function validateConfig(c) {
-    if (!c || !/^[1-9]\d{0,14}$/.test(String(c.mid)) || !/^s\d+$/.test(c.stack) || !/^[a-f0-9]{64}$/.test(c.pairingKey) ||
-        typeof c.clientId !== 'string' || !c.clientId || typeof c.clientSecret !== 'string' || !c.clientSecret) throw Error('Configurazione locale incompleta. Esegui CONFIGURA.cmd.');
+    if (!c || !/^[1-9]\d{0,14}$/.test(String(c.mid)) || !/^s\d+$/.test(c.stack) ||
+        typeof c.clientId !== 'string' || !c.clientId || c.clientId.length > 1024 || typeof c.clientSecret !== 'string' || !c.clientSecret || c.clientSecret.length > 4096) throw Error('Configura MID, stack e credenziali API nella pagina privata dell’estensione.');
     const url = new URL(c.authUrl);
     if (url.protocol !== 'https:' || !/^[a-z0-9-]+\.auth\.marketingcloudapis\.com$/.test(url.hostname) || url.port || url.username || url.password || !['/', ''].includes(url.pathname) || url.search || url.hash) throw Error('Authentication Base URI Salesforce non valida.');
     return c;
 }
 export class SOAPReader {
-    constructor(config, transport = fetch) { this.config = validateConfig(config); this.transport = transport; this.definitions = new Map(); this.deadline = Date.now() + 10 * 60 * 1000; }
+    constructor(config, transport = (...args) => fetch(...args)) { this.config = validateConfig(config); this.transport = transport; this.definitions = new Map(); this.deadline = Date.now() + 10 * 60 * 1000; this.controller = new AbortController(); }
+    cancel() { this.controller.abort(); }
     async http(url, options) {
         for (let attempt = 0; attempt < 3; attempt++) {
-            if (Date.now() > this.deadline) throw Error('Tempo massimo di analisi raggiunto: risultati non completi.');
+            if (this.controller.signal.aborted || Date.now() > this.deadline) throw Error('Analisi interrotta o tempo massimo raggiunto.');
             let response;
-            try { response = await this.transport(url, { ...options, redirect: 'error', signal: AbortSignal.timeout(25000) }); }
+            try { response = await this.transport(url, { ...options, credentials: 'omit', redirect: 'error', signal: AbortSignal.any([this.controller.signal, AbortSignal.timeout(25000)]) }); }
             catch (_) { throw Error('Connessione Salesforce non riuscita. Verifica rete e certificati aziendali.'); }
             if ([429, 502, 503, 504].includes(response.status) && attempt < 2) {
                 const wait = Math.max(250, Math.min(3000, Number(response.headers.get('retry-after')) * 1000 || (attempt + 1) * 500));
@@ -47,9 +49,9 @@ export class SOAPReader {
         const envelope = '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><s:Header><fueloauth xmlns="http://exacttarget.com">' + xml(this.token) + '</fueloauth></s:Header><s:Body>' + body + '</s:Body></s:Envelope>';
         const response = await this.http(this.endpoint, { method: 'POST', headers: { 'Content-Type': 'text/xml;charset=UTF-8', SOAPAction: action }, body: envelope });
         const text = await response.text();
-        this.bytes = (this.bytes || 0) + Buffer.byteLength(text);
+        this.bytes = (this.bytes || 0) + size(text);
         if (this.bytes > 100 * 1024 * 1024) throw Error('Analisi oltre 100 MB di metadati: ridurre il perimetro con l’amministratore.');
-        if (Buffer.byteLength(text) > 25 * 1024 * 1024 || /<!DOCTYPE|<!ENTITY/i.test(text)) throw Error('Risposta SOAP non valida.');
+        if (size(text) > 25 * 1024 * 1024 || /<!DOCTYPE|<!ENTITY/i.test(text)) throw Error('Risposta SOAP non valida.');
         let data; try { data = parser.parse(text).Envelope.Body; } catch (_) { throw Error('Risposta SOAP non riconosciuta.'); }
         if (!data || data.Fault) throw Error('SOAP ha rifiutato la lettura: verifica oggetto, proprietà e permessi.');
         return data;
@@ -81,7 +83,7 @@ export class SOAPReader {
             if (items.length > 100000) throw Error('Troppi metadati per una singola analisi.');
             if (result.OverallStatus === 'OK') return { items, fields };
             continuation = result.RequestID;
-            const signature = createHash('sha256').update(JSON.stringify(result.Results || [])).digest('hex');
+            const signature = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes(JSON.stringify(result.Results || []))))).join(',');
             if (!continuation || seen.has(signature)) throw Error(type + ': paginazione non completa.');
             seen.add(signature);
         }

@@ -1,5 +1,4 @@
 import { array } from './soap.mjs';
-import { SQLReader } from './sql.mjs';
 export const guid = value => typeof value === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value);
 const norm = value => String(value ?? '').normalize('NFC').toLowerCase();
 const field = (obj, name) => obj?.[name] ?? name.split('.').reduce((a, key) => a?.[key], obj);
@@ -11,9 +10,10 @@ function lookup(items, property) {
 const dataViews = new Set(['_subscribers','_sent','_job','_open','_click','_bounce','_unsubscribe','_complaint','_businessunitunsubscribes','_enterpriseattribute','_journey','_journeyactivity','_automationinstance','_automationactivityinstance','_listsubscribers','_smsmessagetracking','_smsmessage','_mobileaddress','_mobilesubscription','_pushaddress','_pushmessagetracking']);
 export async function buildIndex(reader, config, progress = () => {}, analyze) {
     const deadline = Date.now() + 10 * 60 * 1000;
-    const sql = new SQLReader(), issues = [], coverage = { metadata: true, sources: true, targets: true, automations: true };
+    const issues = [], coverage = { metadata: true, sources: true, targets: true, automations: true };
     const warn = (code, item) => { if (issues.length < 200) issues.push({ code, name: String(item?.Name || ''), id: String(item?.ObjectID || '') }); };
-    try {
+    if (typeof analyze !== 'function') throw Error('Analizzatore SQL non disponibile.');
+    {
         progress('Lettura metadati DE');
         const des = (await reader.retrieve('DataExtension', ['ObjectID','CustomerKey','Name','Client.ID'], ['ObjectID','CustomerKey','Name'])).items;
         const byId = lookup(des, 'ObjectID'), byKey = lookup(des, 'CustomerKey'), byName = lookup(des, 'Name');
@@ -33,7 +33,7 @@ export async function buildIndex(reader, config, progress = () => {}, analyze) {
             if (target && (!targetKey || norm(target.CustomerKey) === norm(targetKey))) query.target = target.ObjectID.toLowerCase();
             else { coverage.targets = false; targetErrors++; warn('TARGET_NON_RISOLTO', item); }
             try {
-                const refs = await (analyze || (value => sql.analyze(value)))(item.QueryText);
+                const refs = await analyze(item.QueryText);
                 for (const ref of refs) {
                     if (ref.schema && norm(ref.schema) !== 'dbo') { unresolvedSources++; coverage.sources = false; warn('SORGENTE_FUORI_PERIMETRO_O_NON_RISOLTA', item); continue; }
                     const source = byName(ref.name);
@@ -102,7 +102,7 @@ export async function buildIndex(reader, config, progress = () => {}, analyze) {
         return { format: 'sfmc-de-usage-v1', mid: String(config.mid), stack: config.stack, generatedAt: new Date().toISOString(), coverage,
             counts: { des: des.length, queries: queries.length, automations: automations.length, sourceErrors, unresolvedSources, targetErrors, automationErrors }, issues,
             des: des.map(de => ({ id: de.ObjectID.toLowerCase(), key: de.CustomerKey, name: de.Name })), queries };
-    } finally { await sql.close(); }
+    }
 }
 export function report(index, deId) {
     if (!guid(deId)) throw Error('Identificativo DE non valido.');

@@ -9,7 +9,7 @@
         /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/contactsmeta\/admin\.html$/i.test(location.pathname) ? 'contact' :
         /^mc\.s\d+\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i.test(host) && /^\/AutomationStudioFuel3(?:\/|$)/i.test(location.pathname) ? 'automation' : null;
     if (location.protocol !== 'https:' || !role) return;
-    const VERSION = '1.1.38';
+    const VERSION = '1.1.39';
     const CHANNEL = 'sfmcfix-storage';
     let approvedScope = null;
     let authorization;
@@ -27,7 +27,7 @@
         }
     });
     async function approve(scope) {
-        if (!['content', 'automation'].includes(role) || typeof scope !== 'string' ||
+        if (!['content', 'automation', 'contact'].includes(role) || typeof scope !== 'string' ||
             !/^(s\d+):(\d{1,15})$/.test(scope) || scope.split(':')[0] !== stack || Number(scope.split(':')[1]) <= 0) {
             throw new Error('Stack o MID non validi per questo modulo.');
         }
@@ -53,7 +53,7 @@
                 if (permission?.state === 'waiting') { await new Promise(resolve => setTimeout(resolve, 400)); continue; }
                 if (permission?.state !== 'ask') throw new Error('Stato delle autorizzazioni locali non riconosciuto.');
                 // Native isolated-world confirm: page scripts cannot replace it.
-                const allowed = window.confirm(`SFMC UI Fixer\nConsentire a ${host} di usare i dati locali della BU ${scope.split(':')[1]} · ${stack}?\n\n${role === 'content' ? 'Verrà resa disponibile la rubrica tester di questa BU.' : 'Potrai leggere e salvare le copie SQL di questa BU.'}\nLa scelta vale per questo dominio, modulo e BU durante la sessione del browser, fino a 12 ore. Non verrà richiesta a ogni rientro.\nI dati restano in questo profilo browser. Verifica che la BU sia corretta.`);
+                const allowed = window.confirm(`SFMC UI Fixer\nAutorizzare gli strumenti della BU ${scope.split(':')[1]} · ${stack}?\n\nIl consenso comprende rubrica tester, copie SQL locali e analisi in lettura dei metadati di query e automation tramite il pacchetto API configurato. Non autorizza invii o esecuzioni di query.\n\nLa scelta viene condivisa fra i moduli Salesforce supportati della stessa BU, durante la sessione del browser, fino a 12 ore. Non sarà richiesta per ogni DE o rientro.\nPagina: ${host}. Verifica che la BU sia corretta.`);
                 if (!allowed) {
                     await send({ action: 'denyAccess', scope });
                     throw new Error('Accesso ai dati locali annullato. Puoi ripristinare le conferme dalla pagina dell’estensione.');
@@ -66,6 +66,7 @@
         })();
         try { await authorization; } finally { authorization = null; }
     }
+    globalThis.sfmcfixLocalAccess = Object.freeze({ ensure: async (scope, force = false) => { if (force) approvedScope = null; await approve(scope); } });
     function reply(id, ok, result, error) {
         window.postMessage({ source: CHANNEL, direction: 'response', id, ok, result, error }, location.origin);
     }

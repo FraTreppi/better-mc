@@ -1,7 +1,7 @@
 // Privileged storage stays in the extension. Page scripts receive only an
 // explicitly approved BU view, never the full archive or a network proxy.
 'use strict';
-const VERSION = '1.1.38';
+const VERSION = '1.1.39';
 function failure(code, message) { return Object.assign(new Error(message), { code }); }
 const SETTINGS = 'SFMCFIX---SETTINGS-V2';
 const UI = 'SFMCFIX---UI-PREFERENCES';
@@ -77,18 +77,18 @@ function source(sender) {
 }
 function documentGrant(caller, scope, expiresAt) {
     return { page: caller.page, role: caller.role, stack: caller.stack || null, tabId: caller.tabId,
-        scope: scope || null, expiresAt: expiresAt || null, touched: Date.now() };
+        scope: scope || null, expiresAt: expiresAt || null, consentVersion: 2, touched: Date.now() };
 }
 function recentDocuments(docs) {
     return Object.fromEntries(Object.entries(docs).filter(([, d]) => Date.now() - d.touched < ACCESS_LIFETIME)
         .sort((a, b) => b[1].touched - a[1].touched).slice(0, 200));
 }
-function approvalKey(caller, scope) { return `${caller.origin}|${caller.role}|${scope}`; }
+function approvalKey(caller, scope) { return `bu-v2|${scope}`; }
 async function registerDocument(caller) {
     return enqueue(async () => {
         const docs = (await read('session', [DOCUMENTS]))[DOCUMENTS] || {};
         const previous = docs[caller.id];
-        const keep = previous?.page === caller.page && previous.role === caller.role && previous.tabId === caller.tabId && previous.expiresAt > Date.now();
+        const keep = previous?.consentVersion === 2 && previous.page === caller.page && previous.role === caller.role && previous.tabId === caller.tabId && previous.expiresAt > Date.now();
         const grant = documentGrant(caller, keep ? previous.scope : null, keep ? previous.expiresAt : null);
         docs[caller.id] = grant;
         await write('session', { [DOCUMENTS]: recentDocuments(docs) });
@@ -97,7 +97,7 @@ async function registerDocument(caller) {
 }
 async function localAccess(caller, action, scope) {
     const parts = scopeParts(scope);
-    if (!['content', 'automation'].includes(caller.role) || !parts || parts[0] !== caller.stack) throw new Error('Contesto non autorizzabile.');
+    if (!['content', 'automation', 'contact'].includes(caller.role) || !parts || parts[0] !== caller.stack) throw new Error('Contesto non autorizzabile.');
     return enqueue(async () => {
         const state = await read('session', [APPROVALS, DOCUMENTS]), now = Date.now(), key = approvalKey(caller, scope);
         const approvals = Object.fromEntries(Object.entries(state[APPROVALS] || {}).filter(([, entry]) => entry.expiresAt > now));
@@ -120,10 +120,11 @@ async function localAccess(caller, action, scope) {
         if (entry.decision === 'denied') {
             const docs = state[DOCUMENTS] || {};
             patch[DOCUMENTS] = Object.fromEntries(Object.entries(docs).map(([id, grant]) =>
-                grant.scope === scope && grant.role === caller.role && grant.page.startsWith(caller.origin + '/') ?
+                grant.scope === scope ?
                     [id, { ...grant, scope: null, expiresAt: null }] : [id, grant]));
         }
         await write('session', patch);
+        if (entry.decision === 'denied' && typeof globalThis.sfmcfixResetDEUsage === 'function') await globalThis.sfmcfixResetDEUsage(scope);
         return { state: entry.decision === 'allowed' ? 'granted' : entry.decision === 'denied' ? 'denied' : 'ask' };
     });
 }
@@ -179,7 +180,7 @@ async function grantFor(caller, scope) {
     const parts = scopeParts(scope);
     if (!parts || parts[0] !== caller.stack) throw new Error('Stack o MID non validi per questa pagina.');
     const grant = (await read('session', [DOCUMENTS]))[DOCUMENTS]?.[caller.id];
-    if (!grant || grant.page !== caller.page || grant.role !== caller.role || grant.tabId !== caller.tabId || grant.scope !== scope ||
+    if (!grant || grant.consentVersion !== 2 || grant.page !== caller.page || grant.role !== caller.role || grant.tabId !== caller.tabId || grant.scope !== scope ||
         !Number.isFinite(grant.expiresAt) || Date.now() >= grant.expiresAt) {
         throw failure('LOCAL_ACCESS_REQUIRED', 'Accesso locale da autorizzare per questa BU.');
     }
@@ -233,13 +234,14 @@ async function pageStorage(caller, action, payload, scope) {
 }
 async function internalStorage(action, payload) {
     if (action === 'resetLocalAccess') {
+        if (typeof globalThis.sfmcfixResetDEUsage === 'function') await globalThis.sfmcfixResetDEUsage();
         const docs = await enqueue(async () => {
             const docs = (await read('session', [DOCUMENTS]))[DOCUMENTS] || {};
             await write('session', { [APPROVALS]: {}, [DOCUMENTS]: Object.fromEntries(Object.entries(docs)
                 .map(([id, grant]) => [id, { ...grant, scope: null, expiresAt: null }])) });
             return docs;
         });
-        await Promise.allSettled(Object.entries(docs).filter(([, grant]) => ['content', 'automation'].includes(grant.role)).map(([documentId, grant]) =>
+        await Promise.allSettled(Object.entries(docs).filter(([, grant]) => ['content', 'automation', 'contact'].includes(grant.role)).map(([documentId, grant]) =>
             chrome.tabs.sendMessage(grant.tabId, { __sfmcfixLocalAccessReset: true }, { documentId })));
         return true;
     }
