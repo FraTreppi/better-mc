@@ -4,7 +4,13 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.46 — 24 novembre 2026
+## Versione attuale 1.1.47 — 24 novembre 2026
+
+La ricerca per Page ID è stata confermata nell’account Salesforce dell’utente con la 1.1.46. La 1.1.47 conserva il risultato e i Page ID verificati con le scorciatoie da tastiera e durante l’uso del campo nativo **Search**. **Copia nome** scrive solo il nome della pagina negli appunti. Se il browser rifiuta la scrittura, seleziona il testo del nome per consentire la copia manuale.
+
+**Apri pagina** verifica la corrispondenza esatta della riga. Se la riga manca, usa la ricerca nativa con l’ID asset e verifica nuovamente la riga prima di attivare il collegamento del nome o il comando **Properties** del menu. Il risultato resta disponibile quando Salesforce non mostra una transizione riconoscibile. Le prove di copia, ricerca nativa e apertura usano pagine Salesforce simulate.
+
+## Versione 1.1.46 — 24 novembre 2026
 
 L’elenco CloudPages può essere esposto da `mc.sNN.exacttarget.com`, mentre il GET dei metadati risponde su `cloud-pages.sNN.marketingcloudapps.com`. Sullo stesso dominio la lettura parte dal content script isolato. Se i domini differiscono, parte dal service worker dell’estensione tramite una porta dedicata. Il service worker verifica il documento attivo e la rotta CloudPages della scheda, deriva lo stack dalla shell e accetta solo un ID asset numerico. Il browser usa la sessione già aperta. La porta restituisce il solo Page ID verificato oppure un errore di lettura. La disconnessione interrompe la richiesta.
 

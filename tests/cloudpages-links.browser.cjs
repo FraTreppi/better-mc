@@ -75,13 +75,18 @@ function documentHTML(options) {
                     nextRows();
                 };
             }
+            function openPage(item) {
+                view.innerHTML = '<h1 id="native-editor">' + escape(item.name) + '</h1><h2>Page Details</h2>';
+            }
             function showRows(items) {
                 const grid = options.overview && !options.inner;
                 const rowContainer = document.querySelector('#rows');
                 rowContainer.innerHTML = items.map(item =>
                     (grid ? '<div role="row" style="min-height:160px">' : '<tr class="slds-hint-parent"' +
                         (options.inner ? ' style="height:160px"' : '') + '>') + [
-                        '<div class="slds-truncate" title="' + escape(item.name) + '">' + escape(item.name) + '</div><button type="button" class="native-control" aria-label="Native action">↗</button>',
+                        (options.plainName ? '<div class="slds-truncate" title="' + escape(item.name) + '">' + escape(item.name) + '</div>' :
+                            '<a href="#native-page"><span class="slds-truncate" title="' + escape(item.name) + '">' + escape(item.name) + '</span></a>') +
+                            '<button type="button" class="native-control" aria-label="Native action">↗</button>',
                         escape(item.folder), options.unsupported && item === first ? 'Microsite' : 'Landing Page',
                         options.noAsset && item === target ? '' : item.asset, 'Draft', 'Today',
                         '<div id="fixture-SLDSDataTableRow-' + item.asset + '-SLDSDataTableRowActions"><button type="button" class="row-actions"' +
@@ -92,17 +97,36 @@ function documentHTML(options) {
                 for (const [index, row] of [...rowContainer.children].entries()) {
                     const item = items[index];
                     row.querySelector('.native-control').onclick = () => events.push(['native', item.asset]);
-                    row.querySelector('.slds-truncate').onclick = () => {
+                    const link = row.querySelector('a');
+                    if (link) link.onclick = event => {
+                        event.preventDefault();
                         events.push(['open', item.asset]);
-                        view.innerHTML = '<h1 id="native-editor">' + escape(item.name) + '</h1>';
+                        if (!options.noNativeOpening) openPage(item);
                     };
-                    row.querySelector('.row-actions').onclick = () => events.push(['properties', item.asset]);
+                    row.querySelector('.row-actions').onclick = event => {
+                        if (!options.plainName) throw new Error('There is already a native link');
+                        events.push(['menu', item.asset]);
+                        const menu = document.createElement('div');
+                        menu.id = 'properties-menu-' + item.asset;
+                        menu.setAttribute('role', 'menu');
+                        menu.innerHTML = '<button role="menuitem">Delete</button><button role="menuitem">Properties</button>';
+                        menu.firstElementChild.onclick = () => events.push(['delete', item.asset]);
+                        menu.lastElementChild.onclick = () => {
+                            events.push(['properties', item.asset]);
+                            menu.remove();
+                            openPage(item);
+                        };
+                        event.currentTarget.setAttribute('aria-expanded', 'true');
+                        event.currentTarget.setAttribute('aria-controls', menu.id);
+                        document.body.append(menu);
+                    };
                 }
             }
             const search = view.querySelector('input');
             if (search) search.oninput = () => {
+                const value = search.value.toLowerCase();
                 events.push(['native-search', search.value]);
-                showRows(search.value.length >= 3 ? rows.filter(item => item.asset.includes(search.value)) : rows);
+                showRows(value.length >= 3 ? rows.filter(item => item.asset.includes(value) || item.name.toLowerCase().includes(value)) : rows);
             };
             const nativeColumns = view.querySelector('#native-columns');
             if (nativeColumns) nativeColumns.onclick = () => events.push(['native-columns']);
@@ -187,7 +211,11 @@ async function run() {
             assert.equal(await form.count(), 0);
             const show = async () => {
                 if (!await form.isVisible()) await launcher.click();
-                await form.waitFor();
+                try {
+                    await form.waitFor({ timeout: 4000 });
+                } catch (error) {
+                    throw new Error(`Riquadro non visibile ${JSON.stringify(options)}. Stato controllo: ${await launcher.getAttribute('aria-expanded', { timeout: 500 })}`, { cause: error });
+                }
             };
             const status = form.getByRole('status');
             const start = async value => {
@@ -204,8 +232,9 @@ async function run() {
             };
             const events = () => doc.locator('body').evaluate(() => window.events);
             const reading = () => context.waitForEvent('request', { predicate: request => new URL(request.url()).pathname === sites });
-            const close = async () => {
-                assert.equal((await events()).some(([event]) => event === 'properties'), false);
+            const close = async (openedFromProperties = false) => {
+                assert.equal((await events()).some(([event]) => event === 'properties'), openedFromProperties);
+                assert.equal((await events()).some(([event]) => event === 'delete'), false);
                 assert.equal(requests.every(([method, origin, pathname]) => method === 'GET' &&
                     ((origin === shell && (pathname === '/cloud/' || pathname === '/favicon.ico')) ||
                     (origin === embedded && pathname === '/host') ||
@@ -327,6 +356,65 @@ async function run() {
                 ['worker', first.asset], ['worker', first.asset], ['worker', target.asset]
             ]);
             assert.deepEqual(await f.events(), [['scroll']]);
+            await f.close();
+        }
+
+        {
+            const f = await fixture({ direct: true, overview: true, plainName: true });
+            const native = f.doc.getByRole('searchbox', { name: 'Search' });
+            const name = f.form.getByText(target.name, { exact: true });
+            const column = f.form.getByRole('checkbox', { name: 'Mostra colonna Page ID' });
+            await f.show();
+            await column.check();
+            await f.start('42');
+            await f.finished(/Corrispondenza trovata/);
+            await name.evaluate(node => {
+                document.activeElement.blur();
+                const range = document.createRange();
+                range.selectNodeContents(node);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+            });
+            await f.page.keyboard.down('Control');
+            assert.equal(await name.isVisible(), true);
+            assert.equal(await name.evaluate(() => window.getSelection().toString()), target.name);
+            assert.deepEqual(await f.doc.locator('[role="gridcell"][data-sfmcfix-cloudpages-column]').allTextContents(), ['4288', '42']);
+            await f.page.keyboard.press('KeyC');
+            await f.page.keyboard.up('Control');
+            await native.press('Control+v');
+            assert.equal(await native.inputValue(), target.name);
+            assert.equal(await name.isVisible(), true);
+            await native.fill('Nome diverso');
+            assert.equal(await f.doc.locator('[data-label="Name"]').count(), 0);
+            assert.equal(await name.isVisible(), true);
+            await f.form.getByRole('button', { name: 'Apri pagina' }).click();
+            await f.doc.locator('#native-editor').waitFor();
+            assert.equal(await f.doc.locator('#native-editor').textContent(), target.name);
+            assert.deepEqual(await f.events(), [
+                ['scroll'], ['native-search', target.name], ['native-search', 'Nome diverso'],
+                ['native-search', target.asset], ['menu', target.asset], ['properties', target.asset]
+            ]);
+            await f.close(true);
+        }
+
+        {
+            const f = await fixture({ direct: true, overview: true, noNativeOpening: true });
+            await f.start('4288');
+            await f.finished(/Corrispondenza trovata/);
+            await f.form.getByRole('button', { name: 'Apri pagina' }).click();
+            await f.finished(/Salesforce non ha mostrato i dettagli/);
+            const copy = f.form.getByRole('button', { name: 'Copia nome' });
+            assert.equal(await copy.isVisible(), true);
+            await copy.click();
+            await f.finished(/Nome copiato|Nome selezionato/);
+            if ((await f.form.getByRole('status').textContent()).includes('Nome selezionato')) {
+                await f.page.keyboard.press('Control+c');
+            }
+            const native = f.doc.getByRole('searchbox', { name: 'Search' });
+            await native.press('Control+v');
+            assert.equal(await native.inputValue(), first.name);
+            assert.equal(await f.form.getByText(first.name, { exact: true }).isVisible(), true);
+            assert.deepEqual(await f.events(), [['open', first.asset], ['native-search', first.name]]);
             await f.close();
         }
 

@@ -30,6 +30,7 @@
     let active = false;
     let suspended = false;
     let job;
+    let opening;
     let result;
     let launcher;
     let panel;
@@ -40,6 +41,9 @@
     let cancel;
     let status;
     let details;
+    let resultName;
+    let resultMetadata;
+    let copy;
     let open;
 
     const visible = node => node?.getClientRects().length && node.checkVisibility?.({ checkVisibilityCSS: true }) !== false &&
@@ -65,6 +69,9 @@
     const ownColumn = '[data-sfmcfix-cloudpages-column]';
     const searchableType = /^(Landing Page|Interactive Email Page)$/i;
     const landingPage = /^Landing Page$/i;
+    const properties = /^(?:(?:Landing )?Page (?:Properties|Details)|Content Details|Properties|Proprietà(?: della pagina)?|Dettagli (?:della )?pagina)$/i;
+    const menuSelector = '[role="menu"], .slds-dropdown';
+    const pageHeadings = 'h1, h2, h3, [role="heading"], .slds-modal__title, .slds-panel__header-title';
     const readScope = () => {
         const params = new URLSearchParams(location.search);
         return ['mid', 'MID', 'memberId', 'memberID'].map(key => params.get(key)).join('/');
@@ -85,6 +92,18 @@
         }
         return only(inputs.filter(node => [node.placeholder, node.getAttribute('aria-label')]
             .some(label => /^(Search|Cerca)$/i.test(label || ''))));
+    }
+
+    function searchInteraction(target) {
+        const native = nativeSearch();
+        const field = native?.closest('.slds-input-has-icon, .slds-form-element__control, [role="search"]');
+        return target === native || field?.contains(target);
+    }
+
+    function interrupts(event) {
+        if (!event.isTrusted || insideControls(event.target)) return false;
+        return event.type !== 'keydown' || (!event.ctrlKey && !event.metaKey && !event.altKey &&
+            !['Control', 'Meta', 'Alt', 'Shift', 'Tab'].includes(event.key));
     }
 
     function cloudPagesList(table, native) {
@@ -124,7 +143,8 @@
 
     function rowInfo(row) {
         const cell = label => rowCell(row, label);
-        const nameElement = cell('Name')?.querySelector('.slds-truncate, a');
+        const nameCell = cell('Name');
+        const nameElement = nameCell?.querySelector('.slds-truncate') || nameCell?.querySelector('a');
         const name = nameElement?.title || text(nameElement);
         const type = text(cell('Type'));
         if (!name || !type || !cell('ID')) return null;
@@ -332,7 +352,8 @@
                 const found = matches();
                 if (found.length > 1) throw new Error('Salesforce ha restituito più righe per lo stesso Page ID.');
                 if (found.length === 1) {
-                    result = { ...found[0], pageId: scan.pageId };
+                    const { key, name, location, assetId } = found[0];
+                    result = { key, name, location, assetId, pageId: scan.pageId };
                     return 'Corrispondenza trovata.';
                 }
                 if (error) throw error;
@@ -401,10 +422,19 @@
         status = document.createElement('div');
         status.setAttribute('role', 'status');
         details = document.createElement('div');
+        details.hidden = true;
+        resultName = document.createElement('div');
+        resultName.tabIndex = -1;
+        resultName.style.cssText = 'font-weight:600;overflow-wrap:anywhere;user-select:text';
+        resultMetadata = document.createElement('div');
         open = document.createElement('button');
         open.type = 'button';
         open.textContent = 'Apri pagina';
-        open.hidden = true;
+        copy = document.createElement('button');
+        copy.type = 'button';
+        copy.textContent = 'Copia nome';
+        copy.style.marginInlineStart = '8px';
+        details.append(resultName, resultMetadata, open, copy);
         const close = document.createElement('button');
         close.type = 'button';
         close.textContent = 'Chiudi';
@@ -415,13 +445,14 @@
         columnToggle = document.createElement('input');
         columnToggle.type = 'checkbox';
         column.append(columnToggle, ' Mostra colonna Page ID');
-        panel.append(close, label, input, search, cancel, column, status, details, open);
+        panel.append(close, label, input, search, cancel, column, status, details);
         search.addEventListener('click', startSearch);
         input.addEventListener('keydown', event => {
             if (event.key === 'Enter' && !event.isComposing) startSearch(event);
         });
         cancel.addEventListener('click', () => abort('Ricerca annullata.'));
         open.addEventListener('click', openResult);
+        copy.addEventListener('click', copyResultName);
         close.addEventListener('click', () => setPanelExpanded(false));
         columnToggle.addEventListener('change', render);
         panel.addEventListener('keydown', event => {
@@ -470,8 +501,10 @@
 
     function clearResult() {
         result = null;
-        if (details.textContent) details.textContent = '';
-        if (!open.hidden) open.hidden = true;
+        if (!details || details.hidden) return;
+        resultName.textContent = '';
+        resultMetadata.textContent = '';
+        details.hidden = true;
     }
 
     function render() {
@@ -487,6 +520,8 @@
         active = !suspended && libraryContext && !recycleBin;
         if (!active) {
             if (recycleBin) abort('Ricerca interrotta dopo il passaggio al cestino.');
+            if (result) status.textContent = '';
+            clearResult();
             panelExpanded = false;
             verifiedPageIds.clear();
             showColumn(null);
@@ -516,12 +551,13 @@
 
     function abort(reason) {
         job?.controller.abort(reason);
+        opening?.abort(reason);
     }
 
     async function startSearch(event) {
         event.preventDefault();
         event.stopPropagation();
-        if (!event.isTrusted || job || !active) return;
+        if (!event.isTrusted || job || opening || !active) return;
         const pageId = pageNumber(input.value);
         if (pageId === null) {
             status.textContent = 'Inserisci un Page ID numerico.';
@@ -544,28 +580,127 @@
         cancel.hidden = true;
         status.textContent = message;
         if (result) {
-            details.textContent = `${result.name} · Posizione ${result.location || 'non disponibile'} · Page ID ${result.pageId} · ID asset ${result.assetId ?? 'non disponibile'}`;
-            open.hidden = false;
+            resultName.textContent = result.name;
+            resultMetadata.textContent = `Posizione ${result.location || 'non disponibile'} · Page ID ${result.pageId} · ID asset ${result.assetId}`;
+            details.hidden = false;
         }
         render();
     }
 
-    function openResult(event) {
-        if (!event.isTrusted || !result || !active || job) return;
+    async function copyResultName(event) {
+        if (!event.isTrusted || !result) return;
+        const found = result;
+        try {
+            await navigator.clipboard.writeText(found.name);
+            if (result === found && !opening) status.textContent = 'Nome copiato.';
+        } catch (_) {
+            if (result !== found || !panelExpanded) return;
+            resultName.focus({ preventScroll: true });
+            const selection = document.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(resultName);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            if (!opening) status.textContent = 'Nome selezionato. Premi Ctrl+C o ⌘+C per copiarlo.';
+        }
+    }
+
+    function findResultRow(found) {
+        const table = currentList();
+        return table && only(rows(table).filter(info => info?.key === found.key));
+    }
+
+    async function locateResultRow(operation, found) {
+        const current = findResultRow(found);
+        if (current) return current;
+        const field = nativeSearch();
+        if (enabled(field)) {
+            const query = found.assetId.length >= 3 ? found.assetId : found.name;
+            if (query.length >= 3 && field.value !== query) {
+                const { set } = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+                set.call(field, query);
+                field.dispatchEvent(new Event('input', { bubbles: true }));
+                field.dispatchEvent(new Event('change', { bubbles: true }));
+                field.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
+            }
+            return until(operation, () => findResultRow(found), 'Salesforce non ha mostrato la riga corrispondente. Puoi copiare il nome e cercarlo in Search.');
+        }
+        throw new Error('La riga non è disponibile in questa vista. Puoi copiare il nome della pagina.');
+    }
+
+    async function nativeOpenControl(operation, info, found) {
+        const interactive = 'a[href], button, [role="link"], [role="button"]';
+        const nameLink = info.nameElement.closest(interactive) || only(shown(info.nameElement, interactive));
+        if (nameLink && rowCell(info.row, 'Name')?.contains(nameLink) && enabled(nameLink) && visible(nameLink)) return nameLink;
+
+        const actionsCell = rowCell(info.row, 'Actions');
+        const action = info.action || (!actionsCell?.querySelector('[id$="-SLDSDataTableRowActions"]') && actionsCell);
+        if (!action) return info.nameElement;
+        const direct = only(named(action, properties));
+        if (enabled(direct)) return direct;
+        const trigger = only(shown(action, 'button, [role="button"]').filter(node => !node.closest(menuSelector)));
+        if (!enabled(trigger)) return info.nameElement;
+
+        const popup = () => {
+            const linked = document.getElementById(trigger.getAttribute('aria-controls'));
+            return visible(linked) ? linked : only(leaves(shown(action, menuSelector)));
+        };
+        const before = new Set(shown(document, menuSelector));
+        const opened = !popup() && trigger.getAttribute('aria-expanded') !== 'true';
+        if (opened) {
+            trigger.scrollIntoView({ block: 'nearest' });
+            trigger.click();
+        }
+        const findMenu = () => popup() || (opened && only(leaves(shown(document, menuSelector).filter(node => !before.has(node)))));
+        const control = await until(operation, () => {
+            const menu = findMenu();
+            const item = menu && only(named(menu, properties));
+            return enabled(item) && item;
+        }, null, 1000);
+        operation.signal.throwIfAborted();
+        if (findResultRow(found)?.row !== info.row) throw new Error('La riga è cambiata durante l’apertura. Riprova da Apri pagina.');
+        if (control) return control;
+        // Restore the row menu only if this operation opened it.
+        if (opened && findMenu()) trigger.click();
+        return info.nameElement;
+    }
+
+    async function openResult(event) {
+        if (!event.isTrusted || !result || !active || job || opening) return;
         if (readScope() !== scope) {
             contextChanged();
             return;
         }
-        const table = currentList();
-        const info = table && only(rows(table).filter(item => item?.key === result.key));
-        if (!info || !visible(info.nameElement)) {
-            status.textContent = 'La riga non è più visibile nella vista corrente. Cerca di nuovo il Page ID.';
-            return;
+        const found = result;
+        const operation = new AbortController();
+        opening = operation;
+        open.disabled = search.disabled = true;
+        status.textContent = 'Apertura nella vista nativa di Salesforce…';
+        try {
+            const info = await locateResultRow(operation, found);
+            operation.signal.throwIfAborted();
+            const control = await nativeOpenControl(operation, info, found);
+            operation.signal.throwIfAborted();
+            if (!visible(control) || findResultRow(found)?.row !== info.row) {
+                throw new Error('La riga è cambiata durante l’apertura. Riprova da Apri pagina.');
+            }
+            const before = new Set(shown(document, pageHeadings));
+            const url = location.href;
+            const name = found.name.trim().replace(/\s+/g, ' ');
+            control.click();
+            await until(operation, () => location.href !== url || shown(document, pageHeadings).some(node =>
+                !before.has(node) && (text(node) === name || node.title === found.name || properties.test(text(node)))),
+            'Salesforce non ha mostrato i dettagli della pagina. Puoi copiare il nome e aprirla dall’elenco.');
+            clearResult();
+            status.textContent = '';
+            panelExpanded = false;
+        } catch (error) {
+            if (result === found) status.textContent = operation.signal.aborted ? operation.signal.reason : error.message;
+        } finally {
+            opening = null;
+            open.disabled = search.disabled = false;
+            render();
         }
-        clearResult();
-        status.textContent = 'Apertura nella vista nativa di Salesforce.';
-        info.nameElement.click();
-        render();
     }
 
     function contextChanged(closePanel = true) {
@@ -610,8 +745,11 @@
             reportRoute(inCloudPages(), true);
             notify();
         });
-        document.addEventListener('pointerdown', event => { if (event.isTrusted && !insideControls(event.target)) notify(); }, true);
-        document.addEventListener('keydown', event => { if (event.isTrusted && !insideControls(event.target)) notify(); }, true);
+        const notifyInteraction = event => {
+            if (frames.size && interrupts(event) && !searchInteraction(event.target)) notify();
+        };
+        document.addEventListener('pointerdown', notifyInteraction, true);
+        document.addEventListener('keydown', notifyInteraction, true);
     } else if (shellFrame) {
         window.addEventListener('message', event => {
             if (event.source === window.top && event.origin === shellOrigin && event.data?.channel === channel &&
@@ -621,8 +759,9 @@
     }
 
     for (const type of ['input', 'pointerdown', 'keydown']) document.addEventListener(type, event => {
-        if (!event.isTrusted || insideControls(event.target)) return;
-        if (job) abort('Ricerca interrotta dall’interazione con Salesforce.');
+        if ((!job && !opening && !result && !verifiedPageIds.size) || !interrupts(event)) return;
+        if (job || opening) abort('Operazione interrotta dall’interazione con Salesforce.');
+        if (searchInteraction(event.target)) return;
         if (location.hostname !== metadataHost && verifiedPageIds.size) {
             verifiedPageIds.clear();
             showColumn(listing());

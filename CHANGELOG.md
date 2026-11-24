@@ -1,3 +1,8 @@
+# 1.1.47 — 24 novembre 2026
+
+- Il risultato CloudPages rimane visibile con Ctrl+C e mentre si usa **Search**. **Copia nome** copia il nome completo della pagina.
+- **Apri pagina** ritrova la riga tramite l’ID asset se il filtro l’ha nascosta. Usa il controllo nativo del nome o **Properties** della riga corrispondente e conserva il risultato se Salesforce non apre i dettagli.
+
 # 1.1.46 — 24 novembre 2026
 
 - La ricerca **Page ID** legge i metadati anche quando l’elenco è sul dominio principale di Marketing Cloud. Il browser usa la sessione Salesforce per il solo GET dei metadati CloudPages sullo stesso stack.
