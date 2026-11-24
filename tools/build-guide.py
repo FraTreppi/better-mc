@@ -1,6 +1,8 @@
 """Regenerate GUIDA_UTENTE.pdf from Markdown (requires reportlab and DejaVu fonts)."""
 from pathlib import Path
 from html import escape
+import json
+import os
 import re
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -11,7 +13,8 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.pagesizes import A4
 
 ROOT = Path(__file__).resolve().parent.parent
-FONT = Path('/usr/share/fonts/truetype/dejavu')
+VERSION = json.loads((ROOT / 'manifest.json').read_text(encoding='utf-8'))['version']
+FONT = Path(os.environ.get('SFMCFIX_GUIDE_FONT_DIR', '/usr/share/fonts/truetype/dejavu'))
 for name, file in [('Guide', 'DejaVuSans.ttf'), ('GuideBold', 'DejaVuSans-Bold.ttf'), ('GuideMono', 'DejaVuSansMono.ttf')]:
     pdfmetrics.registerFont(TTFont(name, str(FONT / file)))
 pdfmetrics.registerFontFamily('Guide', normal='Guide', bold='GuideBold', italic='Guide', boldItalic='GuideBold')
@@ -39,7 +42,7 @@ def flush_table():
         obj = Table(rows, colWidths=[155, 355], repeatRows=1, hAlign='LEFT')
         obj.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#e9f0f7')),('VALIGN',(0,0),(-1,-1),'TOP'),('LINEBELOW',(0,0),(-1,0),.5,colors.HexColor('#72869b')),('BOTTOMPADDING',(0,0),(-1,-1),6),('TOPPADDING',(0,0),(-1,-1),6)]))
         story.append(obj); story.append(Spacer(1, 10)); table.clear()
-for line in (ROOT / 'GUIDA_UTENTE.md').read_text().splitlines():
+for line in (ROOT / 'GUIDA_UTENTE.md').read_text(encoding='utf-8').splitlines():
     if line.startswith('|'):
         flush()
         if not re.match(r'^\|[\s:|-]+\|$', line): table.append([c.strip() for c in line.strip('|').split('|')])
@@ -55,6 +58,6 @@ for line in (ROOT / 'GUIDA_UTENTE.md').read_text().splitlines():
 flush(); flush_table()
 def footer(canvas, doc):
     canvas.setFont('Guide', 8); canvas.setFillColor(colors.HexColor('#526477'))
-    canvas.drawString(42, 24, 'SFMC UI Fixer · Guida utente 1.1.39')
+    canvas.drawString(42, 24, f'SFMC UI Fixer · Guida utente {VERSION}')
     canvas.drawRightString(A4[0]-42, 24, str(doc.page))
-SimpleDocTemplate(str(ROOT / 'GUIDA_UTENTE.pdf'), pagesize=A4, rightMargin=42, leftMargin=42, topMargin=38, bottomMargin=42, title='SFMC UI Fixer 1.1.39 — Guida utente', author='Francesco Trepiccioni').build(story, onFirstPage=footer, onLaterPages=footer)
+SimpleDocTemplate(str(ROOT / 'GUIDA_UTENTE.pdf'), pagesize=A4, rightMargin=42, leftMargin=42, topMargin=38, bottomMargin=42, title=f'SFMC UI Fixer {VERSION} — Guida utente', author='Francesco Trepiccioni').build(story, onFirstPage=footer, onLaterPages=footer)

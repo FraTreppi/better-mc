@@ -13,7 +13,7 @@ def archive(name, files, base):
                 raise ValueError('Private/dependency file in package')
             content = file.read_bytes()
             if file.suffix == '.cmd': content = content.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')
-            entry = zipfile.ZipInfo(str(relative).replace('\\','/'), date_time=(2026,11,12,0,0,0))
+            entry = zipfile.ZipInfo(str(relative).replace('\\','/'), date_time=(2026,11,24,0,0,0))
             entry.compress_type = zipfile.ZIP_DEFLATED; entry.external_attr = 0o100644 << 16
             out.writestr(entry, content)
     with zipfile.ZipFile(DIST / name) as check:
@@ -25,4 +25,6 @@ for directory in ['assets','esempi','tests','src']:
 files.append(ROOT / 'tools/build-extension.mjs')
 archive('sfmc-ui-fixer-multi-bu-diagnostica.zip', files, ROOT)
 with zipfile.ZipFile(DIST / 'sfmc-ui-fixer-multi-bu-diagnostica.zip') as check:
-    assert json.loads(check.read('manifest.json'))['version'] == '1.1.39'
+    version = json.loads(check.read('manifest.json'))['version']
+    assert json.loads(check.read('package.json'))['version'] == version
+    assert json.loads(check.read('package-lock.json'))['packages']['']['version'] == version

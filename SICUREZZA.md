@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.39 · 12 novembre 2026
+Versione 1.1.40 · 24 novembre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -113,11 +113,11 @@ CLONE e MULTI ROWS possono produrre scritture reali nella DE, usando i permessi 
 
 Per dati che richiedono protezioni ulteriori serve una scelta architetturale: per esempio rinunciare al salvataggio locale del SQL, oppure introdurre un archivio cifrato con una chiave gestita fuori dal codice dell’estensione. Inserire una chiave fissa nel pacchetto non renderebbe sicuro l’archivio.
 
-## Collegamenti CloudPages
+## Ricerca Page ID in CloudPages
 
-Il content script CloudPages opera soltanto sul DOM in un mondo isolato e non attiva il ponte allo storage. Riconosce le colonne della tabella e l’identificativo del controllo azioni, aggiungendo collegamenti con target _blank e rel noopener noreferrer. ID e nome sono parametri temporanei dell’URL della nuova scheda e vengono rimossi al completamento o all’interruzione; non sono salvati nell’archivio dell’estensione.
+Il content script isolato legge soltanto il DOM della vista CloudPages attiva. La shell HTTPS e il suo iframe diretto nello stesso stack si scambiano solo segnali di contesto. Page ID, ID asset, nome e posizione restano in memoria nel documento corrente. L’estensione non acquisisce cookie o credenziali e non invia richieste di rete per questa funzione.
 
-La nuova scheda usa ricerca e clic nativi, senza costruire endpoint privati o percorsi editor non osservati. La selezione richiede corrispondenza di ID e nome; messaggi limitati allo stack corrente collegano la shell HTTPS al suo iframe diretto. Interazione dell’utente, cambio modulo e scadenza interrompono l’apertura. Nessun nuovo permesso, accesso a record, pubblicazione o salvataggio di CloudPages.
+La scansione usa soltanto controlli nativi per selezionare la vista, caricare righe, aprire e lasciare i dettagli. Interazione con Salesforce, cambio di contesto e scadenza fermano i passaggi successivi. L’apertura del risultato usa la riga nativa della BU corrente. L’estensione non introduce nuovi permessi, salvataggi, pubblicazioni o esecuzioni di query o automation.
 
 Tutto il codice resta nel pacchetto installato. GitHub distribuisce lo ZIP, ma non può sostituire automaticamente i file di una copia decompressa. Non viene aggiunto un caricatore di JavaScript remoto.
 

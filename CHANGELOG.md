@@ -1,3 +1,10 @@
+# 1.1.40 — 24 novembre 2026
+
+- Aggiunta la ricerca **Page ID** in CloudPages. Accetta anche una o due cifre e confronta il valore esatto mostrato da Salesforce nei dettagli pagina.
+- Usa la vista **All Pages** e **Load More** della BU corrente per cercare nelle posizioni esposte da Salesforce. Mostra nome, posizione, Page ID e ID asset disponibili, con apertura nativa. Caricamento, annullamento e scansioni parziali hanno un esito esplicito.
+- Rimossi i pulsanti ↗ dell’estensione e lo spazio che occupavano accanto ai nomi. Restano disponibili la ricerca Salesforce per ID asset e le azioni native.
+- Aggiornati guida Markdown/PDF e ZIP dell’estensione.
+
 # 1.1.39 — 12 novembre 2026
 
 - Analisi DE interamente nell’estensione: rimossi servizio loopback, codice di collegamento, avviatori Windows e ZIP del componente locale. Non serve Node sul PC dell’utente.

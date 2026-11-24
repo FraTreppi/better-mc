@@ -1,138 +1,244 @@
-const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
 const { chromium } = require(process.env.SFMCFIX_PLAYWRIGHT_MODULE || 'playwright');
-const code = fs.readFileSync(path.resolve(__dirname, '../assets/js/cloudpages-links.js'), 'utf8');
+
+const extension = process.env.SFMCFIX_EXTENSION_PATH || path.resolve(__dirname, '..');
 const shell = 'https://mc.s10.exacttarget.com';
-const app = 'https://cloudpages.s10.marketingcloudapps.com'; // Synthetic embedded app, not a claimed Salesforce route.
-function row(id, name) {
-    const escape = text => text.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-    const value = escape(name);
-    return `<tr class="slds-hint-parent"><td data-label=""><div data-testid="cb-thumbnail-data-cell"></div></td><td data-label="Name"><div class="slds-truncate" title="${value}">${value}</div></td><td data-label="Location">Folder</td><td data-label="Type">Landing Page</td><td data-label="ID"><div class="slds-truncate" title="${id}">${id}</div></td><td data-label="Status">Published</td><td data-label="Modified">Today</td><td data-label="Actions"><div id="fixture-SLDSDataTableRow-${id}-SLDSDataTableRowActions"><button>Actions</button></div></td></tr>`;
-}
-const targetName = 'Pagina <test> & "nome"';
-(async () => {
-    const browser = await chromium.launch({ executablePath: '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
-    try {
-        async function fixture({ missing = false, delayed = false, direct = false, empty = false, loaded = false, wrong = false } = {}) {
-            const context = await browser.newContext();
-            const errors = [], requests = [];
-            context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
-            await context.addInitScript({ content: code });
-            let libraries = 0;
-            await context.route('https://**/*', async route => {
-                requests.push({ method: route.request().method(), url: route.request().url() });
-                const url = new URL(route.request().url());
-                if (url.origin === shell && !direct) return route.fulfill({ contentType: 'text/html', body: `<html><body><iframe src="${app}/fixture-library"></iframe></body></html>` });
-                const initial = libraries++ === 0;
-                const body = `<html><body><input placeholder="Enter at least three characters to search"><table><thead><tr>${['Name', 'Location', 'Type', 'ID', 'Status', 'Modified'].map(label => `<th>${label}</th>`).join('')}</tr></thead><tbody>${initial || loaded ? row('123456', targetName) : empty ? '' : row('987654', 'Altra pagina')}</tbody></table><script>
-                    window.__selected = []; window.__searches = [];
-                    document.querySelector('tbody').addEventListener('click', event => {
-                        const row = event.target.closest('tr');
-                        if (!row || event.target.closest('button')) return;
-                        __selected.push(row.querySelector('[data-label="ID"] .slds-truncate').textContent);
-                        document.querySelector('table').remove();
-                        document.body.insertAdjacentHTML('beforeend','<main id="native-editor">Editor nativo</main>');
-                    });
-                    document.querySelector('input').addEventListener('input', event => {
-                        __searches.push(event.target.value);
-                        ${missing ? '' : `setTimeout(() => { document.querySelector('tbody').innerHTML = ${JSON.stringify(wrong ? row('222222', targetName) + row('123456', 'Nome diverso') : row('123456', targetName))}; }, ${delayed ? 3000 : 150});`}
-                    });
-                </script></body></html>`;
-                return route.fulfill({ contentType: 'text/html', body });
-            });
-            const page = await context.newPage();
-            await page.goto(`${shell}/cloud/#app/CloudPages/`);
-            const frame = direct ? page.mainFrame() : page.frames().find(frame => frame.url().startsWith(app));
-            await frame.locator('.sfmcfix-cloudpage-newtab').waitFor();
-            return { context, page, frame, errors, requests };
-        }
-        for (const options of [{ direct: true }, { empty: true }, { loaded: true }]) {
-            const f = await fixture(options);
-            const popupPromise = f.context.waitForEvent('page');
-            await f.frame.locator('.sfmcfix-cloudpage-newtab').click();
-            const popup = await popupPromise;
-            await popup.waitForLoadState();
-            const target = options.direct ? popup.mainFrame() : popup.frames().find(frame => frame.url().startsWith(app));
-            await target.locator('#native-editor').waitFor();
-            await popup.waitForFunction(() => !location.search);
-            assert.deepEqual(await target.evaluate(() => __selected), ['123456']);
-            assert.deepEqual(await target.evaluate(() => __searches), options.loaded ? [] : [targetName]);
-            assert.deepEqual(f.errors, []);
-            await f.context.close();
-        }
-        console.log('PASS direct shell rendering, initially empty library and already-loaded target; selection requires the exact ID and name.');
-        {
-            const f = await fixture();
-            const link = f.frame.locator('.sfmcfix-cloudpage-newtab');
-            const href = new URL(await link.getAttribute('href'));
-            assert.equal(href.origin, shell); assert.equal(href.hash, '#app/CloudPages/');
-            assert.equal(href.searchParams.get('sfmcfix_cloudpage'), '123456');
-            assert.equal(href.searchParams.get('sfmcfix_cloudpage_name'), targetName);
-            assert.equal(await link.getAttribute('target'), '_blank');
-            assert.equal(await link.getAttribute('rel'), 'noopener noreferrer');
-            assert.ok((await link.getAttribute('aria-label')).includes(targetName));
-            const popupPromise = f.context.waitForEvent('page');
-            await link.click();
-            const popup = await popupPromise;
-            await popup.waitForLoadState();
-            const target = popup.frames().find(frame => frame.url().startsWith(app));
-            await target.locator('#native-editor').waitFor();
-            await popup.waitForFunction(() => !location.search.includes('sfmcfix_cloudpage'));
-            assert.deepEqual(await target.evaluate(() => __selected), ['123456']);
-            assert.deepEqual(await target.evaluate(() => __searches), [targetName]);
-            assert.deepEqual(await f.frame.evaluate(() => __selected), []);
-            assert.equal(await f.frame.locator('table').count(), 1);
-            assert.equal(f.page.url(), `${shell}/cloud/#app/CloudPages/`);
-            assert.equal(await popup.locator('#sfmcfix-cloudpage-opening').count(), 0);
-            assert.equal(f.requests.some(request => request.method !== 'GET'), false);
-            assert.deepEqual(f.errors, []);
-            await f.context.close();
-            console.log('PASS supplied CloudPages row structure: accessible new-tab link, native name filtering then exact ID/name selection once, original tab unchanged, marker removed, no write requests.');
-        }
-        {
-            const f = await fixture();
-            await f.frame.evaluate(markup => document.querySelector('tbody').insertAdjacentHTML('beforeend', markup), row('222222', 'Seconda pagina'));
-            await f.frame.locator('.sfmcfix-cloudpage-newtab').nth(1).waitFor();
-            await f.frame.evaluate(() => {
-                const row = document.querySelector('tbody tr');
-                row.querySelector('[data-label="ID"] .slds-truncate').textContent = '333333';
-                row.querySelector('[data-label="Name"] .slds-truncate').textContent = 'Rinominata';
-                row.querySelector('[data-label="Name"] .slds-truncate').title = 'Rinominata';
-                row.querySelector('[data-label="Actions"] > div').id = 'fixture-SLDSDataTableRow-333333-SLDSDataTableRowActions';
-            });
-            await f.frame.waitForFunction(() => document.querySelector('.sfmcfix-cloudpage-newtab').href.includes('sfmcfix_cloudpage=333333'));
-            assert.equal(await f.frame.locator('.sfmcfix-cloudpage-newtab').count(), 2);
-            await f.frame.evaluate(() => document.querySelector('[data-label="Actions"] > div').id = 'unrelated');
-            await f.frame.waitForFunction(() => document.querySelectorAll('.sfmcfix-cloudpage-newtab').length === 1);
-            assert.deepEqual(f.errors, []);
-            await f.context.close();
-            console.log('PASS Load More, reused rows and renamed pages update links without duplicates; non-CloudPages rows lose the control.');
-        }
-        for (const mode of ['missing', 'wrong', 'cancel', 'route']) {
-            const f = await fixture({ missing: mode === 'missing', wrong: mode === 'wrong', delayed: mode !== 'wrong' });
-            const popupPromise = f.context.waitForEvent('page');
-            await f.frame.locator('.sfmcfix-cloudpage-newtab').click();
-            const popup = await popupPromise;
-            await popup.waitForLoadState();
-            const target = popup.frames().find(frame => frame.url().startsWith(app));
-            await target.waitForFunction(() => __searches.length === 1);
-            if (mode === 'missing' || mode === 'wrong') {
-                if (mode === 'wrong') await target.waitForFunction(() => document.querySelectorAll('tbody tr').length === 2);
-                await target.evaluate(() => { const now = Date.now; Date.now = () => now() + 31000; });
-                await popup.getByRole('alert').waitFor();
-                await popup.getByRole('button', { name: 'Chiudi' }).click();
-            } else if (mode === 'cancel') {
-                await target.locator('input').click();
-                await popup.getByRole('alert').waitFor();
-                await target.waitForFunction(() => document.querySelector('[data-label="ID"] .slds-truncate')?.textContent === '123456');
-            } else {
-                await popup.evaluate(() => { location.hash = '#app/Email/'; });
-                await target.waitForFunction(() => document.querySelector('[data-label="ID"] .slds-truncate')?.textContent === '123456');
+const app = 'https://cloudpages.s10.marketingcloudapps.com';
+const route = '/cloud/#app/CloudPages/';
+const labels = ['Name', 'Location', 'Type', 'ID', 'Status', 'Modified', 'Actions'];
+const first = { asset: '42', page: '420', name: 'Prima pagina', folder: 'Cartella iniziale' };
+const target = { asset: '987654', page: '42', name: 'Pagina <due> & "speciale"', folder: 'Cartella B / Sottocartella' };
+
+function documentHTML(options) {
+    const filter = options.noFilter ? '' : '<input placeholder="Enter at least three characters to search">';
+    return `<!doctype html><html><body><main id="view"></main><script>
+        const options = ${JSON.stringify(options)};
+        const labels = ${JSON.stringify(labels)};
+        const first = ${JSON.stringify(first)};
+        const target = ${JSON.stringify(target)};
+        const view = document.querySelector('#view');
+        window.events = [];
+        let isAll = false;
+        let expanded = false;
+        const escape = value => String(value).replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[c]);
+        function showList() {
+            view.innerHTML = `
+            + JSON.stringify(`<button role="tab" id="all">All Pages</button>${filter}<table><thead><tr>${labels.map(label =>
+                `<th>${label}</th>`).join('')}</tr></thead><tbody></tbody></table><button id="more">Load More</button>`)
+            + `;
+            const all = document.querySelector('#all');
+            all.setAttribute('aria-selected', isAll);
+            all.hidden = options.noAll;
+            all.onclick = () => { events.push(['all']); isAll = true; showList(); };
+            document.querySelector('table').hidden = options.collections && !isAll;
+            let rows = [first];
+            if (isAll && expanded) rows.push(target);
+            const more = document.querySelector('#more');
+            more.hidden = !isAll || expanded;
+            more.onclick = () => {
+                events.push(['more']);
+                if (options.stalled) return;
+                document.querySelector('table').setAttribute('aria-busy', 'true');
+                setTimeout(() => { expanded = true; showList(); }, 100);
+            };
+            function showRows(items) {
+                document.querySelector('tbody').innerHTML = items.map((item, i) =>
+                    '<tr class="slds-hint-parent">' + [
+                        '<div class="slds-truncate" title="' + escape(item.name) + '">' + escape(item.name) + '</div><button type="button" class="native-control" aria-label="Native action">↗</button>',
+                        escape(item.folder), 'Landing Page', options.noAsset && item === target ? '' : item.asset, 'Draft', 'Today',
+                        '<div id="fixture-SLDSDataTableRow-' + item.asset + '-SLDSDataTableRowActions"><button type="button" aria-haspopup="true" aria-expanded="false">Actions</button></div>'
+                    ].map((value, column) => '<td data-label="' + labels[column] + '">' + value + '</td>').join('') + '</tr>'
+                ).join('');
+                for (const [index, row] of [...document.querySelectorAll('tbody tr')].entries()) {
+                    const item = items[index];
+                    row.querySelector('.native-control').onclick = () => events.push(['native', item.asset]);
+                    row.querySelector('.slds-truncate').onclick = () => {
+                        events.push(['open', item.asset]);
+                        view.innerHTML = '<h1 id="native-editor">' + escape(item.name) + '</h1>';
+                    };
+                    const trigger = row.querySelector('[aria-haspopup]');
+                    trigger.onclick = () => {
+                        const old = row.querySelector('[role="menu"]');
+                        trigger.setAttribute('aria-expanded', String(!old));
+                        if (old) { old.remove(); return; }
+                        trigger.insertAdjacentHTML('afterend', '<div role="menu"><button role="menuitem">Page Properties</button><button role="menuitem">Publish</button></div>');
+                        row.querySelector('[role="menuitem"]').onclick = () => {
+                            events.push(['properties', item.asset]);
+                            row.querySelector('[role="menu"]').remove();
+                            trigger.setAttribute('aria-expanded', 'false');
+                            if (options.delayProperties) setTimeout(() => showDetails(item), 700);
+                            else showDetails(item);
+                        };
+                        row.querySelectorAll('[role="menuitem"]')[1].onclick = () => events.push(['write']);
+                    };
+                }
             }
-            assert.deepEqual(await target.evaluate(() => __selected), []);
-            assert.equal(await popup.evaluate(() => location.search), '');
-            assert.deepEqual(f.errors, []);
-            await f.context.close();
+            const search = view.querySelector('input');
+            if (search) search.oninput = () => {
+                events.push(['native-search', search.value]);
+                showRows(search.value.length >= 3 ? rows.filter(item => item.asset.includes(search.value)) : rows);
+            };
+            showRows(rows);
         }
-        console.log('PASS missing page, mismatched ID/name, user interaction and leaving CloudPages cancel automatic selection, including late search results.');
-    } finally { await browser.close(); }
-})().catch(error => { console.error(error); process.exitCode = 1; });
+        function showDetails(item) {
+            const id = options.missingId && item === first ? '' :
+                '<div><div><span>Page ID</span></div><div>' + item.page + '</div></div>';
+            const card = '<article><h2>Page Details</h2><div>Draft</div>' + id + '</article>';
+            if (options.full) {
+                view.innerHTML = '<nav aria-label="Breadcrumb"><button>Home</button></nav><h1>' + escape(item.name) + '</h1>' + card;
+                view.querySelector('nav button').onclick = () => {
+                    events.push(['home']); isAll = false; expanded = false; showList();
+                };
+            } else {
+                view.insertAdjacentHTML('afterend', '<section role="dialog"><h2>Page Properties</h2>' +
+                    id + '<button type="button" aria-label="Close">×</button><button>Save</button></section>');
+                const dialog = document.querySelector('[role="dialog"]');
+                dialog.querySelector('button').onclick = () => dialog.remove();
+                dialog.querySelectorAll('button')[1].onclick = () => events.push(['write']);
+            }
+        }
+        showList();
+    </script></body></html>`;
+}
+
+async function run() {
+    const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'better-mc-cloudpages-'));
+    let context;
+    try {
+        context = await chromium.launchPersistentContext(profile, {
+            channel: process.env.SFMCFIX_BROWSER_CHANNEL || 'chromium',
+            headless: true,
+            args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`]
+        });
+        const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 15000 });
+        const version = JSON.parse(await fs.readFile(path.join(extension, 'manifest.json'), 'utf8')).version;
+        assert.equal(await worker.evaluate(() => chrome.runtime.getManifest().version), version);
+        const errors = [];
+        async function fixture(options = {}) {
+            const requests = [];
+            const page = await context.newPage();
+            page.on('pageerror', error => errors.push(error.message));
+            await page.route('https://**/*', request => {
+                const url = new URL(request.request().url());
+                requests.push([request.request().method(), url.origin, url.pathname]);
+                if (url.origin === shell && url.pathname === '/cloud/') {
+                    return request.fulfill({ contentType: 'text/html', body: options.direct ? documentHTML(options) :
+                        `<!doctype html><button id="bu" onclick="document.querySelector('iframe').src='${app}/fixture?mid=999'">Cambia BU</button>
+                        <iframe width="900" height="600" src="${app}/fixture?mid=123"></iframe>` });
+                }
+                if (url.origin === app && url.pathname === '/fixture') return request.fulfill({ contentType: 'text/html', body: documentHTML(options) });
+                return request.abort();
+            });
+            await page.goto(`${shell}${route}`);
+            const doc = options.direct ? page : page.frameLocator('iframe');
+            const appFrame = options.direct ? page.mainFrame() : page.frames().find(frame => frame.url().startsWith(app));
+            const form = doc.getByRole('form', { name: 'Ricerca CloudPages per Page ID' });
+            await form.waitFor();
+            const status = form.getByRole('status');
+            const start = async value => {
+                await form.getByLabel('Page ID', { exact: true }).fill(value);
+                await form.getByRole('button', { name: 'Cerca', exact: true }).click();
+            };
+            const finished = re => status.getByText(re).waitFor();
+            const events = () => doc.locator('body').evaluate(() => window.events);
+            const openingDetails = () => appFrame.waitForFunction(() => window.events.some(([event]) => event === 'properties'));
+            const close = async () => {
+                assert.equal((await events()).some(([event]) => event === 'write'), false);
+                assert.equal(requests.every(([method, origin, pathname]) => method === 'GET' &&
+                    ((origin === shell && (pathname === '/cloud/' || pathname === '/favicon.ico')) ||
+                    (origin === app && (pathname === '/fixture' || pathname === '/favicon.ico')))), true, JSON.stringify(requests));
+                await page.close();
+            };
+            return { page, doc, form, start, finished, events, openingDetails, close };
+        }
+
+        {
+            const f = await fixture();
+            const native = f.doc.getByPlaceholder('Enter at least three characters to search');
+            await native.fill('999');
+            assert.equal(await f.doc.locator('tbody tr').count(), 0);
+            await f.start('42');
+            await f.finished(/Svuota il filtro Salesforce/);
+            assert.equal(await native.inputValue(), '999');
+            await native.fill('');
+            assert.equal(await f.doc.locator('.sfmcfix-cloudpage-newtab').count(), 0);
+            await f.doc.getByRole('button', { name: 'Native action' }).click();
+            await f.start('4e1');
+            await f.finished(/Inserisci un Page ID numerico/);
+            await f.start('42');
+            await f.finished(/Corrispondenza trovata/);
+            const result = await f.form.textContent();
+            assert.ok(result.includes(target.name));
+            assert.ok(result.includes(target.folder));
+            assert.ok(result.includes('Page ID 42 · ID asset 987654'));
+            await f.form.getByRole('button', { name: 'Apri pagina' }).click();
+            await f.doc.locator('#native-editor').waitFor();
+            assert.deepEqual(await f.events(), [
+                ['native-search', '999'], ['native-search', ''], ['native', '42'], ['all'],
+                ['properties', '42'], ['more'], ['properties', '987654'], ['open', '987654']
+            ]);
+            await f.close();
+        }
+
+        {
+            const f = await fixture({ direct: true, full: true, noAsset: true, collections: true });
+            await f.start('00042');
+            await f.finished(/pagina è aperta nei dettagli Salesforce/);
+            assert.ok((await f.form.textContent()).includes('Page ID 42 · ID asset non disponibile'));
+            assert.equal(await f.doc.getByRole('heading', { name: target.name }).count(), 1);
+            assert.deepEqual(await f.events(), [['all'], ['properties', '42'], ['home'], ['all'], ['more'], ['properties', '987654']]);
+            await f.close();
+        }
+
+        for (const options of [{}, { missingId: true }, { noAll: true }, { stalled: true }, { noFilter: true }]) {
+            const f = await fixture(options);
+            await f.start('4');
+            await f.finished(Object.keys(options).length ? /Ricerca parziale/ : /Nessuna corrispondenza nelle 2 pagine verificate in All Pages/);
+            assert.equal(await f.form.getByRole('button', { name: 'Apri pagina' }).isVisible(), false);
+            await f.close();
+        }
+
+        {
+            const f = await fixture({ delayProperties: true });
+            await f.start('42');
+            await f.openingDetails();
+            await f.form.getByRole('button', { name: 'Annulla ricerca' }).click();
+            await f.finished(/Ricerca annullata/);
+            await f.start('420');
+            await f.finished(/Attendi i dettagli richiesti a Salesforce|Torna all’elenco CloudPages/);
+            await f.doc.getByRole('dialog').waitFor();
+            assert.deepEqual(await f.events(), [['all'], ['properties', '42']]);
+            assert.equal(await f.form.getByRole('button', { name: 'Apri pagina' }).isVisible(), false);
+            await f.close();
+        }
+
+        {
+            const f = await fixture({ delayProperties: true });
+            await f.start('420');
+            await f.openingDetails();
+            await Promise.all([
+                f.page.waitForEvent('framenavigated', frame => frame.url() === `${app}/fixture?mid=999`),
+                f.page.locator('#bu').click()
+            ]);
+            await f.form.waitFor();
+            assert.deepEqual(await f.events(), []);
+            await f.page.evaluate(() => { location.hash = '#app/Email/'; });
+            await f.form.waitFor({ state: 'detached' });
+            assert.equal(await f.doc.getByRole('dialog').count(), 0);
+            await f.close();
+        }
+
+        assert.deepEqual(errors, []);
+        console.log(`PASS Manifest V3 ${version}, CloudPages DOM fixtures, native controls, cross-folder pagination, exact short IDs, partial, cancellation and BU/route change (${process.env.SFMCFIX_BROWSER_CHANNEL || 'chromium'}).`);
+    } finally {
+        await context?.close();
+        await fs.rm(profile, { recursive: true, force: true });
+    }
+}
+
+run().catch(error => { console.error(error); process.exitCode = 1; });

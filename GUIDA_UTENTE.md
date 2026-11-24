@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.39 · Autore: Francesco Trepiccioni
+Versione 1.1.40 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Le funzioni dell’interfaccia lavorano con la sessione Salesforce già aperta. L’analisi degli utilizzi DE collega direttamente l’estensione alle API Salesforce in sola lettura.
 
@@ -323,13 +323,15 @@ Non vengono generate automaticamente clausole FROM o JOIN.
 
 Dopo un cambio BU, conserva prima il testo che ti serve e premi **Clear** prima di salvare nel nuovo contesto. Quando il MID non è riconosciuto, le copie rimangono temporanee per il documento corrente.
 
-## CloudPages: aprire l’editor in un’altra scheda
+## Cercare una CloudPage per Page ID
 
-Nell’elenco **CloudPages**, accanto al nome della pagina compare il pulsante **↗**. Cliccalo per aprire l’editor Salesforce in una nuova scheda; l’elenco originale rimane aperto. Il pulsante apre l’editor anche per le pagine non pubblicate.
+1. Apri **Web Studio → CloudPages** nella BU in cui vuoi cercare. Se hai compilato la ricerca nativa Salesforce, svuotala prima di avviare la scansione.
+2. Nel campo **Page ID**, inserisci il primo argomento di `CloudPagesURL()` e premi **Cerca**. Puoi inserire anche una o due cifre. Il confronto è esatto. Salesforce mostra questo identificativo in **Page Properties → Page Details**. [Come trovare il Page ID su Trailhead](https://trailhead.salesforce.com/content/learn/modules/custom-preference-center-development/build-your-preference-center).
+3. Il risultato mostra nome, posizione, Page ID e ID asset, se esposto da Salesforce. Premi **Apri pagina** per selezionare la riga nativa. Quando Salesforce apre direttamente **Page Details**, la pagina trovata è già visibile nella stessa scheda.
 
-La nuova scheda carica CloudPages e seleziona la pagina con lo stesso ID e nome. Se la riga non è già presente, compila la ricerca nativa con il nome e attende i risultati. Il comando compare anche sulle righe aggiunte da Load More.
+La ricerca passa ad **All Pages** e usa **Load More** quando disponibile, così può controllare pagine di altre cartelle o collection incluse in quella vista. Durante la scansione l’elenco e i dettagli Salesforce possono cambiare. Premi **Annulla ricerca** per interromperla. Se un controllo o il Page ID non sono leggibili, Salesforce non risponde o la vista All Pages non è confermata, compare **Ricerca parziale** con il numero delle pagine verificate. Il risultato riguarda le pagine che la BU e i tuoi permessi rendono accessibili in quella vista.
 
-Attendi il caricamento. Se inizi a usare la nuova scheda, l’apertura automatica si interrompe. Se la pagina non viene trovata o CloudPages non completa il caricamento, compare un messaggio chiudibile: puoi cercarla manualmente nella nuova scheda. Il comando dipende dall’elenco e dalla ricerca resi disponibili da Salesforce; non pubblica né modifica la CloudPage.
+Per cercare l’**ID asset** della colonna **ID**, continua a usare il campo Salesforce. La ricerca Page ID usa solo la vista nativa della BU attiva e legge i dettagli senza salvare o pubblicare pagine.
 
 ## Journey Builder
 

@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.39
+# SFMC UI Fixer — Multi BU 1.1.40
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
@@ -30,7 +30,7 @@ I salvataggi locali sono separati fra Chrome, Edge e i relativi profili: non ven
 | Preview and Test | Tracking Test accanto a Send Test per aprire il tracking Salesforce dei test in una nuova scheda; caricamento e attivazione con un clic della rubrica DE tester_content_builder, fino a 1000 tester per BU, suggerimenti destinatari, cartella virtuale DE recenti con svuotamento. |
 | Automation Studio | Apertura automatica della Query Activity appena copiata dal dettaglio dopo il completamento della procedura nativa; refresh automatico del Run Log ogni 5 secondi con pulsante ON/OFF, automation recenti, collegamenti alle attività e alla DE target, copia SQL, vista SQL validato, download JSON, copie locali prima della modifica. |
 | Query Studio | Bozze, recupero dell’editor, elenco query, copia campi e campi obbligatori, pannelli comprimibili. |
-| CloudPages | Pulsante accanto al nome per aprire l’editor in una nuova scheda, tramite selezione della pagina nell’elenco nativo. |
+| CloudPages | Ricerca esatta per **Page ID** di `CloudPagesURL()` nella vista nativa All Pages della BU corrente, con apertura dei risultati. La ricerca Salesforce per ID asset resta disponibile. |
 | Journey Builder | Collegamento ai Journey referenziati e alla DE dell’entry quando identificabile. |
 | Pagina dell’estensione | Visibilità delle icone, consultazione ed esportazione delle versioni SQL, eliminazione delle copie locali, diagnostica Email Studio. |
 
