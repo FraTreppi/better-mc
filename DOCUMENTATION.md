@@ -4,7 +4,15 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.44 — 24 novembre 2026
+## Versione attuale 1.1.45 — 24 novembre 2026
+
+Nel tenant è stato osservato il GET nativo `/fuelapi/internal/v2/cloudpages/sites?siteAssetId=…` in CloudPages. La risposta confermata è un oggetto di paginazione con un elemento in `entities`. Il record associa `siteAssetId` all’ID asset della riga e `defaultPageId` al Page ID della landing page. `siteId` identifica la risorsa dei dettagli. La ricerca chiama il GET sulla stessa origine del riquadro CloudPages con gli ID asset già presenti nel suo elenco. Confronta il valore restituito in memoria con il numero cercato, senza passarlo al server come ID asset.
+
+I risultati validi sono riutilizzati nel documento corrente e svuotati al cambio di contesto. Si leggono fino a tre landing page per volta, con annullamento e limite di tempo. Righe ambigue, altri tipi di pagina con mappatura non verificata e risposte rifiutate danno copertura parziale. L’estensione apre la riga solo da **Apri pagina**.
+
+La chiamata e la forma della risposta sono state confermate tramite DevTools del tenant. Il riuso da parte dell’estensione è collaudato su risposte simulate, inclusi annullamento, cambio BU, assenza di metadati e HTTP 401, 403 e 429. La risposta del tenant alla richiesta avviata dall’estensione resta da verificare.
+
+## Versione 1.1.44 — 24 novembre 2026
 
 La scansione legge i campi **Page ID** delle proprietà native aperte dalla riga corrispondente. Gestisce le proprietà in un dialogo e in una schermata separata. Dopo una mancata corrispondenza usa un controllo nativo di chiusura o ritorno. Se manca, usa la cronologia solo quando ha osservato la transizione a una nuova voce nello stesso documento. Se il ritorno non è verificabile, la ricerca è parziale. Le righe che non espongono Properties vengono saltate. L’editor si apre dal comando **Apri pagina** del risultato in elenco.
 

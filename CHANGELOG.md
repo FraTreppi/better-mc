@@ -1,3 +1,8 @@
+# 1.1.45 — 24 novembre 2026
+
+- La ricerca **Page ID** legge in background i metadati delle landing page con il GET nativo osservato in CloudPages. Verifica che `siteAssetId` coincida con l’ID asset della riga prima di usare `defaultPageId`.
+- La scansione lascia visibile l’elenco. **Apri pagina** apre la corrispondenza trovata. Sessione rifiutata, metadati mancanti e inventario incompleto hanno un esito esplicito.
+
 # 1.1.44 — 24 novembre 2026
 
 - La ricerca riconosce la schermata **Properties** e rientra nell’elenco dopo una mancata corrispondenza. Le ricerche successive riusano i Page ID verificati mentre il contesto rimane lo stesso.

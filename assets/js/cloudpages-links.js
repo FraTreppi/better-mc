@@ -4,6 +4,7 @@
     const host = location.hostname.match(/^(?:[a-z0-9-]+\.)?(s\d+)\.(?:exacttarget|marketingcloud|marketingcloudapps)\.com$/i);
     if (location.protocol !== 'https:' || location.port || !host) return;
     const shellOrigin = `https://mc.${host[1]}.exacttarget.com`;
+    const metadataHost = `cloud-pages.${host[1]}.marketingcloudapps.com`;
     const channel = 'sfmcfix-cloudpages-context';
     const isTop = window === window.top;
     const isShell = isTop && location.origin === shellOrigin && /^\/cloud\/?$/i.test(location.pathname);
@@ -29,8 +30,6 @@
     let suspended = false;
     let job;
     let result;
-    let pendingDetails;
-    let returningToList;
     let launcher;
     let panel;
     let panelExpanded = false;
@@ -63,14 +62,8 @@
     const listRows = 'tbody tr, [role="row"]:has([role="gridcell"], [role="cell"])';
     const headerCells = 'thead th, [role="columnheader"]';
     const ownColumn = '[data-sfmcfix-cloudpages-column]';
-    const properties = /^(?:(?:Landing )?Page (?:Properties|Details)|Content Details|Properties|Proprietà(?: della pagina)?|Dettagli (?:della )?pagina)$/i;
-    const detailHeadings = 'h1, h2, h3, h4, [role="heading"], .slds-modal__title, .slds-panel__header-title';
-    const nativeClose = /^(?:Close(?: (?:dialog|modal|properties))?|Chiudi(?: proprietà)?)$/i;
-    const nativeCancel = /^(?:Cancel|Annulla)$/i;
-    const nativeBack = /^(?:Back(?: to (?:CloudPages|Overview|the list))?|Go Back|Torna (?:all’elenco|a CloudPages)|Indietro)$/i;
-    const pageIdLabel = /^(?:Page ID|ID (?:della )?pagina)\s*:?$/i;
-    const inlinePageId = /^(?:Page ID|ID (?:della )?pagina)\s*:?\s*(\d+)$/i;
     const searchableType = /^(Landing Page|Interactive Email Page)$/i;
+    const landingPage = /^Landing Page$/i;
     const readScope = () => {
         const params = new URLSearchParams(location.search);
         return ['mid', 'MID', 'memberId', 'memberID'].map(key => params.get(key)).join('/');
@@ -255,171 +248,45 @@
         }, 'La vista All Pages non ha completato il caricamento.');
     }
 
-    function menu(trigger, action, before) {
-        if (trigger.getAttribute('aria-expanded') === 'false') return null;
-        const selector = '[role="menu"], .slds-dropdown';
-        const linked = document.getElementById(trigger.getAttribute('aria-controls'));
-        if (visible(linked)) return linked;
-        const local = shown(action, selector);
-        return only(leaves(local.length ? local : shown(document, selector).filter(node => !before.has(node))));
-    }
-
-    const visibleDialogs = () => leaves(shown(document, '[role="dialog"], .slds-modal'));
-    const detailsVisible = view => visible(view?.heading || view?.root);
-    const dismissControl = root => only(shown(root, 'button.slds-modal__close, button.slds-panel__close')) ||
-        only(named(root, nativeClose)) || only(named(root, nativeCancel));
-    const pageIdFields = root => shown(root, 'label, dt, th, span, div, p, strong, b').filter(node => !node.closest(ownColumn));
-    const visiblePageIdLabels = () => leaves(pageIdFields(document).filter(node =>
-        !node.closest('table, [role="grid"], [role="table"], [role="menu"]') &&
-        (pageIdLabel.test(text(node)) || inlinePageId.test(text(node)))));
-
-    function detailView(transition) {
-        const dialog = only(visibleDialogs().filter(root => !transition.dialogs.has(root) &&
-            (properties.test(root.getAttribute('aria-label') || '') ||
-                named(root, properties, detailHeadings).length || detailPageId(root) !== null)));
-        if (dialog) return { root: dialog, dialog, back: transition.back };
-        const heading = only(named(document, properties, detailHeadings).filter(node => !transition.headings.has(node) &&
-            !node.closest('table, [role="grid"], [role="menu"]'))) ||
-            only(visiblePageIdLabels().filter(node => !transition.labels.has(node)));
-        if (!heading) return null;
-        const card = heading.closest('section, article, aside, [role="region"], .slds-card, .slds-panel') ||
-            heading.parentElement?.parentElement;
-        if (!card) return null;
-        if (visible(transition.info.row)) {
-            for (let root = card, depth = 0; root && root !== document.body && depth < 4; root = root.parentElement, depth++) {
-                if (root.contains(transition.info.row)) break;
-                if (dismissControl(root) && detailPageId(root) !== null) {
-                    return { root, dialog: root, heading, back: transition.back };
-                }
-            }
-            return null;
-        }
-        return { root: card, dialog: null, heading, back: transition.back };
-    }
-
-    function updatePendingDetails() {
-        if (!pendingDetails) return;
-        pendingDetails.view ||= detailView(pendingDetails);
-        if (pendingDetails.view && !detailsVisible(pendingDetails.view)) pendingDetails = null;
-    }
-
-    function detailPageId(root) {
-        if (!root) return null;
-        const fields = pageIdFields(root);
-        const labels = leaves(fields.filter(node => pageIdLabel.test(text(node))));
-        const ids = new Set();
-        for (const label of labels) {
-            const value = label.control || label.nextElementSibling || label.parentElement?.nextElementSibling;
-            if (visible(value)) {
-                const id = pageNumber(typeof value.value === 'string' ? value.value : text(value));
-                if (id !== null) ids.add(id);
-            }
-            const siblingText = label.nextSibling;
-            if (siblingText?.nodeType === Node.TEXT_NODE) {
-                const id = pageNumber(siblingText.nodeValue);
-                if (id !== null) ids.add(id);
-            }
-        }
-        for (const field of leaves(fields.filter(node => inlinePageId.test(text(node))))) {
-            ids.add(pageNumber(text(field).match(inlinePageId)[1]));
-        }
-        return ids.size === 1 ? [...ids][0] : null;
-    }
-
-    function pageIdInView(view) {
-        if (view.dialog) return detailPageId(view.root);
-        for (let root = view.root, depth = 0; root && root !== document.body && depth < 4; root = root.parentElement, depth++) {
-            const id = detailPageId(root);
-            if (id !== null) return id;
-        }
-        return null;
-    }
-
-    function canRestoreList(back) {
-        if (!back) return false;
-        const navigation = window.navigation;
-        const entry = navigation?.currentEntry;
-        if (back.key && entry) {
-            return entry.index === back.index + 1 && navigation.entries()[back.index]?.key === back.key;
-        }
-        return history.length === back.length + 1 &&
-            (location.pathname !== back.path || location.hash.split('?')[0] !== back.hash);
-    }
-
-    async function inspect(scan, info) {
-        if (!visible(info.nameElement)) throw new Error('La riga è cambiata durante la scansione.');
-        let control = only(named(info.row, properties));
-        const trigger = info.action && (info.action.querySelector('button[aria-haspopup="true"], button[aria-haspopup="menu"]') ||
-            only(shown(info.action, 'button')));
-        if (!enabled(control) && enabled(trigger)) {
-            const expanded = trigger.getAttribute('aria-expanded') === 'true';
-            if (expanded) throw new Error('Chiudi il menu Salesforce e ripeti la ricerca.');
-            const before = new Set(shown(document, '[role="menu"], .slds-dropdown'));
-            trigger.click();
-            const popup = await until(scan, () => menu(trigger, info.action, before), 'Il menu della pagina non è leggibile.');
-            control = only(named(popup, properties));
-            if (!enabled(control)) {
-                trigger.click();
-                await until(scan, () => !visible(popup), 'Il menu della pagina è rimasto aperto.');
-            }
-        }
-        scan.signal.throwIfAborted();
-        if (!enabled(control)) return null;
-        const entry = window.navigation?.currentEntry;
-        const transition = {
-            info,
-            view: null,
-            dialogs: new Set(visibleDialogs()),
-            headings: new Set(named(document, properties, detailHeadings)),
-            labels: new Set(visiblePageIdLabels()),
-            back: { key: entry?.key, index: entry?.index, length: history.length, path: location.pathname, hash: location.hash.split('?')[0] }
-        };
-        pendingDetails = transition;
-        control.click();
-        const view = await until(scan, () => {
-            updatePendingDetails();
-            return pendingDetails === transition && transition.view;
-        }, 'Salesforce non ha mostrato dettagli riconoscibili per una pagina.');
-        pendingDetails = null;
-        const pageId = await until(scan, () => pageIdInView(view), null, 2500);
-        return { ...view, pageId };
-    }
-
-    async function returnToList(scan, view) {
-        returningToList = scan;
-        try {
-            const control = view.dialog ? dismissControl(view.dialog) : (
-                only(named(document, nativeBack)) ||
-                only(named(document, /^(Home|CloudPages)$/i, '.slds-breadcrumb a, nav[aria-label*="breadcrumb" i] a')) ||
-                only(named(document, /^Home$/i, 'a, button, [role="link"]'))
-            );
+    async function readSitePageId(scan, assetId) {
+        const url = new URL('/fuelapi/internal/v2/cloudpages/sites', location.origin);
+        url.searchParams.set('siteAssetId', assetId);
+        const response = await fetch(url, {
+            method: 'GET',
+            mode: 'same-origin',
+            credentials: 'same-origin',
+            redirect: 'error',
+            cache: 'no-store',
+            headers: { Accept: 'application/json' },
+            signal: AbortSignal.any([scan.signal, AbortSignal.timeout(8000)])
+        }).catch(() => {
             scan.signal.throwIfAborted();
-            if (enabled(control)) control.click();
-            else if (!view.dialog && canRestoreList(view.back)) {
-                // Restore the same-document history entry observed immediately before opening Properties.
-                history.back();
-            } else {
-                throw new Error('Chiudi Properties per tornare all’elenco CloudPages. La scansione si è fermata.');
-            }
-            await until(scan, () => !detailsVisible(view) && (currentList() || allPages()), 'L’elenco non è tornato disponibile.');
-            if (!view.dialog) await chooseAllPages(scan);
-        } finally {
-            returningToList = null;
+            throw new Error('La lettura dei metadati CloudPages è scaduta o non è disponibile.');
+        });
+        if (response.status === 404) return null;
+        if (response.status === 401 || response.status === 403) {
+            throw new Error(`Salesforce ha rifiutato la lettura dei metadati nella sessione della scheda (HTTP ${response.status}).`);
         }
+        if (response.status === 429) throw new Error('Salesforce ha limitato le richieste di metadati (HTTP 429). Riprova più tardi.');
+        if (!response.ok) throw new Error(`Lettura dei metadati non riuscita (HTTP ${response.status}).`);
+        const data = await response.json().catch(() => {
+            scan.signal.throwIfAborted();
+            throw new Error('Salesforce ha restituito una risposta non JSON per i metadati CloudPages.');
+        });
+        const site = Array.isArray(data?.entities) && data.totalCount === 1 && only(data.entities);
+        if (!site || pageNumber(String(site.siteAssetId ?? '')) !== assetId) return null;
+        const pageId = pageNumber(String(site.defaultPageId ?? ''));
+        return pageId && pageId !== '0' ? pageId : null;
     }
 
-    async function scanLibrary(scan, previousMatch) {
+    async function scanLibrary(scan) {
         const checked = new Set();
         const unread = new Set();
+        const progress = () => checked.size === 1 ? '1 pagina verificata.' : `${checked.size} pagine verificate.`;
         let unknown = false;
         try {
-            if (detailsVisible(previousMatch?.view)) await returnToList(scan, previousMatch.view);
-            updatePendingDetails();
-            if (visibleDialogs().length || named(document, properties, detailHeadings).length) {
-                throw new Error('Torna all’elenco CloudPages prima di cercare.');
-            }
-            if (pendingDetails) {
-                throw new Error('Attendi i dettagli richiesti a Salesforce. Se non si aprono, ricarica CloudPages.');
+            if (location.hostname !== metadataHost) {
+                throw new Error('Apri l’elenco nel riquadro nativo CloudPages per leggere i metadati.');
             }
             if (nativeSearch()?.value.trim()) throw new Error('Svuota il filtro Salesforce per cercare per Page ID.');
             await chooseAllPages(scan);
@@ -430,52 +297,63 @@
                 if (native?.value.trim()) throw new Error('Svuota il filtro Salesforce per cercare per Page ID.');
                 const coverage = Boolean(selected(allPages()) && native);
                 const inventory = rows(table);
-                unknown ||= inventory.some(item => item === null || (!searchableType.test(item.type) && !/^Code Resource$/i.test(item.type)));
-                const info = inventory.find(item => item && searchableType.test(item.type) &&
-                    !checked.has(item.key) && !unread.has(item.key));
-                if (info) {
-                    if (inventory.filter(item => item?.key === info.key).length > 1) {
-                        unread.add(info.key);
-                        continue;
-                    }
-                    const verified = info.assetId && verifiedPageIds.get(info.key);
-                    if (verified) {
-                        checked.add(info.key);
-                        if (verified === scan.pageId) {
-                            result = { ...info, pageId: verified };
-                            return 'Corrispondenza trovata.';
-                        }
-                        continue;
-                    }
-                    status.textContent = `Ricerca Page ID ${scan.pageId}. Controllo le proprietà di ${info.name}… ${checked.size} pagine verificate.`;
-                    const view = await inspect(scan, info);
-                    scan.signal.throwIfAborted();
-                    if (!view) {
-                        unread.add(info.key);
-                        continue;
-                    }
-                    (view.pageId === null ? unread : checked).add(info.key);
-                    if (view.pageId !== null && info.assetId) {
-                        verifiedPageIds.set(info.key, view.pageId);
-                        showColumn(currentList());
-                    }
-                    if (view.pageId === scan.pageId) {
-                        result = { ...info, pageId: view.pageId, view };
-                        return view.dialog ? 'Corrispondenza trovata.' : 'Corrispondenza trovata. La pagina è aperta nei dettagli Salesforce.';
-                    }
-                    await returnToList(scan, view);
-                    continue;
+                const counts = new Map();
+                for (const info of inventory) {
+                    if (info?.assetId) counts.set(info.assetId, (counts.get(info.assetId) || 0) + 1);
                 }
+                const candidates = inventory.filter(info => {
+                    if (info && /^Code Resource$/i.test(info.type)) return false;
+                    if (!info || !landingPage.test(info.type) || !info.assetId || info.assetId === '0' || counts.get(info.assetId) !== 1) {
+                        unknown = true;
+                        return false;
+                    }
+                    if (verifiedPageIds.has(info.key)) checked.add(info.key);
+                    return true;
+                });
+                const matches = () => candidates.filter(info => verifiedPageIds.get(info.key) === scan.pageId);
+                const batch = matches().length ? [] : candidates
+                    .filter(info => !checked.has(info.key) && !unread.has(info.key)).slice(0, 3);
+                let error;
+                if (batch.length) {
+                    status.textContent = `Ricerca Page ID ${scan.pageId}… ${progress()}`;
+                    const outcomes = await Promise.allSettled(batch.map(info => readSitePageId(scan, info.assetId)));
+                    if (readScope() !== scope) contextChanged();
+                    scan.signal.throwIfAborted();
+                    const current = currentList();
+                    if (!current || signature(current) !== JSON.stringify(inventory.map(info => info?.key))) {
+                        throw new Error('L’elenco CloudPages è cambiato mentre i metadati erano in caricamento.');
+                    }
+                    for (const [index, outcome] of outcomes.entries()) {
+                        const { key } = batch[index];
+                        if (outcome.status === 'rejected') error ||= outcome.reason;
+                        else if (outcome.value) {
+                            verifiedPageIds.set(key, outcome.value);
+                            checked.add(key);
+                        } else {
+                            unread.add(key);
+                        }
+                    }
+                    showColumn(current);
+                }
+                const found = matches();
+                if (found.length > 1) throw new Error('Salesforce ha restituito più righe per lo stesso Page ID.');
+                if (found.length === 1) {
+                    result = { ...found[0], pageId: scan.pageId };
+                    return 'Corrispondenza trovata.';
+                }
+                if (error) throw error;
+                if (batch.length) continue;
+
                 const pagination = named(document, /^(Load More|Carica altri|Carica altro)$/i);
                 const more = only(pagination);
                 if (pagination.length > 1 || (more && !enabled(more))) throw new Error('La paginazione Salesforce non è disponibile.');
                 const moreInOverview = !more && cloudPagesList(table, native) &&
                     shown(document, 'div, span, p').some(node => /^\d+\+\s+items?$/i.test(text(node)));
                 if (!more && !moreInOverview) {
-                    const scope = coverage ? '' : ' La copertura dell’inventario della BU non è confermata.';
+                    const coverageNote = coverage ? '' : ' La copertura dell’inventario della BU non è confermata.';
                     return coverage && unread.size === 0 && !unknown
-                        ? `Nessuna corrispondenza nelle ${checked.size} pagine verificate in All Pages.`
-                        : `Ricerca parziale. Nessuna corrispondenza nelle ${checked.size} pagine verificate.${scope} Alcune pagine o cartelle potrebbero non essere coperte.`;
+                        ? `Nessuna corrispondenza in All Pages. ${progress()}`
+                        : `Ricerca parziale. Nessuna corrispondenza nelle pagine controllate. ${progress()}${coverageNote} Alcune pagine o cartelle potrebbero non essere coperte.`;
                 }
                 const previous = signature(table);
                 if (more) more.click();
@@ -490,8 +368,8 @@
                 }, 'Salesforce non ha caricato altre righe.');
             }
         } catch (error) {
-            if (scan.signal.aborted) return `${scan.signal.reason} ${checked.size} pagine verificate.`;
-            return `Ricerca parziale. ${error.message} ${checked.size} pagine verificate.`;
+            if (scan.signal.aborted) return `${scan.signal.reason} ${progress()}`;
+            return `Ricerca parziale. ${error.message} ${progress()}`;
         }
     }
 
@@ -622,7 +500,6 @@
             panel?.remove();
             return;
         }
-        updatePendingDetails();
         const anchor = table ? (scrollViewport(table) || table) : allPages();
         if (!anchor && !native && !job && !result) {
             showColumn(null);
@@ -650,13 +527,12 @@
     async function startSearch(event) {
         event.preventDefault();
         event.stopPropagation();
-        if (job || !active) return;
+        if (!event.isTrusted || job || !active) return;
         const pageId = pageNumber(input.value);
         if (pageId === null) {
             status.textContent = 'Inserisci un Page ID numerico.';
             return;
         }
-        const previous = result;
         clearResult();
         const controller = new AbortController();
         const scan = { pageId, controller, signal: controller.signal };
@@ -666,7 +542,7 @@
         cancel.hidden = false;
         status.textContent = `Ricerca Page ID ${pageId}…`;
         render();
-        const message = await scanLibrary(scan, previous);
+        const message = await scanLibrary(scan);
         clearTimeout(timer);
         if (job !== scan) return;
         job = null;
@@ -675,39 +551,27 @@
         status.textContent = message;
         if (result) {
             details.textContent = `${result.name} · Posizione ${result.location || 'non disponibile'} · Page ID ${result.pageId} · ID asset ${result.assetId ?? 'non disponibile'}`;
-            open.hidden = Boolean(result.view && !result.view.dialog);
+            open.hidden = false;
         }
         render();
     }
 
-    async function openResult() {
-        if (!result || !active || job) return;
-        const match = result;
-        const controller = new AbortController();
-        const scan = { controller, signal: controller.signal };
-        job = scan;
-        open.disabled = input.disabled = search.disabled = true;
-        cancel.hidden = false;
-        status.textContent = 'Apertura della CloudPage…';
-        try {
-            if (readScope() !== scope) contextChanged();
-            scan.signal.throwIfAborted();
-            if (detailsVisible(match.view)) await returnToList(scan, match.view);
-            scan.signal.throwIfAborted();
-            const table = currentList();
-            const info = table && only(rows(table).filter(item => item?.key === match.key));
-            if (!info || !visible(info.nameElement)) throw new Error('La riga non è più visibile nella vista corrente.');
-            clearResult();
-            status.textContent = 'Apertura nella vista nativa di Salesforce.';
-            info.nameElement.click();
-        } catch (error) {
-            status.textContent = scan.signal.aborted ? scan.signal.reason : `Apertura non riuscita. ${error.message}`;
-        } finally {
-            job = null;
-            open.disabled = input.disabled = search.disabled = false;
-            cancel.hidden = true;
-            render();
+    function openResult(event) {
+        if (!event.isTrusted || !result || !active || job) return;
+        if (readScope() !== scope) {
+            contextChanged();
+            return;
         }
+        const table = currentList();
+        const info = table && only(rows(table).filter(item => item?.key === result.key));
+        if (!info || !visible(info.nameElement)) {
+            status.textContent = 'La riga non è più visibile nella vista corrente. Cerca di nuovo il Page ID.';
+            return;
+        }
+        clearResult();
+        status.textContent = 'Apertura nella vista nativa di Salesforce.';
+        info.nameElement.click();
+        render();
     }
 
     function contextChanged(closePanel = true) {
@@ -749,9 +613,7 @@
             }
         });
         window.addEventListener('hashchange', () => {
-            const enabled = inCloudPages();
-            if (enabled && job && !job.signal.aborted && (pendingDetails || returningToList === job)) return;
-            reportRoute(enabled, true);
+            reportRoute(inCloudPages(), true);
             notify();
         });
         document.addEventListener('pointerdown', event => { if (event.isTrusted && !insideControls(event.target)) notify(); }, true);

@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.44 · 24 novembre 2026
+Versione 1.1.45 · 24 novembre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -115,11 +115,11 @@ Per dati che richiedono protezioni ulteriori serve una scelta architetturale: pe
 
 ## Ricerca Page ID in CloudPages
 
-Il content script isolato legge soltanto il DOM della vista CloudPages attiva. La shell HTTPS e il suo iframe diretto nello stesso stack si scambiano solo segnali di contesto. Overview può essere riconosciuta dalle etichette native anche in un documento autonomo o in un iframe con origini dello stesso stack. Page ID, ID asset, nome e posizione restano in memoria nel documento corrente. L’estensione non acquisisce cookie o credenziali e non invia richieste di rete per questa funzione.
+Il content script isolato legge l’elenco CloudPages della BU attiva. La shell HTTPS e il suo iframe diretto nello stesso stack si scambiano solo segnali di contesto. Nel riquadro `cloud-pages` l’estensione ripete, per gli ID asset dell’elenco, il solo GET interno `/fuelapi/internal/v2/cloudpages/sites` con il parametro `siteAssetId`. Il browser usa la sessione della stessa origine. L’estensione acquisisce dalla risposta solo l’associazione verificata tra `siteAssetId` e `defaultPageId`. Cookie, token e credenziali restano gestiti dal browser.
 
 La colonna Page ID usa i valori verificati durante la ricerca. L’opzione cambia soltanto la tabella mostrata nel browser e non avvia letture aggiuntive. I valori temporanei vengono rimossi al cambio di contesto.
 
-La scansione usa soltanto controlli nativi per selezionare la vista, caricare righe, aprire e lasciare i dettagli. Interazione con Salesforce, cambio di contesto e scadenza fermano i passaggi successivi. L’apertura del risultato usa la riga nativa della BU corrente. L’estensione non introduce nuovi permessi, salvataggi, pubblicazioni o esecuzioni di query o automation.
+La scansione usa i controlli nativi per selezionare la vista e caricare righe. Interazione con Salesforce, cambio di contesto e scadenza interrompono le richieste. L’apertura del risultato richiede un clic e usa la riga nativa della BU corrente. Il GET è in sola lettura e non richiede nuovi permessi.
 
 Tutto il codice resta nel pacchetto installato. GitHub distribuisce lo ZIP, ma non può sostituire automaticamente i file di una copia decompressa. Non viene aggiunto un caricatore di JavaScript remoto.
 

@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.44 · Autore: Francesco Trepiccioni
+Versione 1.1.45 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Le funzioni dell’interfaccia lavorano con la sessione Salesforce già aperta. L’analisi degli utilizzi DE collega direttamente l’estensione alle API Salesforce in sola lettura.
 
@@ -327,13 +327,13 @@ Dopo un cambio BU, conserva prima il testo che ti serve e premi **Clear** prima 
 
 1. Apri **Web Studio → CloudPages → Overview**. Se stai consultando una singola cartella, seleziona il nome della BU in cima alla colonna a sinistra. Se la ricerca Salesforce in alto a destra contiene testo, svuotala con **×**.
 2. Premi **Page ID** accanto a **Search**, vicino all’imbuto. Nel riquadro che si apre inserisci il primo argomento di `CloudPagesURL()` e premi **Cerca**. Puoi inserire anche una o due cifre. Il confronto è esatto. Salesforce mostra questo identificativo in **Page Properties → Page Details**. [Come trovare il Page ID su Trailhead](https://trailhead.salesforce.com/content/learn/modules/custom-preference-center-development/build-your-preference-center).
-3. Il risultato mostra nome, posizione, Page ID e ID asset, se esposto da Salesforce. Premi **Apri pagina** per selezionare la riga nativa. Quando Salesforce apre direttamente **Page Details**, la pagina trovata è già visibile nella stessa scheda.
+3. Il risultato mostra nome, posizione, Page ID e ID asset. Premi **Apri pagina** per selezionare la riga nativa.
 
 Per vedere i valori nella tabella, spunta **Mostra colonna Page ID** nel riquadro. La colonna si aggiunge accanto a **ID**. Mostra i valori verificati durante la scansione, mentre **—** indica che il valore della riga è ancora da verificare. Puoi chiudere il riquadro lasciando la colonna visibile.
 
-La scansione usa **All Pages** quando disponibile o l’elenco di **Overview**. Usa **Load More** o scorre il riquadro se Salesforce indica altre righe. Così può controllare anche pagine di altre cartelle incluse nell’elenco. Il riquadro indica quali proprietà sta leggendo. Dopo una mancata corrispondenza torna all’elenco per proseguire. Premi **Annulla ricerca** per interromperla. Quando l’inventario, il ritorno all’elenco o il Page ID non sono verificabili, compare **Ricerca parziale** con il numero delle pagine verificate.
+La scansione legge in background i metadati delle landing page presenti in **All Pages**, quando disponibile, o nell’elenco di **Overview**. Usa **Load More** o scorre il riquadro se Salesforce indica altre righe. Premi **Annulla ricerca** per interromperla. Se Salesforce rifiuta la lettura, oppure mancano metadati o parti dell’inventario, compare **Ricerca parziale** con il numero delle pagine verificate.
 
-Per cercare l’**ID asset** della colonna **ID**, continua a usare il campo Salesforce. La ricerca Page ID usa solo la vista nativa della BU attiva e legge i dettagli senza salvare o pubblicare pagine.
+Per cercare l’**ID asset** della colonna **ID**, continua a usare il campo Salesforce. La ricerca Page ID usa la vista nativa della BU attiva ed effettua soltanto letture.
 
 ## Journey Builder
 

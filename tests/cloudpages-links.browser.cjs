@@ -6,11 +6,12 @@ const { chromium } = require(process.env.SFMCFIX_PLAYWRIGHT_MODULE || 'playwrigh
 
 const extension = process.env.SFMCFIX_EXTENSION_PATH || path.resolve(__dirname, '..');
 const shell = 'https://mc.s10.exacttarget.com';
-const app = 'https://cloudpages.s10.marketingcloudapps.com';
+const app = 'https://cloud-pages.s10.marketingcloudapps.com';
 const embedded = 'https://web.s10.exacttarget.com';
 const route = '/cloud/#app/CloudPages/';
+const sites = '/fuelapi/internal/v2/cloudpages/sites';
 const labels = ['Name', 'Location', 'Type', 'ID', 'Status', 'Modified', 'Actions'];
-const first = { asset: '42', page: '420', name: 'Prima pagina', folder: 'Cartella iniziale' };
+const first = { asset: '294630', page: '4288', name: 'Prima pagina', folder: 'Cartella iniziale' };
 const target = { asset: '987654', page: '42', name: 'Pagina <due> & "speciale"', folder: 'Cartella B / Sottocartella' };
 
 function documentHTML(options) {
@@ -37,8 +38,8 @@ function documentHTML(options) {
     return `<!doctype html><html><body><main id="view"></main><script>
         const options = ${JSON.stringify(options)};
         const labels = ${JSON.stringify(labels)};
-        const first = ${JSON.stringify(options.fullProperties ? { ...first, page: '4288' } : first)};
-        const target = ${JSON.stringify(options.fullProperties ? { ...target, page: '4160' } : target)};
+        const first = ${JSON.stringify(first)};
+        const target = ${JSON.stringify(target)};
         const view = document.querySelector('#view');
         window.events = [];
         let isAll = false;
@@ -81,7 +82,8 @@ function documentHTML(options) {
                     (grid ? '<div role="row" style="min-height:160px">' : '<tr class="slds-hint-parent"' +
                         (options.inner ? ' style="height:160px"' : '') + '>') + [
                         '<div class="slds-truncate" title="' + escape(item.name) + '">' + escape(item.name) + '</div><button type="button" class="native-control" aria-label="Native action">↗</button>',
-                        escape(item.folder), 'Landing Page', options.noAsset && item === target ? '' : item.asset, 'Draft', 'Today',
+                        escape(item.folder), options.unsupported && item === first ? 'Microsite' : 'Landing Page',
+                        options.noAsset && item === target ? '' : item.asset, 'Draft', 'Today',
                         '<div id="fixture-SLDSDataTableRow-' + item.asset + '-SLDSDataTableRowActions"><button type="button" class="row-actions"' +
                             (grid ? '' : ' aria-haspopup="true" aria-expanded="false"') + '>Actions</button></div>'
                     ].map((value, column) => (grid ? '<div role="gridcell"' : '<td') + ' data-label="' + labels[column] + '">' + value + (grid ? '</div>' : '</td>'))
@@ -94,26 +96,7 @@ function documentHTML(options) {
                         events.push(['open', item.asset]);
                         view.innerHTML = '<h1 id="native-editor">' + escape(item.name) + '</h1>';
                     };
-                    const trigger = row.querySelector('.row-actions');
-                    trigger.onclick = () => {
-                        const old = row.querySelector('[role="menu"]');
-                        if (!grid) trigger.setAttribute('aria-expanded', String(!old));
-                        if (old) { old.remove(); return; }
-                        if (options.noProperties && item === first) {
-                            trigger.insertAdjacentHTML('afterend', '<div role="menu"><button role="menuitem">Publish</button></div>');
-                            row.querySelector('[role="menuitem"]').onclick = () => events.push(['write']);
-                            return;
-                        }
-                        trigger.insertAdjacentHTML('afterend', '<div role="menu"><button role="menuitem">Page Properties</button><button role="menuitem">Publish</button></div>');
-                        row.querySelector('[role="menuitem"]').onclick = () => {
-                            events.push(['properties', item.asset]);
-                            row.querySelector('[role="menu"]').remove();
-                            if (!grid) trigger.setAttribute('aria-expanded', 'false');
-                            if (options.delayProperties) setTimeout(() => showDetails(item), 700);
-                            else showDetails(item);
-                        };
-                        row.querySelectorAll('[role="menuitem"]')[1].onclick = () => events.push(['write']);
-                    };
+                    row.querySelector('.row-actions').onclick = () => events.push(['properties', item.asset]);
                 }
             }
             const search = view.querySelector('input');
@@ -126,40 +109,6 @@ function documentHTML(options) {
             const nativeFilter = view.querySelector('#native-filter');
             if (nativeFilter) nativeFilter.onclick = () => events.push(['native-filter']);
             showRows(rows);
-        }
-        function showDetails(item) {
-            if (options.fullProperties) {
-                view.innerHTML = '<header><section>' + (options.noHeading ? '<div>Properties</div>' : '<h1>Properties</h1>') + '</section>' +
-                    (options.history ? '' : '<button type="button" aria-label="Back to CloudPages">←</button>') +
-                    '</header><article><p><strong>Page ID</strong> ' + item.page + '</p><p>ID ' + item.asset + '</p>' +
-                    '<button type="button" id="save">Save</button></article>';
-                const returnToLibrary = () => {
-                    events.push(['back', item.asset]); isAll = false; expanded = false; showList();
-                };
-                if (options.history) {
-                    history.pushState({ properties: true }, '', '#properties');
-                    window.addEventListener('popstate', returnToLibrary, { once: true });
-                } else {
-                    view.querySelector('[aria-label="Back to CloudPages"]').onclick = returnToLibrary;
-                }
-                view.querySelector('#save').onclick = () => events.push(['write']);
-                return;
-            }
-            const id = options.missingId && item === first ? '' :
-                '<div><div><span>Page ID</span></div><div>' + item.page + '</div></div>';
-            const card = '<article><h2>Page Details</h2><div>Draft</div>' + id + '</article>';
-            if (options.full) {
-                view.innerHTML = '<nav aria-label="Breadcrumb"><button>Home</button></nav><h1>' + escape(item.name) + '</h1>' + card;
-                view.querySelector('nav button').onclick = () => {
-                    events.push(['home']); isAll = false; expanded = false; showList();
-                };
-            } else {
-                view.insertAdjacentHTML('afterend', '<section role="dialog"><h2>Page Properties</h2>' +
-                    id + '<button type="button" aria-label="Close">×</button><button>Save</button></section>');
-                const dialog = document.querySelector('[role="dialog"]');
-                dialog.querySelector('button').onclick = () => dialog.remove();
-                dialog.querySelectorAll('button')[1].onclick = () => events.push(['write']);
-            }
         }
         showList();
     </script></body></html>`;
@@ -180,11 +129,35 @@ async function run() {
         const errors = [];
         async function fixture(options = {}) {
             const requests = [];
+            const reads = [];
             const page = await context.newPage();
             page.on('pageerror', error => errors.push(error.message));
-            await page.route('https://**/*', request => {
-                const url = new URL(request.request().url());
-                requests.push([request.request().method(), url.origin, url.pathname]);
+            await page.route('https://**/*', async request => {
+                const native = request.request();
+                const url = new URL(native.url());
+                requests.push([native.method(), url.origin, url.pathname]);
+                if (url.origin === app && url.pathname === sites) {
+                    const asset = url.searchParams.get('siteAssetId');
+                    const mid = new URL(native.frame().url()).searchParams.get('mid');
+                    reads.push([mid, asset, [...url.searchParams.keys()], Boolean(native.headers().authorization)]);
+                    const record = [first, target].find(item => item.asset === asset);
+                    if (options.delay && mid === '123') await new Promise(resolve => setTimeout(resolve, 800));
+                    const authenticated = !options.sessionCookie ||
+                        (await native.allHeaders()).cookie?.includes('fixture_cloudpages_session=active');
+                    const status = !authenticated ? 401 : (record === first && options.http) || (record ? 200 : 404);
+                    try {
+                        if (options.html) return await request.fulfill({ status, contentType: 'text/html', body: '<h1>Sign in</h1>' });
+                        const entities = record && !(options.missingId && record === first) ? [{
+                            siteAssetId: Number(options.wrongAsset && record === first ? target.asset : record.asset),
+                            defaultPageId: Number(record === first && mid === '999' ? '400' : record.page),
+                            siteId: 2000000 + Number(record.asset)
+                        }] : [];
+                        return await request.fulfill({ status, json: { page: 1, pageSize: 50, totalCount: entities.length, entities } });
+                    } catch (error) {
+                        if (!options.delay) throw error;
+                    }
+                    return;
+                }
                 if (url.origin === shell && url.pathname === '/cloud/') {
                     return request.fulfill({ contentType: 'text/html', body: options.direct ? documentHTML(options) :
                         `<!doctype html><button id="bu" onclick="document.querySelector('iframe').src='${app}/fixture?mid=999'">Cambia BU</button>
@@ -193,14 +166,17 @@ async function run() {
                 if (url.origin === embedded && url.pathname === '/host') return request.fulfill({
                     contentType: 'text/html', body: `<!doctype html><iframe width="800" height="500" src="${app}/fixture?mid=123"></iframe>`
                 });
-                if (url.origin === app && url.pathname === '/fixture') return request.fulfill({ contentType: 'text/html', body: documentHTML(options) });
+                if (url.origin === app && url.pathname === '/fixture') return request.fulfill({
+                    contentType: 'text/html',
+                    body: documentHTML(options),
+                    headers: options.sessionCookie ? { 'set-cookie': 'fixture_cloudpages_session=active; Path=/; Secure; HttpOnly; SameSite=Strict' } : {}
+                });
                 return request.abort();
             });
             await page.goto(options.overview && !options.inner ? `${app}/fixture?mid=123` : `${shell}${route}`);
             const direct = options.direct || (options.overview && !options.inner);
             const outer = direct ? page : page.frameLocator('iframe');
             const doc = options.inner ? outer.frameLocator('iframe') : outer;
-            const appFrame = direct ? page.mainFrame() : page.frames().find(frame => frame.url().startsWith(app));
             const launcher = doc.getByRole('button', { name: 'Page ID', exact: true });
             const form = doc.getByRole('form', { name: 'Ricerca CloudPages per Page ID' });
             await launcher.waitFor();
@@ -218,16 +194,21 @@ async function run() {
             };
             const finished = re => status.getByText(re).waitFor();
             const events = () => doc.locator('body').evaluate(() => window.events);
-            const openingDetails = () => appFrame.waitForFunction(() => window.events.some(([event]) => event === 'properties'));
+            const reading = () => page.waitForRequest(request => new URL(request.url()).pathname === sites);
             const close = async () => {
-                assert.equal((await events()).some(([event]) => event === 'write'), false);
+                assert.equal((await events()).some(([event]) => event === 'properties'), false);
                 assert.equal(requests.every(([method, origin, pathname]) => method === 'GET' &&
                     ((origin === shell && (pathname === '/cloud/' || pathname === '/favicon.ico')) ||
                     (origin === embedded && pathname === '/host') ||
-                    (origin === app && (pathname === '/fixture' || pathname === '/favicon.ico')))), true, JSON.stringify(requests));
+                    (origin === app && ['/fixture', '/favicon.ico', sites].includes(pathname)))), true, JSON.stringify(requests));
+                for (const [, asset, parameters, explicitAuth] of reads) {
+                    assert.ok([first.asset, target.asset].includes(asset), 'only assets shown in the inventory are requested');
+                    assert.deepEqual(parameters, ['siteAssetId']);
+                    assert.equal(explicitAuth, false);
+                }
                 await page.close();
             };
-            return { page, doc, launcher, form, show, start, finished, events, openingDetails, close };
+            return { page, doc, launcher, form, show, start, finished, events, reading, reads, close };
         }
 
         {
@@ -250,16 +231,24 @@ async function run() {
             assert.ok(result.includes(target.name));
             assert.ok(result.includes(target.folder));
             assert.ok(result.includes('Page ID 42 · ID asset 987654'));
+            assert.deepEqual(f.reads.map(([, asset]) => asset), [first.asset, target.asset]);
+            assert.equal(await f.doc.locator('#native-editor').count(), 0);
+            await f.start('4288');
+            await f.finished(/Corrispondenza trovata/);
+            assert.ok((await f.form.textContent()).includes('Page ID 4288 · ID asset 294630'));
+            assert.equal(f.reads.length, 2);
+            await f.start('42');
+            await f.finished(/Corrispondenza trovata/);
             await f.form.getByRole('button', { name: 'Apri pagina' }).click();
             await f.doc.locator('#native-editor').waitFor();
             assert.deepEqual(await f.events(), [
-                ['native-search', '999'], ['native-search', ''], ['native', '42'], ['all'],
-                ['properties', '42'], ['more'], ['properties', '987654'], ['open', '987654']
+                ['native-search', '999'], ['native-search', ''], ['native', '294630'], ['all'],
+                ['more'], ['open', '987654']
             ]);
             await f.close();
         }
 
-        for (const options of [{ overview: true }, { overview: true, inner: true }]) {
+        for (const options of [{ overview: true, sessionCookie: true }, { overview: true, inner: true }]) {
             const f = await fixture(options);
             const native = f.doc.getByRole('searchbox', { name: 'Search' });
             assert.equal(await f.launcher.locator('xpath=preceding-sibling::*[1]').getAttribute('id'), 'search-field');
@@ -291,11 +280,11 @@ async function run() {
             await f.form.getByLabel('Page ID', { exact: true }).press('Enter');
             await f.finished(/Corrispondenza trovata/);
             assert.ok((await f.form.textContent()).includes('Page ID 42 · ID asset 987654'));
-            assert.deepEqual(await f.doc.locator(column).allTextContents(), ['Page ID', '420', '42']);
-            assert.deepEqual(await f.doc.locator('[data-label="ID"]').allTextContents(), ['42', '987654']);
+            assert.deepEqual(await f.doc.locator(column).allTextContents(), ['Page ID', '4288', '42']);
+            assert.deepEqual(await f.doc.locator('[data-label="ID"]').allTextContents(), ['294630', '987654']);
             await f.form.getByLabel('Page ID', { exact: true }).press('Escape');
             await f.form.waitFor({ state: 'detached' });
-            assert.deepEqual(await f.doc.locator(column).allTextContents(), ['Page ID', '420', '42']);
+            assert.deepEqual(await f.doc.locator(column).allTextContents(), ['Page ID', '4288', '42']);
             await f.show();
             await toggle.uncheck();
             assert.equal(await f.doc.locator(column).count(), 0);
@@ -303,7 +292,7 @@ async function run() {
             await f.doc.locator('#native-editor').waitFor();
             await f.form.waitFor({ state: 'detached' });
             assert.deepEqual(await f.events(), [['native-filter'], ['native-columns'], ['native-search', '4160'], ['native-search', ''],
-                ['properties', '42'], ['scroll'], ['properties', '987654'], ['open', '987654']]);
+                ['scroll'], ['open', '987654']]);
             await f.close();
         }
 
@@ -316,66 +305,53 @@ async function run() {
         }
 
         {
-            const f = await fixture({ direct: true, full: true, noAsset: true, collections: true });
-            await f.start('00042');
-            await f.finished(/pagina è aperta nei dettagli Salesforce/);
-            assert.ok((await f.form.textContent()).includes('Page ID 42 · ID asset non disponibile'));
-            assert.equal(await f.doc.getByRole('heading', { name: target.name }).count(), 1);
-            assert.deepEqual(await f.events(), [['all'], ['properties', '42'], ['home'], ['all'], ['more'], ['properties', '987654']]);
-            await f.close();
-        }
-
-        for (const options of [{}, { history: true }, { noHeading: true }]) {
-            const f = await fixture({ fullProperties: true, ...options });
-            await f.start('1234');
-            await f.finished(/Nessuna corrispondenza nelle 2 pagine verificate/);
-            assert.equal(await f.doc.getByRole('heading', { name: 'Properties', exact: true }).count(), 0);
-            assert.deepEqual((await f.events()).filter(([event]) => event === 'properties' || event === 'back'),
-                [['properties', '42'], ['back', '42'], ['properties', '987654'], ['back', '987654']]);
-            await f.start('4160');
-            await f.finished(/Corrispondenza trovata/);
-            assert.ok((await f.form.textContent()).includes('Page ID 4160 · ID asset 987654'));
-            assert.equal((await f.events()).filter(([event]) => event === 'properties').length, 2);
-            await f.form.getByRole('button', { name: 'Apri pagina', exact: true }).click();
-            await f.doc.locator('#native-editor').waitFor();
-            assert.deepEqual((await f.events()).at(-1), ['open', '987654']);
-            await f.close();
-        }
-
-        {
-            const f = await fixture({ noProperties: true });
+            const f = await fixture({ direct: true });
             await f.start('42');
-            await f.finished(/Corrispondenza trovata/);
-            assert.deepEqual(await f.events(), [['all'], ['more'], ['properties', '987654']]);
+            await f.finished(/Ricerca parziale.*riquadro nativo CloudPages/);
+            assert.equal(f.reads.length, 0);
             await f.close();
         }
 
-        for (const options of [{}, { missingId: true }, { noAll: true }, { stalled: true }, { noFilter: true }]) {
+        for (const [options, message] of [
+            [{}, /Nessuna corrispondenza in All Pages.*2 pagine verificate/],
+            [{ missingId: true }, /Ricerca parziale.*1 pagina verificata/],
+            [{ wrongAsset: true }, /Ricerca parziale.*1 pagina verificata/],
+            [{ noAsset: true }, /Ricerca parziale.*1 pagina verificata/],
+            [{ unsupported: true }, /Ricerca parziale.*1 pagina verificata/],
+            [{ noAll: true }, /Ricerca parziale.*copertura/],
+            [{ stalled: true }, /Ricerca parziale.*non ha caricato altre righe/],
+            [{ noFilter: true }, /Ricerca parziale.*copertura/],
+            [{ http: 401 }, /Ricerca parziale.*HTTP 401/],
+            [{ http: 403 }, /Ricerca parziale.*HTTP 403/],
+            [{ http: 429 }, /Ricerca parziale.*HTTP 429/],
+            [{ html: true }, /Ricerca parziale.*risposta non JSON/]
+        ]) {
             const f = await fixture(options);
-            await f.start('4');
-            await f.finished(Object.keys(options).length ? /Ricerca parziale/ : /Nessuna corrispondenza nelle 2 pagine verificate in All Pages/);
+            await f.start(options.wrongAsset ? '4288' : '4');
+            await f.finished(message);
             assert.equal(await f.form.getByRole('button', { name: 'Apri pagina' }).isVisible(), false);
+            assert.equal(await f.doc.locator('#native-editor').count(), 0);
+            if (options.noAsset) assert.deepEqual(f.reads.map(([, asset]) => asset), [first.asset]);
+            if (options.unsupported) assert.deepEqual(f.reads.map(([, asset]) => asset), [target.asset]);
+            if (options.http || options.html) assert.equal(f.reads.length, 1);
             await f.close();
         }
 
         {
-            const f = await fixture({ delayProperties: true });
-            await f.start('42');
-            await f.openingDetails();
+            const f = await fixture({ delay: true });
+            await Promise.all([f.reading(), f.start('42')]);
             await f.form.getByRole('button', { name: 'Annulla ricerca' }).click();
-            await f.finished(/Ricerca annullata/);
-            await f.start('420');
-            await f.finished(/Attendi i dettagli richiesti a Salesforce|Torna all’elenco CloudPages/);
-            await f.doc.getByRole('dialog').waitFor();
-            assert.deepEqual(await f.events(), [['all'], ['properties', '42']]);
+            await f.finished(/Ricerca annullata.*0 pagine verificate/);
             assert.equal(await f.form.getByRole('button', { name: 'Apri pagina' }).isVisible(), false);
+            await Promise.all([f.reading(), f.start('4288')]);
+            await f.finished(/Corrispondenza trovata/);
+            assert.deepEqual(f.reads.map(([, asset]) => asset), [first.asset, first.asset]);
             await f.close();
         }
 
         {
-            const f = await fixture({ delayProperties: true });
-            await f.start('420');
-            await f.openingDetails();
+            const f = await fixture({ delay: true });
+            await Promise.all([f.reading(), f.start('4288')]);
             await Promise.all([
                 f.page.waitForEvent('framenavigated', frame => frame.url() === `${app}/fixture?mid=999`),
                 f.page.locator('#bu').click()
@@ -383,9 +359,13 @@ async function run() {
             await f.launcher.waitFor();
             assert.equal(await f.form.count(), 0);
             assert.deepEqual(await f.events(), []);
+            await f.start('400');
+            await f.finished(/Corrispondenza trovata/);
+            assert.ok((await f.form.textContent()).includes('Page ID 400 · ID asset 294630'));
+            assert.deepEqual(f.reads.map(([mid, asset]) => [mid, asset]), [['123', first.asset], ['999', first.asset]]);
             await f.page.evaluate(() => { location.hash = '#app/Email/'; });
             await f.launcher.waitFor({ state: 'detached' });
-            assert.equal(await f.doc.getByRole('dialog').count(), 0);
+            assert.equal(await f.doc.locator('#native-editor').count(), 0);
             await f.close();
         }
 
