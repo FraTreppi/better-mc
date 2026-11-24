@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.45 · Autore: Francesco Trepiccioni
+Versione 1.1.46 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Le funzioni dell’interfaccia lavorano con la sessione Salesforce già aperta. L’analisi degli utilizzi DE collega direttamente l’estensione alle API Salesforce in sola lettura.
 
@@ -331,7 +331,7 @@ Dopo un cambio BU, conserva prima il testo che ti serve e premi **Clear** prima 
 
 Per vedere i valori nella tabella, spunta **Mostra colonna Page ID** nel riquadro. La colonna si aggiunge accanto a **ID**. Mostra i valori verificati durante la scansione, mentre **—** indica che il valore della riga è ancora da verificare. Puoi chiudere il riquadro lasciando la colonna visibile.
 
-La scansione legge in background i metadati delle landing page presenti in **All Pages**, quando disponibile, o nell’elenco di **Overview**. Usa **Load More** o scorre il riquadro se Salesforce indica altre righe. Premi **Annulla ricerca** per interromperla. Se Salesforce rifiuta la lettura, oppure mancano metadati o parti dell’inventario, compare **Ricerca parziale** con il numero delle pagine verificate.
+La scansione resta nell’elenco e legge i metadati delle landing page in **All Pages**, quando disponibile, o in **Overview**, anche quando l’elenco è sul dominio principale di Marketing Cloud. Usa **Load More** o scorre il riquadro se Salesforce indica altre righe. Premi **Annulla ricerca** per interromperla. Se Salesforce rifiuta la lettura, oppure mancano metadati o parti dell’inventario, compare **Ricerca parziale** con il numero delle pagine verificate.
 
 Per cercare l’**ID asset** della colonna **ID**, continua a usare il campo Salesforce. La ricerca Page ID usa la vista nativa della BU attiva ed effettua soltanto letture.
 

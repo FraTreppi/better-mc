@@ -1,3 +1,8 @@
+# 1.1.46 — 24 novembre 2026
+
+- La ricerca **Page ID** legge i metadati anche quando l’elenco è sul dominio principale di Marketing Cloud. Il browser usa la sessione Salesforce per il solo GET dei metadati CloudPages sullo stesso stack.
+- La ricerca lascia aperto l’elenco e apre la pagina corrispondente solo con **Apri pagina**.
+
 # 1.1.45 — 24 novembre 2026
 
 - La ricerca **Page ID** legge in background i metadati delle landing page con il GET nativo osservato in CloudPages. Verifica che `siteAssetId` coincida con l’ID asset della riga prima di usare `defaultPageId`.

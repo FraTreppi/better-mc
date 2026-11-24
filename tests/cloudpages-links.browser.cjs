@@ -132,16 +132,16 @@ async function run() {
             const reads = [];
             const page = await context.newPage();
             page.on('pageerror', error => errors.push(error.message));
-            await page.route('https://**/*', async request => {
+            const handleRequest = async request => {
                 const native = request.request();
                 const url = new URL(native.url());
                 requests.push([native.method(), url.origin, url.pathname]);
                 if (url.origin === app && url.pathname === sites) {
                     const asset = url.searchParams.get('siteAssetId');
-                    const mid = new URL(native.frame().url()).searchParams.get('mid');
+                    const mid = native.serviceWorker() ? 'worker' : new URL(native.frame().url()).searchParams.get('mid');
                     reads.push([mid, asset, [...url.searchParams.keys()], Boolean(native.headers().authorization)]);
                     const record = [first, target].find(item => item.asset === asset);
-                    if (options.delay && mid === '123') await new Promise(resolve => setTimeout(resolve, 800));
+                    if (options.delay && mid !== '999') await new Promise(resolve => setTimeout(resolve, 800));
                     const authenticated = !options.sessionCookie ||
                         (await native.allHeaders()).cookie?.includes('fixture_cloudpages_session=active');
                     const status = !authenticated ? 401 : (record === first && options.http) || (record ? 200 : 404);
@@ -161,10 +161,11 @@ async function run() {
                 if (url.origin === shell && url.pathname === '/cloud/') {
                     return request.fulfill({ contentType: 'text/html', body: options.direct ? documentHTML(options) :
                         `<!doctype html><button id="bu" onclick="document.querySelector('iframe').src='${app}/fixture?mid=999'">Cambia BU</button>
-                        <iframe width="900" height="600" src="${options.inner ? embedded + '/host' : app + '/fixture?mid=123'}"></iframe>` });
+                        <iframe width="900" height="600" src="${options.inner || options.crossFrame ? embedded + '/host' : app + '/fixture?mid=123'}"></iframe>` });
                 }
                 if (url.origin === embedded && url.pathname === '/host') return request.fulfill({
-                    contentType: 'text/html', body: `<!doctype html><iframe width="800" height="500" src="${app}/fixture?mid=123"></iframe>`
+                    contentType: 'text/html', body: options.crossFrame ? documentHTML(options) :
+                        `<!doctype html><iframe width="800" height="500" src="${app}/fixture?mid=123"></iframe>`
                 });
                 if (url.origin === app && url.pathname === '/fixture') return request.fulfill({
                     contentType: 'text/html',
@@ -172,8 +173,10 @@ async function run() {
                     headers: options.sessionCookie ? { 'set-cookie': 'fixture_cloudpages_session=active; Path=/; Secure; HttpOnly; SameSite=Strict' } : {}
                 });
                 return request.abort();
-            });
-            await page.goto(options.overview && !options.inner ? `${app}/fixture?mid=123` : `${shell}${route}`);
+            };
+            await context.route('https://**/*', handleRequest);
+            await page.goto(options.overview && !options.inner && !options.direct ? `${app}/fixture?mid=123` :
+                `${shell}${options.outsideCloudPages ? '/cloud/#app/Email/' : route}`);
             const direct = options.direct || (options.overview && !options.inner);
             const outer = direct ? page : page.frameLocator('iframe');
             const doc = options.inner ? outer.frameLocator('iframe') : outer;
@@ -192,9 +195,15 @@ async function run() {
                 await form.getByLabel('Page ID', { exact: true }).fill(value);
                 await form.getByRole('button', { name: 'Cerca', exact: true }).click();
             };
-            const finished = re => status.getByText(re).waitFor();
+            const finished = async re => {
+                try {
+                    await status.getByText(re).waitFor({ timeout: 12000 });
+                } catch (error) {
+                    throw new Error(`Stato: ${await status.textContent({ timeout: 500 })}\nRichieste: ${JSON.stringify(requests)}`, { cause: error });
+                }
+            };
             const events = () => doc.locator('body').evaluate(() => window.events);
-            const reading = () => page.waitForRequest(request => new URL(request.url()).pathname === sites);
+            const reading = () => context.waitForEvent('request', { predicate: request => new URL(request.url()).pathname === sites });
             const close = async () => {
                 assert.equal((await events()).some(([event]) => event === 'properties'), false);
                 assert.equal(requests.every(([method, origin, pathname]) => method === 'GET' &&
@@ -207,6 +216,8 @@ async function run() {
                     assert.equal(explicitAuth, false);
                 }
                 await page.close();
+                await context.unroute('https://**/*', handleRequest);
+                await context.clearCookies({ name: 'fixture_cloudpages_session' });
             };
             return { page, doc, launcher, form, show, start, finished, events, reading, reads, close };
         }
@@ -305,10 +316,51 @@ async function run() {
         }
 
         {
-            const f = await fixture({ direct: true });
+            const f = await fixture({ direct: true, overview: true });
+            await f.start('4288');
+            await f.finished(/Corrispondenza trovata/);
+            assert.ok((await f.form.textContent()).includes('Page ID 4288 · ID asset 294630'));
             await f.start('42');
-            await f.finished(/Ricerca parziale.*riquadro nativo CloudPages/);
+            await f.finished(/Corrispondenza trovata/);
+            assert.ok((await f.form.textContent()).includes('Page ID 42 · ID asset 987654'));
+            assert.deepEqual(f.reads.map(([source, asset]) => [source, asset]), [
+                ['worker', first.asset], ['worker', first.asset], ['worker', target.asset]
+            ]);
+            assert.deepEqual(await f.events(), [['scroll']]);
+            await f.close();
+        }
+
+        {
+            const f = await fixture({ direct: true, overview: true, outsideCloudPages: true });
+            await f.start('4288');
+            await f.finished(/Ricerca parziale.*riquadri CloudPages/);
             assert.equal(f.reads.length, 0);
+            await f.close();
+        }
+
+        {
+            const f = await fixture({ crossFrame: true });
+            await f.start('4288');
+            await f.finished(/Corrispondenza trovata/);
+            assert.deepEqual(f.reads.map(([source, asset]) => [source, asset]), [['worker', first.asset]]);
+            await f.close();
+        }
+
+        {
+            const f = await fixture({ direct: true, http: 401 });
+            await f.start('42');
+            await f.finished(/Ricerca parziale.*HTTP 401.*0 pagine verificate/);
+            assert.equal(await f.form.getByRole('button', { name: 'Apri pagina' }).isVisible(), false);
+            await f.close();
+        }
+
+        {
+            const f = await fixture({ direct: true, delay: true });
+            await Promise.all([f.reading(), f.start('42')]);
+            await f.form.getByRole('button', { name: 'Annulla ricerca' }).click();
+            await f.finished(/Ricerca annullata.*0 pagine verificate/);
+            assert.equal(await f.form.getByRole('button', { name: 'Apri pagina' }).isVisible(), false);
+            assert.deepEqual(f.reads.map(([, asset]) => asset), [first.asset]);
             await f.close();
         }
 

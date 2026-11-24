@@ -4,7 +4,13 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.45 — 24 novembre 2026
+## Versione attuale 1.1.46 — 24 novembre 2026
+
+L’elenco CloudPages può essere esposto da `mc.sNN.exacttarget.com`, mentre il GET dei metadati risponde su `cloud-pages.sNN.marketingcloudapps.com`. Sullo stesso dominio la lettura parte dal content script isolato. Se i domini differiscono, parte dal service worker dell’estensione tramite una porta dedicata. Il service worker verifica il documento attivo e la rotta CloudPages della scheda, deriva lo stack dalla shell e accetta solo un ID asset numerico. Il browser usa la sessione già aperta. La porta restituisce il solo Page ID verificato oppure un errore di lettura. La disconnessione interrompe la richiesta.
+
+Nel tenant è stato verificato che aprire il GET in una scheda del profilo Edge autenticato restituisce `defaultPageId` per l’asset richiesto. Le prove dell’estensione usano risposte simulate. Una prova separata su Chromium con HTTPS locale ha verificato che il browser inoltra automaticamente cookie di sessione fittizi con attributi SameSite Strict, Lax e None. La prova del service worker sul tenant è da eseguire nella sessione dell’utente.
+
+## Versione 1.1.45 — 24 novembre 2026
 
 Nel tenant è stato osservato il GET nativo `/fuelapi/internal/v2/cloudpages/sites?siteAssetId=…` in CloudPages. La risposta confermata è un oggetto di paginazione con un elemento in `entities`. Il record associa `siteAssetId` all’ID asset della riga e `defaultPageId` al Page ID della landing page. `siteId` identifica la risorsa dei dettagli. La ricerca chiama il GET sulla stessa origine del riquadro CloudPages con gli ID asset già presenti nel suo elenco. Confronta il valore restituito in memoria con il numero cercato, senza passarlo al server come ID asset.
 

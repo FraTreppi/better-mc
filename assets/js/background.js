@@ -1,7 +1,7 @@
 // Privileged storage stays in the extension. Page scripts receive only an
 // explicitly approved BU view, never the full archive or a network proxy.
 'use strict';
-const VERSION = '1.1.45';
+const VERSION = '1.1.46';
 function failure(code, message) { return Object.assign(new Error(message), { code }); }
 const SETTINGS = 'SFMCFIX---SETTINGS-V2';
 const UI = 'SFMCFIX---UI-PREFERENCES';
@@ -266,6 +266,56 @@ async function internalStorage(action, payload) {
     }
     throw new Error('Operazione interna non consentita.');
 }
+function cloudPagesOrigin(sender) {
+    if (sender?.id !== chrome.runtime.id || !Number.isInteger(sender.tab?.id) ||
+        !sender.documentId || sender.documentLifecycle !== 'active') return null;
+    try {
+        const tab = new URL(sender.tab.url);
+        const frame = new URL(sender.url);
+        const stack = /^mc\.(s\d+)\.exacttarget\.com$/.exec(tab.hostname)?.[1];
+        if (!stack || tab.origin !== `https://mc.${stack}.exacttarget.com` ||
+            !/^\/cloud\/?$/i.test(tab.pathname) || !/^#app\/CloudPages(?:\/|$)/i.test(tab.hash)) return null;
+        const frameHost = new RegExp(`^(?:[a-z0-9-]+\\.)?${stack}\\.(?:exacttarget|marketingcloud|marketingcloudapps)\\.com$`);
+        if (frame.protocol !== 'https:' || frame.port || frame.username || frame.password ||
+            sender.origin !== frame.origin || !frameHost.test(frame.hostname)) return null;
+        return `https://cloud-pages.${stack}.marketingcloudapps.com`;
+    } catch (_) {
+        return null;
+    }
+}
+
+// Accept one asset ID from a CloudPages document, with the URL fixed by its tab's stack.
+function connectCloudPages(port) {
+    const metadata = globalThis.sfmcfixCloudPagesMetadata;
+    if (port.name !== metadata.portName) return;
+    const origin = cloudPagesOrigin(port.sender);
+    if (!origin) {
+        port.disconnect();
+        return;
+    }
+    const controller = new AbortController();
+    port.onDisconnect.addListener(() => controller.abort());
+    const request = async message => {
+        port.onMessage.removeListener(request);
+        if (typeof message?.assetId !== 'string' || !/^[1-9]\d{0,14}$/.test(message.assetId)) {
+            port.disconnect();
+            return;
+        }
+        let result;
+        try {
+            const pageId = await metadata.read(origin, message.assetId, controller.signal, false);
+            result = { ok: true, pageId };
+        } catch (error) {
+            result = { ok: false, error: error.message };
+        }
+        if (!controller.signal.aborted) {
+            try { port.postMessage(result); }
+            catch (_) { /* The document may have closed while the read was completing. */ }
+        }
+    };
+    port.onMessage.addListener(request);
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, respond) => {
     if (!msg?.__sfmcfixStorage && !msg?.__sfmcfixFetch) return;
     (async () => {
@@ -300,4 +350,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     }).catch(() => console.error('SFMC Fixer: notifica preferenze non disponibile.'));
 });
 chrome.action.onClicked.addListener(() => chrome.tabs.create({ url: chrome.runtime.getURL('assets/html/activity-versioning.html') }));
-if (typeof importScripts === 'function') importScripts('de-usage-worker.js');
+if (typeof importScripts === 'function') {
+    importScripts('cloudpages-metadata.js', 'de-usage-worker.js');
+    chrome.runtime.onConnect.addListener(connectCloudPages);
+}
