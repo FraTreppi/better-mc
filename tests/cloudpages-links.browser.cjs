@@ -30,7 +30,8 @@ function documentHTML(options) {
         return options.overview && !options.inner ? `<div role="columnheader">${label}</div>` : `<th>${label}</th>`;
     }).join('');
     const list = options.inner
-        ? `<div id="inventory-count">20+ items</div><table><thead><tr>${headers}</tr></thead></table>
+        ? `<style>#fixed-headings th { clip-path: inset(0) } #fixed-headings th:has(#native-id-heading) { clip-path: none }</style>
+           <div id="inventory-count">20+ items</div><table id="fixed-headings"><thead><tr>${headers}</tr></thead></table>
            <div id="viewport" style="height:90px;overflow:auto"><table id="list"><tbody id="rows"></tbody></table></div>`
         : options.overview
             ? `<div id="inventory-count">20+ items</div><div id="viewport" style="height:90px;overflow:auto"><div id="list" role="grid"><div role="row">${headers}</div><div role="rowgroup" id="rows"></div></div></div>`
@@ -96,6 +97,9 @@ function documentHTML(options) {
                 ).join('');
                 for (const [index, row] of [...rowContainer.children].entries()) {
                     const item = items[index];
+                    if (options.trackRowClicks) {
+                        for (const type of ['click', 'dblclick']) row.addEventListener(type, () => events.push([type, item.asset]));
+                    }
                     row.querySelector('.native-control').onclick = () => events.push(['native', item.asset]);
                     const link = row.querySelector('a');
                     if (link) link.onclick = event => {
@@ -298,6 +302,7 @@ async function run() {
             assert.ok(Math.abs(launcherBox.height - searchBox.height) <= 1, 'Page ID matches the height of Search');
             assert.ok(Math.abs(launcherBox.y - searchBox.y) <= 1, 'Page ID and Search start at the same height');
             const column = '[data-sfmcfix-cloudpages-column]';
+            const visibleHeading = f.doc.locator('[data-sfmcfix-cloudpages-heading]');
             const toggle = f.form.getByRole('checkbox', { name: 'Mostra colonna Page ID' });
             await f.doc.getByRole('button', { name: 'Filter', exact: true }).click();
             await f.doc.getByRole('button', { name: 'Columns', exact: true }).click();
@@ -305,11 +310,24 @@ async function run() {
             assert.equal(await f.launcher.getAttribute('aria-expanded'), 'true');
             await toggle.check();
             assert.deepEqual(await f.doc.locator(column).allTextContents(), ['Page ID', '—']);
+            assert.equal(await f.doc.getByRole('columnheader', { name: 'Page ID', exact: true }).count(), 1);
             if (options.inner) {
                 const idBox = await f.doc.locator('#native-id-heading').boundingBox();
-                const pageIdBox = await f.doc.locator(`th${column} > span`).boundingBox();
+                const pageIdBox = await visibleHeading.boundingBox();
                 assert.ok(Math.abs((idBox.y + idBox.height / 2) - (pageIdBox.y + pageIdBox.height / 2)) <= 2,
                     'Page ID stays on the line of the fixed native headers');
+                const intersection = await visibleHeading.evaluate(node => new Promise(resolve => {
+                    const observer = new IntersectionObserver(([entry]) => {
+                        observer.disconnect();
+                        resolve(entry.intersectionRatio);
+                    });
+                    observer.observe(node);
+                }));
+                assert.equal(intersection, 1, 'Page ID remains visible above the clipped header table');
+                const valueStart = await f.doc.locator(`td${column}`).first().evaluate(node =>
+                    node.getBoundingClientRect().left + parseFloat(getComputedStyle(node).paddingLeft));
+                const headingStart = await visibleHeading.evaluate(node => node.getBoundingClientRect().left);
+                assert.ok(Math.abs(headingStart - valueStart) <= 2, 'Page ID is aligned with its column values');
             }
             await native.fill('4160');
             await f.start('42');
@@ -328,6 +346,7 @@ async function run() {
             await f.show();
             await toggle.uncheck();
             assert.equal(await f.doc.locator(column).count(), 0);
+            assert.equal(await visibleHeading.count(), 0);
             await f.form.getByRole('button', { name: 'Apri pagina' }).click();
             await f.doc.locator('#native-editor').waitFor();
             await f.form.waitFor({ state: 'detached' });
@@ -345,13 +364,23 @@ async function run() {
         }
 
         {
-            const f = await fixture({ direct: true, overview: true });
+            const f = await fixture({ direct: true, overview: true, trackRowClicks: true });
             await f.start('4288');
             await f.finished(/Corrispondenza trovata/);
             assert.ok((await f.form.textContent()).includes('Page ID 4288 · ID asset 294630'));
             await f.start('42');
             await f.finished(/Corrispondenza trovata/);
             assert.ok((await f.form.textContent()).includes('Page ID 42 · ID asset 987654'));
+            await f.form.getByRole('checkbox', { name: 'Mostra colonna Page ID' }).check();
+            await f.form.getByRole('button', { name: 'Chiudi ricerca Page ID' }).click();
+            const numbers = f.doc.locator('[role="gridcell"][data-sfmcfix-cloudpages-column]');
+            await numbers.first().click();
+            assert.deepEqual(await numbers.allTextContents(), ['4288', '42']);
+            await numbers.last().dblclick({ position: { x: 12, y: 8 } });
+            assert.deepEqual(await numbers.allTextContents(), ['4288', '42']);
+            assert.equal(await numbers.last().evaluate(() => document.getSelection().toString().trim()), '42');
+            await f.doc.locator('#viewport').evaluate(node => { node.scrollTop = 0; });
+            assert.equal(await f.doc.locator('[data-sfmcfix-cloudpages-heading]').textContent(), 'Page ID');
             assert.deepEqual(f.reads.map(([source, asset]) => [source, asset]), [
                 ['worker', first.asset], ['worker', first.asset], ['worker', target.asset]
             ]);

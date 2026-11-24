@@ -1,3 +1,8 @@
+# 1.1.48 — 24 novembre 2026
+
+- L’intestazione **Page ID** è allineata ai valori della colonna anche nell’elenco CloudPages con intestazioni fisse.
+- I Page ID verificati rimangono visibili quando si fa clic su un valore o lo si seleziona per copiarlo.
+
 # 1.1.47 — 24 novembre 2026
 
 - Il risultato CloudPages rimane visibile con Ctrl+C e mentre si usa **Search**. **Copia nome** copia il nome completo della pagina.

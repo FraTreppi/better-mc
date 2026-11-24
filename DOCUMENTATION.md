@@ -4,7 +4,11 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.47 — 24 novembre 2026
+## Versione attuale 1.1.48 — 24 novembre 2026
+
+L’intestazione **Page ID** resta associata alla colonna nella tabella. Il testo visibile si allinea alla scritta **ID** e ai valori sottostanti anche quando Salesforce usa un contenitore fisso che ritaglia le intestazioni. Un clic o doppio clic sui valori aggiunti dalla colonna lascia intatti i risultati e permette di selezionare il numero. Le prove browser usano elenchi Salesforce simulati.
+
+## Versione 1.1.47 — 24 novembre 2026
 
 La ricerca per Page ID è stata confermata nell’account Salesforce dell’utente con la 1.1.46. La 1.1.47 conserva il risultato e i Page ID verificati con le scorciatoie da tastiera e durante l’uso del campo nativo **Search**. **Copia nome** scrive solo il nome della pagina negli appunti. Se il browser rifiuta la scrittura, seleziona il testo del nome per consentire la copia manuale.
 

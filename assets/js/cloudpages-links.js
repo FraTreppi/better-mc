@@ -26,6 +26,8 @@
     const frames = new Map();
     const verifiedPageIds = new Map();
     const columnCells = new Set();
+    let columnHeading;
+    let headingLayout;
     let routeContext = isShell && inCloudPages() ? true : null;
     let active = false;
     let suspended = false;
@@ -101,7 +103,7 @@
     }
 
     function interrupts(event) {
-        if (!event.isTrusted || insideControls(event.target)) return false;
+        if (!event.isTrusted || insideControls(event.target) || event.target.closest?.(ownColumn)) return false;
         return event.type !== 'keydown' || (!event.ctrlKey && !event.metaKey && !event.altKey &&
             !['Control', 'Meta', 'Alt', 'Shift', 'Tab'].includes(event.key));
     }
@@ -173,6 +175,7 @@
 
     function showColumn(table) {
         const current = new Set();
+        headingLayout = null;
         if (table && columnToggle?.checked) {
             // Split lists keep their header outside the scrolling table. Match the native column
             // in the nearest shared container, and leave ambiguous layouts alone.
@@ -180,14 +183,17 @@
                 const header = only(shown(root, headerCells).filter(cell => !cell.matches(ownColumn) &&
                     hasHeading(cell, 'ID') && Array.from(cell.parentElement.children).some(sibling => hasHeading(sibling, 'Name'))));
                 if (!header) continue;
-                addPageIdCell(current, header, 'Page ID', true);
+                const headingCell = addPageIdCell(current, header, 'Page ID', true);
+                let valueCell;
                 for (const row of shown(table, listRows)) {
                     const anchor = rowCell(row, 'ID');
                     if (!anchor) continue;
                     const info = rowInfo(row);
                     const value = info?.assetId && verifiedPageIds.get(info.key);
-                    addPageIdCell(current, anchor, value || '—', false);
+                    const cell = addPageIdCell(current, anchor, value || '—', false);
+                    valueCell ||= cell;
                 }
+                headingLayout = { header, column: valueCell || headingCell };
                 break;
             }
         }
@@ -196,6 +202,8 @@
             cell.remove();
             columnCells.delete(cell);
         }
+        if (headingLayout) positionColumnHeading();
+        else columnHeading?.remove();
     }
 
     function addPageIdCell(current, anchor, value, heading) {
@@ -208,11 +216,12 @@
             if (tag === 'th') cell.scope = 'col';
             cell.style.cssText = 'box-sizing:border-box;width:90px;min-width:90px;flex:0 0 90px;padding-inline:8px;white-space:nowrap';
             if (heading) {
-                cell.style.position = 'relative';
-                cell.style.overflow = 'visible';
                 const label = document.createElement('span');
-                label.style.cssText = 'position:absolute;inset-inline-start:8px;transform:translateY(-50%);pointer-events:none';
+                label.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)';
                 cell.append(label);
+            } else {
+                cell.style.userSelect = 'text';
+                for (const type of ['click', 'dblclick']) cell.addEventListener(type, event => event.stopPropagation());
             }
             columnCells.add(cell);
         }
@@ -222,24 +231,47 @@
             cell.title = value === '—' ? 'Page ID da verificare' : '';
         }
         if (anchor.nextElementSibling !== cell) anchor.after(cell);
-        if (heading) {
-            // Salesforce can position the native header text above its table cell.
-            // Align to the text, including in the fixed header layout.
-            const walker = document.createTreeWalker(anchor, NodeFilter.SHOW_TEXT);
-            let center;
-            for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-                if (node.nodeValue.trim() !== 'ID' || !visible(node.parentElement)) continue;
-                const range = document.createRange();
-                range.selectNodeContents(node);
-                const box = range.getBoundingClientRect();
-                if (box.width <= 4 || box.height <= 4) continue;
-                center = box.top + box.height / 2;
-                break;
-            }
-            const native = anchor.getBoundingClientRect();
-            label.style.top = `${(center ?? native.top + native.height / 2) - cell.getBoundingClientRect().top}px`;
-        }
         current.add(cell);
+        return cell;
+    }
+
+    function positionColumnHeading() {
+        if (!headingLayout) return;
+        const { header, column } = headingLayout;
+        // Fixed Salesforce headings can sit outside the clipped header table.
+        // Keep the column header in the table for accessibility and paint its label at the native baseline.
+        let bounds = header.getBoundingClientRect();
+        let reference = header;
+        const walker = document.createTreeWalker(header, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            if (node.nodeValue.trim() !== 'ID' || !visible(node.parentElement)) continue;
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            const box = range.getBoundingClientRect();
+            if (box.width <= 4 || box.height <= 4) continue;
+            bounds = box;
+            reference = node.parentElement;
+            break;
+        }
+        const y = bounds.top + bounds.height / 2;
+        const x = column.getBoundingClientRect().left + parseFloat(getComputedStyle(column).paddingLeft);
+        if (!visible(header) || x < 0 || x >= innerWidth || y <= 0 || y >= innerHeight) {
+            columnHeading?.remove();
+            return;
+        }
+        if (!columnHeading) {
+            columnHeading = document.createElement('span');
+            columnHeading.setAttribute('data-sfmcfix-cloudpages-heading', '');
+            columnHeading.setAttribute('aria-hidden', 'true');
+            columnHeading.textContent = 'Page ID';
+            columnHeading.style.cssText = 'position:fixed;z-index:2147483646;pointer-events:none;white-space:nowrap;transform:translateY(-50%)';
+        }
+        const style = getComputedStyle(reference);
+        Object.assign(columnHeading.style, {
+            left: `${x}px`, top: `${y}px`, fontFamily: style.fontFamily, fontSize: style.fontSize,
+            fontWeight: style.fontWeight, lineHeight: style.lineHeight, color: style.color
+        });
+        if (!columnHeading.isConnected) document.body.append(columnHeading);
     }
 
     async function until(scan, read, message, timeout = 6000) {
@@ -786,6 +818,14 @@
     function start() {
         render();
         window.addEventListener('resize', render);
+        let headingFrame;
+        window.addEventListener('scroll', () => {
+            if (!headingLayout || headingFrame) return;
+            headingFrame = requestAnimationFrame(() => {
+                headingFrame = null;
+                positionColumnHeading();
+            });
+        }, true);
         let scheduled;
         new MutationObserver(() => {
             if (scheduled) return;
