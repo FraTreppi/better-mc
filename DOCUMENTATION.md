@@ -4,7 +4,11 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.42 — 24 novembre 2026
+## Versione attuale 1.1.43 — 24 novembre 2026
+
+Il pulsante **Page ID** si inserisce nella barra accanto al campo **Search** e apre un riquadro separato. Il comando **Mostra colonna Page ID** inserisce celle locali dopo la colonna **ID** nelle tabelle riconosciute. Anche le intestazioni separate dalle righe vengono associate al contenitore più vicino che le comprende entrambe. La ricerca conserva in memoria i Page ID letti dai dettagli e li associa alle righe con ID asset verificabile. Cambio di contesto e ricarica svuotano questi valori.
+
+## Versione 1.1.42 — 24 novembre 2026
 
 Il riquadro interno può contenere solo il titolo **CloudPages**, la barra **Search** e l’elenco. L’estensione riconosce il titolo fuori dalla tabella e le righe che hanno le colonne attese e il controllo azioni Salesforce associato all’ID asset. In caso di intestazioni fisse separate, preferisce il contenitore che contiene le righe. Il contenitore con le intestazioni è utilizzabile anche quando il filtro nativo lascia l’elenco vuoto.
 

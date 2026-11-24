@@ -1,3 +1,8 @@
+# 1.1.43 — 24 novembre 2026
+
+- Spostato il comando **Page ID** nella barra di CloudPages, accanto a **Search** e all’imbuto. Il pulsante apre la ricerca esatta.
+- Aggiunta l’opzione **Mostra colonna Page ID**. Visualizza i valori verificati nei dettagli durante la ricerca, accanto all’ID asset.
+
 # 1.1.42 — 24 novembre 2026
 
 - Il campo **Page ID** viene mostrato anche nel riquadro CloudPages quando le schede **Overview** e **Recycle Bin** sono fuori dal documento dell’elenco.

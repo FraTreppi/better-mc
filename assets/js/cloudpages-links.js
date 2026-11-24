@@ -22,13 +22,18 @@
     const shellFrame = !isTop && window.parent === window.top && ancestors[0] === shellOrigin;
 
     const frames = new Map();
+    const verifiedPageIds = new Map();
+    const columnCells = new Set();
     let routeContext = isShell && inCloudPages() ? true : null;
     let active = false;
     let suspended = false;
     let job;
     let result;
     let pendingDetails;
+    let launcher;
     let panel;
+    let panelExpanded = false;
+    let columnToggle;
     let input;
     let search;
     let cancel;
@@ -40,7 +45,8 @@
         !node.closest('[aria-hidden="true"]');
     const text = node => node?.textContent.trim().replace(/\s+/g, ' ') || '';
     const actions = 'button, a, [role="button"], [role="menuitem"], [role="tab"]';
-    const shown = (root, selector) => Array.from(root.querySelectorAll(selector)).filter(node => !panel?.contains(node) && visible(node));
+    const insideControls = node => launcher?.contains(node) || panel?.contains(node);
+    const shown = (root, selector) => Array.from(root.querySelectorAll(selector)).filter(node => !insideControls(node) && visible(node));
     const leaves = nodes => nodes.filter(node => !nodes.some(other => other !== node && node.contains(other)));
     const named = (root, label, selector = actions) => leaves(shown(root, selector).filter(node =>
         label.test(node.getAttribute('aria-label') || node.title || text(node))));
@@ -54,6 +60,8 @@
     const libraryLabels = 'h1, h2, [role="heading"], a, button, [role="tab"], strong, b, span, div';
     const searchHint = /^Enter at least three characters to search\.?$/i;
     const listRows = 'tbody tr, [role="row"]:has([role="gridcell"], [role="cell"])';
+    const headerCells = 'thead th, [role="columnheader"]';
+    const ownColumn = '[data-sfmcfix-cloudpages-column]';
     const properties = /^(Page Properties|Page Details|Properties|Proprietà(?: della pagina)?|Dettagli (?:della )?pagina)$/i;
     const detailHeadings = 'h1, h2, h3, h4, [role="heading"]';
     const pageDetails = /^(Page Details|Dettagli (?:della )?pagina)$/i;
@@ -76,7 +84,8 @@
             const input = only(inputs.filter(node => container.contains(node)));
             if (input) return input;
         }
-        return null;
+        return only(inputs.filter(node => [node.placeholder, node.getAttribute('aria-label')]
+            .some(label => /^(Search|Cerca)$/i.test(label || ''))));
     }
 
     function cloudPagesList(table, native) {
@@ -88,14 +97,17 @@
             if (labels.has(label) && visible(node)) labels.delete(label);
             if (!labels.size && native) return true;
         }
-        if (labels.has('CloudPages') || !table) return false;
+        if (labels.has('CloudPages')) return false;
+        if (native && named(document, /^Add Content$/i).length) return true;
+        if (!table) return false;
         // The app can render the module tabs outside the document containing the list.
         // Require the native row markers already used by the CloudPages shortcut.
-        return rows(table).some(info => info?.action && info.assetId && searchableType.test(info.type)) ||
-            Boolean(native && named(document, /^Add Content$/i).length);
+        return rows(table).some(info => info?.action && info.assetId && searchableType.test(info.type));
     }
 
     const rowCell = (row, label) => row.querySelector(`td[data-label="${label}"], [role="gridcell"][data-label="${label}"], [role="cell"][data-label="${label}"]`);
+    const hasHeading = (cell, label) => cell.getAttribute('data-label') === label || cell.title === label ||
+        text(cell) === label || Array.from(cell.querySelectorAll('[title]')).some(node => node.title === label);
 
     function listing() {
         const candidates = shown(document, 'table, [role="table"], [role="grid"]');
@@ -106,8 +118,8 @@
         // Some list layouts have separate containers for the fixed headings and scrolling rows.
         if (rowTables.length) return only(rowTables);
         return only(leaves(candidates.filter(table => {
-            const headings = Array.from(table.querySelectorAll('thead th, [role="columnheader"]'), text);
-            return tableLabels.every(label => headings.includes(label));
+            const headings = Array.from(table.querySelectorAll(headerCells));
+            return tableLabels.every(label => headings.some(cell => hasHeading(cell, label)));
         })));
     }
 
@@ -138,6 +150,52 @@
             if (/^(auto|scroll)$/.test(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight) return node;
         }
         return null;
+    }
+
+    function showColumn(table) {
+        const current = new Set();
+        if (table && columnToggle?.checked) {
+            // Split lists keep their header outside the scrolling table. Match the native column
+            // in the nearest shared container, and leave ambiguous layouts alone.
+            for (let root = table; root && root !== document.body; root = root.parentElement) {
+                const header = only(shown(root, headerCells).filter(cell => !cell.matches(ownColumn) &&
+                    hasHeading(cell, 'ID') && Array.from(cell.parentElement.children).some(sibling => hasHeading(sibling, 'Name'))));
+                if (!header) continue;
+                addPageIdCell(current, header, 'Page ID', true);
+                for (const row of shown(table, listRows)) {
+                    const anchor = rowCell(row, 'ID');
+                    if (!anchor) continue;
+                    const info = rowInfo(row);
+                    const value = info?.assetId && verifiedPageIds.get(info.key);
+                    addPageIdCell(current, anchor, value || '—', false);
+                }
+                break;
+            }
+        }
+        for (const cell of columnCells) {
+            if (current.has(cell)) continue;
+            cell.remove();
+            columnCells.delete(cell);
+        }
+    }
+
+    function addPageIdCell(current, anchor, value, heading) {
+        const tag = anchor.matches('th, td') ? (heading ? 'th' : 'td') : 'div';
+        let cell = anchor.parentElement.querySelector(`:scope > ${ownColumn}`);
+        if (!cell) {
+            cell = document.createElement(tag);
+            cell.setAttribute('data-sfmcfix-cloudpages-column', '');
+            if (tag === 'div') cell.setAttribute('role', heading ? 'columnheader' : 'gridcell');
+            if (tag === 'th') cell.scope = 'col';
+            cell.style.cssText = 'box-sizing:border-box;width:90px;min-width:90px;flex:0 0 90px;padding-inline:8px;white-space:nowrap';
+            columnCells.add(cell);
+        }
+        if (cell.textContent !== value) {
+            cell.textContent = value;
+            cell.title = value === '—' ? 'Page ID da verificare' : '';
+        }
+        if (anchor.nextElementSibling !== cell) anchor.after(cell);
+        current.add(cell);
     }
 
     async function until(scan, read, message, timeout = 6000) {
@@ -291,7 +349,12 @@
                     }
                     status.textContent = `Ricerca Page ID ${scan.pageId}… ${checked.size} pagine verificate.`;
                     const view = await inspect(scan, info);
+                    scan.signal.throwIfAborted();
                     (view.pageId === null ? unread : checked).add(info.key);
+                    if (view.pageId !== null && info.assetId) {
+                        verifiedPageIds.set(info.key, view.pageId);
+                        showColumn(currentList());
+                    }
                     if (view.pageId === scan.pageId) {
                         result = { ...info, pageId: view.pageId, view };
                         return view.dialog ? 'Corrispondenza trovata.' : 'Corrispondenza trovata. La pagina è aperta nei dettagli Salesforce.';
@@ -329,11 +392,20 @@
     }
 
     function makePanel() {
+        launcher = document.createElement('button');
+        launcher.type = 'button';
+        launcher.className = 'slds-button slds-button_neutral';
+        launcher.id = 'sfmcfix-cloudpages-page-id-launcher';
+        launcher.textContent = 'Page ID';
+        launcher.setAttribute('aria-controls', 'sfmcfix-cloudpages-page-id');
+        launcher.style.cssText = 'display:inline-flex;align-items:center;flex:none;min-height:32px;padding:0 10px;margin-inline:4px;white-space:nowrap;background:white;color:#0176d3;border:1px solid #747474;border-radius:4px;cursor:pointer';
+        launcher.addEventListener('click', () => setPanelExpanded(!panelExpanded));
+
         panel = document.createElement('div');
         panel.id = 'sfmcfix-cloudpages-page-id';
         panel.setAttribute('role', 'form');
         panel.setAttribute('aria-label', 'Ricerca CloudPages per Page ID');
-        panel.style.cssText = 'padding:8px 12px;background:#fff;border:1px solid #c9d5e3;border-radius:4px;color:#181818;font:14px/1.5 Arial,sans-serif';
+        panel.style.cssText = 'position:fixed;z-index:2147483647;box-sizing:border-box;overflow:auto;padding:10px 12px;background:#fff;border:1px solid #c9d5e3;border-radius:4px;box-shadow:0 3px 12px #0003;color:#181818;font:14px/1.5 Arial,sans-serif';
         const label = document.createElement('label');
         label.textContent = 'Page ID';
         label.htmlFor = 'sfmcfix-cloudpages-page-id-input';
@@ -342,7 +414,7 @@
         input.inputMode = 'numeric';
         input.autocomplete = 'off';
         input.required = true;
-        input.style.cssText = 'width:10em;margin:0 8px;padding:3px 6px;border:1px solid #747474;border-radius:3px';
+        input.style.cssText = 'width:min(10em, 46%);margin:0 8px;padding:3px 6px;border:1px solid #747474;border-radius:3px';
         search = document.createElement('button');
         search.type = 'button';
         search.textContent = 'Cerca';
@@ -357,13 +429,66 @@
         open.type = 'button';
         open.textContent = 'Apri pagina';
         open.hidden = true;
-        panel.append(label, input, search, cancel, status, details, open);
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.textContent = 'Chiudi';
+        close.setAttribute('aria-label', 'Chiudi ricerca Page ID');
+        close.style.cssText = 'float:right;margin-left:8px';
+        const column = document.createElement('label');
+        column.style.cssText = 'display:block;margin-top:8px';
+        columnToggle = document.createElement('input');
+        columnToggle.type = 'checkbox';
+        column.append(columnToggle, ' Mostra colonna Page ID');
+        panel.append(close, label, input, search, cancel, column, status, details, open);
         search.addEventListener('click', startSearch);
         input.addEventListener('keydown', event => {
             if (event.key === 'Enter' && !event.isComposing) startSearch(event);
         });
         cancel.addEventListener('click', () => abort('Ricerca annullata.'));
         open.addEventListener('click', openResult);
+        close.addEventListener('click', () => setPanelExpanded(false));
+        columnToggle.addEventListener('change', render);
+        panel.addEventListener('keydown', event => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            event.stopPropagation();
+            setPanelExpanded(false);
+        });
+    }
+
+    function setPanelExpanded(expanded) {
+        if (!expanded) abort('Ricerca annullata.');
+        panelExpanded = expanded;
+        render();
+        if (expanded) input.focus();
+        else launcher.focus();
+    }
+
+    function placeLauncher(native, anchor) {
+        if (!native) {
+            if (anchor?.previousElementSibling !== launcher) anchor?.before(launcher);
+            return;
+        }
+        const field = native.closest('.slds-input-has-icon, .slds-form-element__control, [role="search"]') || native;
+        for (let group = field, depth = 0; group.parentElement !== document.body && depth < 5; group = group.parentElement, depth++) {
+            const next = group.nextElementSibling === launcher ? launcher.nextElementSibling : group.nextElementSibling;
+            if (!next || next === anchor || next.contains(anchor) || next.querySelector('table, [role="grid"], [role="table"]')) continue;
+            const button = next.matches('button, [role="button"]') ? next : next.querySelector('button, [role="button"]');
+            if (!button) continue;
+            const title = button.getAttribute('aria-label') || button.title || text(button);
+            if (/clear|cancella|load more|carica|all pages|overview/i.test(title)) continue;
+            if (group.nextElementSibling !== launcher) group.after(launcher);
+            return;
+        }
+        if (field.nextElementSibling !== launcher) field.after(launcher);
+    }
+
+    function positionPanel() {
+        const rect = visible(launcher) && launcher.getBoundingClientRect();
+        const width = Math.min(430, innerWidth - 16);
+        const left = Math.max(8, Math.min(innerWidth - width - 8, (rect?.right || innerWidth - 8) - width));
+        const top = Math.min(Math.max(8, innerHeight - 170), rect ? rect.bottom + 6 : 8);
+        Object.assign(panel.style, { width: `${width}px`, left: `${left}px`, top: `${top}px`, maxHeight: `${innerHeight - top - 8}px` });
     }
 
     function clearResult() {
@@ -385,29 +510,31 @@
         active = !suspended && libraryContext && !recycleBin;
         if (!active) {
             if (recycleBin) abort('Ricerca interrotta dopo il passaggio al cestino.');
+            panelExpanded = false;
+            verifiedPageIds.clear();
+            showColumn(null);
+            launcher?.remove();
             panel?.remove();
             return;
         }
         updatePendingDetails();
         const anchor = table ? (scrollViewport(table) || table) : allPages();
-        const toolbar = !anchor && native && native.parentElement !== document.body && native.parentElement;
-        if (!anchor && !toolbar && !job && !result) {
+        if (!anchor && !native && !job && !result) {
+            showColumn(null);
+            launcher?.remove();
             panel?.remove();
             return;
         }
         if (!panel) makePanel();
-        const floating = Boolean(job || result?.view || (!anchor && !toolbar));
-        const position = floating ? 'fixed' : '';
-        if (panel.style.position !== position) {
-            Object.assign(panel.style, { position, top: floating ? '12px' : '', right: floating ? '12px' : '',
-                maxWidth: floating ? 'min(520px, calc(100% - 24px))' : '', zIndex: floating ? '2147483647' : '' });
-        }
-        if (floating) {
+        if (anchor || native) placeLauncher(native, anchor);
+        else launcher.remove();
+        launcher.setAttribute('aria-expanded', String(panelExpanded));
+        showColumn(table);
+        if (panelExpanded) {
             if (panel.parentElement !== document.body) document.body.append(panel);
-        } else if (toolbar) {
-            if (toolbar.nextElementSibling !== panel) toolbar.after(panel);
-        } else if (anchor.previousElementSibling !== panel) {
-            anchor.before(panel);
+            positionPanel();
+        } else {
+            panel.remove();
         }
     }
 
@@ -478,9 +605,11 @@
         }
     }
 
-    function contextChanged() {
+    function contextChanged(closePanel = true) {
         scope = readScope();
         abort('Ricerca interrotta dopo un cambio di contesto Salesforce.');
+        verifiedPageIds.clear();
+        if (closePanel) panelExpanded = false;
         if (panel) {
             clearResult();
             if (!job && status.textContent) status.textContent = '';
@@ -488,16 +617,21 @@
         render();
     }
 
-    function reportRoute(enabled) {
-        if (enabled || routeContext !== null) routeContext = enabled;
-        contextChanged();
+    function reportRoute(enabled, invalidate = false) {
+        const next = enabled || routeContext !== null ? enabled : null;
+        if (next !== routeContext) {
+            routeContext = next;
+            contextChanged();
+        } else if (invalidate) {
+            contextChanged(false);
+        }
     }
 
     if (isShell) {
         const notify = () => {
             for (const [frame, origin] of frames) {
                 if (!frame.isConnected) frames.delete(frame);
-                else frame.contentWindow?.postMessage({ channel, active: inCloudPages() }, origin);
+                else frame.contentWindow?.postMessage({ channel, active: inCloudPages(), invalidate: true }, origin);
             }
         };
         window.addEventListener('message', event => {
@@ -509,19 +643,19 @@
                 event.source.postMessage({ channel, active: inCloudPages() }, event.origin);
             }
         });
-        window.addEventListener('hashchange', () => { reportRoute(inCloudPages()); notify(); });
-        document.addEventListener('pointerdown', event => { if (event.isTrusted && !panel?.contains(event.target)) notify(); }, true);
-        document.addEventListener('keydown', event => { if (event.isTrusted && !panel?.contains(event.target)) notify(); }, true);
+        window.addEventListener('hashchange', () => { reportRoute(inCloudPages(), true); notify(); });
+        document.addEventListener('pointerdown', event => { if (event.isTrusted && !insideControls(event.target)) notify(); }, true);
+        document.addEventListener('keydown', event => { if (event.isTrusted && !insideControls(event.target)) notify(); }, true);
     } else if (shellFrame) {
         window.addEventListener('message', event => {
             if (event.source === window.top && event.origin === shellOrigin && event.data?.channel === channel &&
-                typeof event.data.active === 'boolean') reportRoute(event.data.active);
+                typeof event.data.active === 'boolean') reportRoute(event.data.active, event.data.invalidate === true);
         });
         window.top.postMessage({ channel, ready: true }, shellOrigin);
     }
 
     for (const type of ['input', 'pointerdown', 'keydown']) document.addEventListener(type, event => {
-        if (!event.isTrusted || panel?.contains(event.target)) return;
+        if (!event.isTrusted || insideControls(event.target)) return;
         if (job) abort('Ricerca interrotta dall’interazione con Salesforce.');
         if (result) {
             clearResult();
@@ -533,7 +667,7 @@
     window.addEventListener('pageshow', event => {
         if (!event.persisted) return;
         suspended = false;
-        if (isShell) reportRoute(inCloudPages());
+        if (isShell) reportRoute(inCloudPages(), true);
         else {
             contextChanged();
             if (shellFrame) window.top.postMessage({ channel, ready: true }, shellOrigin);
@@ -542,6 +676,7 @@
 
     function start() {
         render();
+        window.addEventListener('resize', () => { if (panel?.isConnected) positionPanel(); });
         let scheduled;
         new MutationObserver(() => {
             if (scheduled) return;

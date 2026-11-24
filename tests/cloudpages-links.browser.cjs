@@ -15,7 +15,7 @@ const target = { asset: '987654', page: '42', name: 'Pagina <due> & "speciale"',
 
 function documentHTML(options) {
     const filter = options.noFilter ? '' : options.overview
-        ? '<div><div><input type="search" aria-label="Search"></div><p>Enter at least three characters to search.</p></div>'
+        ? '<div><div id="toolbar" style="display:flex;justify-content:flex-end"><div id="search-field" class="slds-input-has-icon"><input type="search" aria-label="Search" placeholder="Search"><button type="button" aria-label="Clear search">×</button></div><button type="button" id="native-filter" aria-label="Filter">Filtro</button><button type="button" id="native-columns" aria-label="Columns">Colonne</button></div><p>Enter at least three characters to search.</p></div>'
         : '<input placeholder="Enter at least three characters to search">';
     const overview = options.inner
         ? '<header><h1>CloudPages</h1><button disabled>Add Content</button></header>'
@@ -112,6 +112,10 @@ function documentHTML(options) {
                 events.push(['native-search', search.value]);
                 showRows(search.value.length >= 3 ? rows.filter(item => item.asset.includes(search.value)) : rows);
             };
+            const nativeColumns = view.querySelector('#native-columns');
+            if (nativeColumns) nativeColumns.onclick = () => events.push(['native-columns']);
+            const nativeFilter = view.querySelector('#native-filter');
+            if (nativeFilter) nativeFilter.onclick = () => events.push(['native-filter']);
             showRows(rows);
         }
         function showDetails(item) {
@@ -171,10 +175,18 @@ async function run() {
             const outer = direct ? page : page.frameLocator('iframe');
             const doc = options.inner ? outer.frameLocator('iframe') : outer;
             const appFrame = direct ? page.mainFrame() : page.frames().find(frame => frame.url().startsWith(app));
+            const launcher = doc.getByRole('button', { name: 'Page ID', exact: true });
             const form = doc.getByRole('form', { name: 'Ricerca CloudPages per Page ID' });
-            await form.waitFor();
+            await launcher.waitFor();
+            assert.equal(await launcher.getAttribute('aria-expanded'), 'false');
+            assert.equal(await form.count(), 0);
+            const show = async () => {
+                if (!await form.isVisible()) await launcher.click();
+                await form.waitFor();
+            };
             const status = form.getByRole('status');
             const start = async value => {
+                await show();
                 await form.getByLabel('Page ID', { exact: true }).fill(value);
                 await form.getByRole('button', { name: 'Cerca', exact: true }).click();
             };
@@ -189,7 +201,7 @@ async function run() {
                     (origin === app && (pathname === '/fixture' || pathname === '/favicon.ico')))), true, JSON.stringify(requests));
                 await page.close();
             };
-            return { page, doc, form, start, finished, events, openingDetails, close };
+            return { page, doc, launcher, form, show, start, finished, events, openingDetails, close };
         }
 
         {
@@ -201,6 +213,7 @@ async function run() {
             await f.finished(/Svuota il filtro Salesforce/);
             assert.equal(await native.inputValue(), '999');
             await native.fill('');
+            await f.form.getByRole('button', { name: 'Chiudi ricerca Page ID' }).click();
             assert.equal(await f.doc.locator('.sfmcfix-cloudpage-newtab').count(), 0);
             await f.doc.getByRole('button', { name: 'Native action' }).click();
             await f.start('4e1');
@@ -223,7 +236,16 @@ async function run() {
         for (const options of [{ overview: true }, { overview: true, inner: true }]) {
             const f = await fixture(options);
             const native = f.doc.getByRole('searchbox', { name: 'Search' });
-            assert.equal(await f.form.locator('xpath=following-sibling::*[1]').getAttribute('id'), 'viewport');
+            assert.equal(await f.launcher.locator('xpath=preceding-sibling::*[1]').getAttribute('id'), 'search-field');
+            assert.equal(await f.launcher.locator('xpath=following-sibling::*[1]').getAttribute('id'), 'native-filter');
+            const column = '[data-sfmcfix-cloudpages-column]';
+            const toggle = f.form.getByRole('checkbox', { name: 'Mostra colonna Page ID' });
+            await f.doc.getByRole('button', { name: 'Filter', exact: true }).click();
+            await f.doc.getByRole('button', { name: 'Columns', exact: true }).click();
+            await f.show();
+            assert.equal(await f.launcher.getAttribute('aria-expanded'), 'true');
+            await toggle.check();
+            assert.deepEqual(await f.doc.locator(column).allTextContents(), ['Page ID', '—']);
             await native.fill('4160');
             await f.start('42');
             await f.finished(/Svuota il filtro Salesforce/);
@@ -233,10 +255,18 @@ async function run() {
             await f.form.getByLabel('Page ID', { exact: true }).press('Enter');
             await f.finished(/Corrispondenza trovata/);
             assert.ok((await f.form.textContent()).includes('Page ID 42 · ID asset 987654'));
+            assert.deepEqual(await f.doc.locator(column).allTextContents(), ['Page ID', '420', '42']);
+            assert.deepEqual(await f.doc.locator('[data-label="ID"]').allTextContents(), ['42', '987654']);
+            await f.form.getByLabel('Page ID', { exact: true }).press('Escape');
+            await f.form.waitFor({ state: 'detached' });
+            assert.deepEqual(await f.doc.locator(column).allTextContents(), ['Page ID', '420', '42']);
+            await f.show();
+            await toggle.uncheck();
+            assert.equal(await f.doc.locator(column).count(), 0);
             await f.form.getByRole('button', { name: 'Apri pagina' }).click();
             await f.doc.locator('#native-editor').waitFor();
             await f.form.waitFor({ state: 'detached' });
-            assert.deepEqual(await f.events(), [['native-search', '4160'], ['native-search', ''],
+            assert.deepEqual(await f.events(), [['native-filter'], ['native-columns'], ['native-search', '4160'], ['native-search', ''],
                 ['properties', '42'], ['scroll'], ['properties', '987654'], ['open', '987654']]);
             await f.close();
         }
@@ -244,7 +274,7 @@ async function run() {
         {
             const f = await fixture({ overview: true });
             await f.doc.getByRole('button', { name: 'Recycle Bin' }).click();
-            await f.form.waitFor({ state: 'detached' });
+            await f.launcher.waitFor({ state: 'detached' });
             assert.deepEqual(await f.events(), []);
             await f.close();
         }
@@ -289,10 +319,11 @@ async function run() {
                 f.page.waitForEvent('framenavigated', frame => frame.url() === `${app}/fixture?mid=999`),
                 f.page.locator('#bu').click()
             ]);
-            await f.form.waitFor();
+            await f.launcher.waitFor();
+            assert.equal(await f.form.count(), 0);
             assert.deepEqual(await f.events(), []);
             await f.page.evaluate(() => { location.hash = '#app/Email/'; });
-            await f.form.waitFor({ state: 'detached' });
+            await f.launcher.waitFor({ state: 'detached' });
             assert.equal(await f.doc.getByRole('dialog').count(), 0);
             await f.close();
         }
