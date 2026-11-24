@@ -7,6 +7,7 @@ const { chromium } = require(process.env.SFMCFIX_PLAYWRIGHT_MODULE || 'playwrigh
 const extension = process.env.SFMCFIX_EXTENSION_PATH || path.resolve(__dirname, '..');
 const shell = 'https://mc.s10.exacttarget.com';
 const app = 'https://cloudpages.s10.marketingcloudapps.com';
+const embedded = 'https://web.s10.exacttarget.com';
 const route = '/cloud/#app/CloudPages/';
 const labels = ['Name', 'Location', 'Type', 'ID', 'Status', 'Modified', 'Actions'];
 const first = { asset: '42', page: '420', name: 'Prima pagina', folder: 'Cartella iniziale' };
@@ -16,13 +17,19 @@ function documentHTML(options) {
     const filter = options.noFilter ? '' : options.overview
         ? '<div><div><input type="search" aria-label="Search"></div><p>Enter at least three characters to search.</p></div>'
         : '<input placeholder="Enter at least three characters to search">';
-    const overview = options.overview
+    const overview = options.inner
+        ? '<header><h1>CloudPages</h1><button disabled>Add Content</button></header>'
+        : options.overview
         ? '<header><b>CloudPages</b><nav><button>Overview</button><button onclick="this.setAttribute(\'aria-current\', \'page\');">Recycle Bin</button></nav></header>'
         : '';
-    const headers = labels.map(label => options.overview ? `<div role="columnheader">${label}</div>` : `<th>${label}</th>`).join('');
-    const list = options.overview
-        ? `<div id="inventory-count">20+ items</div><div id="viewport" style="height:90px;overflow:auto"><div role="grid"><div role="row">${headers}</div><div role="rowgroup" id="rows"></div></div></div>`
-        : `<table><thead><tr>${headers}</tr></thead><tbody id="rows"></tbody></table>`;
+    const headers = labels.map(label => options.overview && !options.inner
+        ? `<div role="columnheader">${label}</div>` : `<th>${label}</th>`).join('');
+    const list = options.inner
+        ? `<div id="inventory-count">20+ items</div><table><thead><tr>${headers}</tr></thead></table>
+           <div id="viewport" style="height:90px;overflow:auto"><table id="list"><tbody id="rows"></tbody></table></div>`
+        : options.overview
+            ? `<div id="inventory-count">20+ items</div><div id="viewport" style="height:90px;overflow:auto"><div id="list" role="grid"><div role="row">${headers}</div><div role="rowgroup" id="rows"></div></div></div>`
+            : `<table id="list"><thead><tr>${headers}</tr></thead><tbody id="rows"></tbody></table>`;
     return `<!doctype html><html><body><main id="view"></main><script>
         const options = ${JSON.stringify(options)};
         const labels = ${JSON.stringify(labels)};
@@ -43,7 +50,7 @@ function documentHTML(options) {
             all.setAttribute('aria-selected', isAll);
             all.hidden = options.noAll || options.overview;
             all.onclick = () => { events.push(['all']); isAll = true; showList(); };
-            const listing = document.querySelector('table, [role="grid"]');
+            const listing = document.querySelector('#list');
             listing.hidden = options.collections && !isAll;
             let rows = [first];
             if ((isAll || options.overview) && expanded) rows.push(target);
@@ -64,10 +71,11 @@ function documentHTML(options) {
                 };
             }
             function showRows(items) {
-                const grid = options.overview;
+                const grid = options.overview && !options.inner;
                 const rowContainer = document.querySelector('#rows');
                 rowContainer.innerHTML = items.map(item =>
-                    (grid ? '<div role="row" style="min-height:160px">' : '<tr class="slds-hint-parent">') + [
+                    (grid ? '<div role="row" style="min-height:160px">' : '<tr class="slds-hint-parent"' +
+                        (options.inner ? ' style="height:160px"' : '') + '>') + [
                         '<div class="slds-truncate" title="' + escape(item.name) + '">' + escape(item.name) + '</div><button type="button" class="native-control" aria-label="Native action">↗</button>',
                         escape(item.folder), 'Landing Page', options.noAsset && item === target ? '' : item.asset, 'Draft', 'Today',
                         '<div id="fixture-SLDSDataTableRow-' + item.asset + '-SLDSDataTableRowActions"><button type="button" class="row-actions"' +
@@ -150,14 +158,18 @@ async function run() {
                 if (url.origin === shell && url.pathname === '/cloud/') {
                     return request.fulfill({ contentType: 'text/html', body: options.direct ? documentHTML(options) :
                         `<!doctype html><button id="bu" onclick="document.querySelector('iframe').src='${app}/fixture?mid=999'">Cambia BU</button>
-                        <iframe width="900" height="600" src="${app}/fixture?mid=123"></iframe>` });
+                        <iframe width="900" height="600" src="${options.inner ? embedded + '/host' : app + '/fixture?mid=123'}"></iframe>` });
                 }
+                if (url.origin === embedded && url.pathname === '/host') return request.fulfill({
+                    contentType: 'text/html', body: `<!doctype html><iframe width="800" height="500" src="${app}/fixture?mid=123"></iframe>`
+                });
                 if (url.origin === app && url.pathname === '/fixture') return request.fulfill({ contentType: 'text/html', body: documentHTML(options) });
                 return request.abort();
             });
-            await page.goto(options.overview ? `${app}/fixture?mid=123` : `${shell}${route}`);
-            const direct = options.direct || options.overview;
-            const doc = direct ? page : page.frameLocator('iframe');
+            await page.goto(options.overview && !options.inner ? `${app}/fixture?mid=123` : `${shell}${route}`);
+            const direct = options.direct || (options.overview && !options.inner);
+            const outer = direct ? page : page.frameLocator('iframe');
+            const doc = options.inner ? outer.frameLocator('iframe') : outer;
             const appFrame = direct ? page.mainFrame() : page.frames().find(frame => frame.url().startsWith(app));
             const form = doc.getByRole('form', { name: 'Ricerca CloudPages per Page ID' });
             await form.waitFor();
@@ -173,6 +185,7 @@ async function run() {
                 assert.equal((await events()).some(([event]) => event === 'write'), false);
                 assert.equal(requests.every(([method, origin, pathname]) => method === 'GET' &&
                     ((origin === shell && (pathname === '/cloud/' || pathname === '/favicon.ico')) ||
+                    (origin === embedded && pathname === '/host') ||
                     (origin === app && (pathname === '/fixture' || pathname === '/favicon.ico')))), true, JSON.stringify(requests));
                 await page.close();
             };
@@ -207,14 +220,14 @@ async function run() {
             await f.close();
         }
 
-        {
-            const f = await fixture({ overview: true });
+        for (const options of [{ overview: true }, { overview: true, inner: true }]) {
+            const f = await fixture(options);
             const native = f.doc.getByRole('searchbox', { name: 'Search' });
+            assert.equal(await f.form.locator('xpath=following-sibling::*[1]').getAttribute('id'), 'viewport');
             await native.fill('4160');
             await f.start('42');
             await f.finished(/Svuota il filtro Salesforce/);
             assert.equal(await native.inputValue(), '4160');
-            assert.equal(await f.form.locator('xpath=following-sibling::*[1]').getAttribute('id'), 'viewport');
             await native.fill('');
             await f.form.getByLabel('Page ID', { exact: true }).fill('42');
             await f.form.getByLabel('Page ID', { exact: true }).press('Enter');

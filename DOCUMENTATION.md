@@ -4,7 +4,13 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.41 — 24 novembre 2026
+## Versione attuale 1.1.42 — 24 novembre 2026
+
+Il riquadro interno può contenere solo il titolo **CloudPages**, la barra **Search** e l’elenco. L’estensione riconosce il titolo fuori dalla tabella e le righe che hanno le colonne attese e il controllo azioni Salesforce associato all’ID asset. In caso di intestazioni fisse separate, preferisce il contenitore che contiene le righe. Il contenitore con le intestazioni è utilizzabile anche quando il filtro nativo lascia l’elenco vuoto.
+
+Le prove browser includono un iframe annidato con il titolo CloudPages, la guida della ricerca come testo separato, una tabella per le intestazioni e una per i risultati. Verificano che il campo sia sopra le righe, che il filtro nativo venga conservato e che lo scorrimento possa trovare un Page ID in un’altra posizione. La prova usa dati simulati.
+
+## Versione 1.1.41 — 24 novembre 2026
 
 La vista **Overview** può mostrare l’indicazione «Enter at least three characters to search» sotto la ricerca Salesforce. Il modulo Page ID riconosce la vista anche tramite le etichette **CloudPages**, **Overview** e **Recycle Bin** e riconosce la ricerca tramite il testo di aiuto. Gestisce intestazioni e righe di tabelle e griglie accessibili. Se l’elenco visualizza un conteggio aperto, per esempio **20+ items**, usa lo scorrimento del riquadro quando **Load More** non è visibile. La mancata conferma della copertura rimane un esito parziale.
 

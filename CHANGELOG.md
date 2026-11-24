@@ -1,3 +1,8 @@
+# 1.1.42 — 24 novembre 2026
+
+- Il campo **Page ID** viene mostrato anche nel riquadro CloudPages quando le schede **Overview** e **Recycle Bin** sono fuori dal documento dell’elenco.
+- L’elenco è riconosciuto anche quando Salesforce separa le intestazioni fisse dalle righe scorrevoli.
+
 # 1.1.41 — 24 novembre 2026
 
 - Il campo **Page ID** compare anche in **CloudPages → Overview** con la ricerca nativa sopra l’elenco e il testo di aiuto separato.

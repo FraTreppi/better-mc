@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.41 · Autore: Francesco Trepiccioni
+Versione 1.1.42 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Le funzioni dell’interfaccia lavorano con la sessione Salesforce già aperta. L’analisi degli utilizzi DE collega direttamente l’estensione alle API Salesforce in sola lettura.
 

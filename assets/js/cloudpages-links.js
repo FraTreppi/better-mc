@@ -51,6 +51,7 @@
     const selected = node => node?.matches('[aria-selected="true"], [aria-current="page"], [aria-pressed="true"]') ||
         node?.closest('.slds-is-active');
     const tableLabels = ['Name', 'Location', 'Type', 'ID', 'Status', 'Modified'];
+    const libraryLabels = 'h1, h2, [role="heading"], a, button, [role="tab"], strong, b, span, div';
     const searchHint = /^Enter at least three characters to search\.?$/i;
     const listRows = 'tbody tr, [role="row"]:has([role="gridcell"], [role="cell"])';
     const properties = /^(Page Properties|Page Details|Properties|Proprietà(?: della pagina)?|Dettagli (?:della )?pagina)$/i;
@@ -78,28 +79,36 @@
         return null;
     }
 
-    function overview() {
-        if (!nativeSearch()) return false;
+    function cloudPagesList(table, native) {
+        if (!table && !native) return false;
         const labels = new Set(['CloudPages', 'Overview', 'Recycle Bin']);
-        const elements = document.querySelectorAll('h1, h2, [role="heading"], a, button, [role="tab"], strong, b, span, div');
-        for (const node of elements) {
+        for (const node of document.querySelectorAll(libraryLabels)) {
+            if (table?.contains(node)) continue;
             const label = text(node);
             if (labels.has(label) && visible(node)) labels.delete(label);
-            if (!labels.size) return true;
+            if (!labels.size && native) return true;
         }
-        return false;
+        if (labels.has('CloudPages') || !table) return false;
+        // The app can render the module tabs outside the document containing the list.
+        // Require the native row markers already used by the CloudPages shortcut.
+        return rows(table).some(info => info?.action && info.assetId && searchableType.test(info.type)) ||
+            Boolean(native && named(document, /^Add Content$/i).length);
     }
 
     const rowCell = (row, label) => row.querySelector(`td[data-label="${label}"], [role="gridcell"][data-label="${label}"], [role="cell"][data-label="${label}"]`);
 
     function listing() {
-        return only(shown(document, 'table, [role="table"], [role="grid"]').filter(table => {
-            const headings = Array.from(table.querySelectorAll('thead th, [role="columnheader"]'), text);
-            if (tableLabels.every(label => headings.includes(label))) return true;
-            // Salesforce can append sort instructions to its column headers.
+        const candidates = shown(document, 'table, [role="table"], [role="grid"]');
+        const rowTables = leaves(candidates.filter(table => {
             const row = table.querySelector(listRows);
             return row && tableLabels.every(label => rowCell(row, label));
         }));
+        // Some list layouts have separate containers for the fixed headings and scrolling rows.
+        if (rowTables.length) return only(rowTables);
+        return only(leaves(candidates.filter(table => {
+            const headings = Array.from(table.querySelectorAll('thead th, [role="columnheader"]'), text);
+            return tableLabels.every(label => headings.includes(label));
+        })));
     }
 
     function rowInfo(row) {
@@ -268,8 +277,9 @@
             while (true) {
                 const table = await until(scan, currentList, 'L’elenco CloudPages non è disponibile.');
                 scan.signal.throwIfAborted();
-                if (nativeSearch()?.value.trim()) throw new Error('Svuota il filtro Salesforce per cercare per Page ID.');
-                const coverage = Boolean(selected(allPages()) && nativeSearch());
+                const native = nativeSearch();
+                if (native?.value.trim()) throw new Error('Svuota il filtro Salesforce per cercare per Page ID.');
+                const coverage = Boolean(selected(allPages()) && native);
                 const inventory = rows(table);
                 unknown ||= inventory.some(item => item === null || (!searchableType.test(item.type) && !/^Code Resource$/i.test(item.type)));
                 const info = inventory.find(item => item && searchableType.test(item.type) &&
@@ -292,7 +302,8 @@
                 const pagination = named(document, /^(Load More|Carica altri|Carica altro)$/i);
                 const more = only(pagination);
                 if (pagination.length > 1 || (more && !enabled(more))) throw new Error('La paginazione Salesforce non è disponibile.');
-                const moreInOverview = !more && overview() && shown(document, 'div, span, p').some(node => /^\d+\+\s+items?$/i.test(text(node)));
+                const moreInOverview = !more && cloudPagesList(table, native) &&
+                    shown(document, 'div, span, p').some(node => /^\d+\+\s+items?$/i.test(text(node)));
                 if (!more && !moreInOverview) {
                     const scope = coverage ? '' : ' La copertura dell’inventario della BU non è confermata.';
                     return coverage && unread.size === 0 && !unknown
@@ -367,7 +378,9 @@
             contextChanged();
             return;
         }
-        const libraryContext = routeContext === true || (routeContext === null && (overview() || (active && (job || result))));
+        const table = listing();
+        const native = nativeSearch();
+        const libraryContext = routeContext === true || (routeContext === null && (cloudPagesList(table, native) || (active && (job || result))));
         const recycleBin = libraryContext && named(document, /^Recycle Bin$/i).some(selected);
         active = !suspended && libraryContext && !recycleBin;
         if (!active) {
@@ -376,8 +389,6 @@
             return;
         }
         updatePendingDetails();
-        const table = listing();
-        const native = nativeSearch();
         const anchor = table ? (scrollViewport(table) || table) : allPages();
         const toolbar = !anchor && native && native.parentElement !== document.body && native.parentElement;
         if (!anchor && !toolbar && !job && !result) {
