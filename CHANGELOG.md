@@ -1,3 +1,8 @@
+# 1.1.41 — 24 novembre 2026
+
+- Il campo **Page ID** compare anche in **CloudPages → Overview** con la ricerca nativa sopra l’elenco e il testo di aiuto separato.
+- Nella vista Overview la scansione segue lo scorrimento dell’elenco se Salesforce indica altre righe. Il filtro Salesforce rimane indipendente.
+
 # 1.1.40 — 24 novembre 2026
 
 - Aggiunta la ricerca **Page ID** in CloudPages. Accetta anche una o due cifre e confronta il valore esatto mostrato da Salesforce nei dettagli pagina.

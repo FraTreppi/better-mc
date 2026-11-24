@@ -4,7 +4,13 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.40 — 24 novembre 2026
+## Versione attuale 1.1.41 — 24 novembre 2026
+
+La vista **Overview** può mostrare l’indicazione «Enter at least three characters to search» sotto la ricerca Salesforce. Il modulo Page ID riconosce la vista anche tramite le etichette **CloudPages**, **Overview** e **Recycle Bin** e riconosce la ricerca tramite il testo di aiuto. Gestisce intestazioni e righe di tabelle e griglie accessibili. Se l’elenco visualizza un conteggio aperto, per esempio **20+ items**, usa lo scorrimento del riquadro quando **Load More** non è visibile. La mancata conferma della copertura rimane un esito parziale.
+
+La schermata dell’utente ha fornito le etichette visibili e il layout. Le verifiche automatiche riproducono queste caratteristiche con dati simulati. Il markup effettivo e l’esito della scansione sul tenant autenticato restano da verificare.
+
+## Versione 1.1.40 — 24 novembre 2026
 
 Il primo argomento di `CloudPagesURL()` corrisponde al campo **Page ID** dei dettagli della landing page. Il modello REST Content Builder pubblica l’attributo `id` dell’asset e non documenta un attributo ricercabile con questa corrispondenza. Salesforce precisa inoltre che creare un asset `webpage` di tipo 205 non lo crea nell’interfaccia CloudPages. La ricerca usa quindi il valore con etichetta **Page ID** visibile nella UI. [CloudPagesURL](https://developer.salesforce.com/docs/marketing/marketing-cloud-ampscript/references/mc-ampscript-sites/mc-ampscript-reference-sites-cloud-pages-url.html), [dettagli pagina su Trailhead](https://trailhead.salesforce.com/content/learn/modules/custom-preference-center-development/build-your-preference-center), [attributi REST](https://developer.salesforce.com/docs/marketing/marketing-cloud/guide/asset-attribute-list.html), [tipo di asset](https://developer.salesforce.com/docs/marketing/marketing-cloud/guide/asset_type.html).
 

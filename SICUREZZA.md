@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.40 · 24 novembre 2026
+Versione 1.1.41 · 24 novembre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -115,7 +115,7 @@ Per dati che richiedono protezioni ulteriori serve una scelta architetturale: pe
 
 ## Ricerca Page ID in CloudPages
 
-Il content script isolato legge soltanto il DOM della vista CloudPages attiva. La shell HTTPS e il suo iframe diretto nello stesso stack si scambiano solo segnali di contesto. Page ID, ID asset, nome e posizione restano in memoria nel documento corrente. L’estensione non acquisisce cookie o credenziali e non invia richieste di rete per questa funzione.
+Il content script isolato legge soltanto il DOM della vista CloudPages attiva. La shell HTTPS e il suo iframe diretto nello stesso stack si scambiano solo segnali di contesto. Overview può essere riconosciuta dalle etichette native anche in un documento autonomo o in un iframe con origini dello stesso stack. Page ID, ID asset, nome e posizione restano in memoria nel documento corrente. L’estensione non acquisisce cookie o credenziali e non invia richieste di rete per questa funzione.
 
 La scansione usa soltanto controlli nativi per selezionare la vista, caricare righe, aprire e lasciare i dettagli. Interazione con Salesforce, cambio di contesto e scadenza fermano i passaggi successivi. L’apertura del risultato usa la riga nativa della BU corrente. L’estensione non introduce nuovi permessi, salvataggi, pubblicazioni o esecuzioni di query o automation.
 

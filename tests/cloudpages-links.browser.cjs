@@ -13,7 +13,16 @@ const first = { asset: '42', page: '420', name: 'Prima pagina', folder: 'Cartell
 const target = { asset: '987654', page: '42', name: 'Pagina <due> & "speciale"', folder: 'Cartella B / Sottocartella' };
 
 function documentHTML(options) {
-    const filter = options.noFilter ? '' : '<input placeholder="Enter at least three characters to search">';
+    const filter = options.noFilter ? '' : options.overview
+        ? '<div><div><input type="search" aria-label="Search"></div><p>Enter at least three characters to search.</p></div>'
+        : '<input placeholder="Enter at least three characters to search">';
+    const overview = options.overview
+        ? '<header><b>CloudPages</b><nav><button>Overview</button><button onclick="this.setAttribute(\'aria-current\', \'page\');">Recycle Bin</button></nav></header>'
+        : '';
+    const headers = labels.map(label => options.overview ? `<div role="columnheader">${label}</div>` : `<th>${label}</th>`).join('');
+    const list = options.overview
+        ? `<div id="inventory-count">20+ items</div><div id="viewport" style="height:90px;overflow:auto"><div role="grid"><div role="row">${headers}</div><div role="rowgroup" id="rows"></div></div></div>`
+        : `<table><thead><tr>${headers}</tr></thead><tbody id="rows"></tbody></table>`;
     return `<!doctype html><html><body><main id="view"></main><script>
         const options = ${JSON.stringify(options)};
         const labels = ${JSON.stringify(labels)};
@@ -28,49 +37,61 @@ function documentHTML(options) {
         })[c]);
         function showList() {
             view.innerHTML = `
-            + JSON.stringify(`<button role="tab" id="all">All Pages</button>${filter}<table><thead><tr>${labels.map(label =>
-                `<th>${label}</th>`).join('')}</tr></thead><tbody></tbody></table><button id="more">Load More</button>`)
+            + JSON.stringify(`${overview}<button role="tab" id="all">All Pages</button>${filter}${list}<button id="more">Load More</button>`)
             + `;
             const all = document.querySelector('#all');
             all.setAttribute('aria-selected', isAll);
-            all.hidden = options.noAll;
+            all.hidden = options.noAll || options.overview;
             all.onclick = () => { events.push(['all']); isAll = true; showList(); };
-            document.querySelector('table').hidden = options.collections && !isAll;
+            const listing = document.querySelector('table, [role="grid"]');
+            listing.hidden = options.collections && !isAll;
             let rows = [first];
-            if (isAll && expanded) rows.push(target);
+            if ((isAll || options.overview) && expanded) rows.push(target);
             const more = document.querySelector('#more');
             more.hidden = !isAll || expanded;
-            more.onclick = () => {
-                events.push(['more']);
+            const nextRows = () => {
                 if (options.stalled) return;
-                document.querySelector('table').setAttribute('aria-busy', 'true');
+                listing.setAttribute('aria-busy', 'true');
                 setTimeout(() => { expanded = true; showList(); }, 100);
             };
+            more.onclick = () => { events.push(['more']); nextRows(); };
+            if (options.overview) {
+                document.querySelector('#inventory-count').textContent = expanded ? '2 items' : '20+ items';
+                document.querySelector('#viewport').onscroll = () => {
+                    if (expanded || listing.getAttribute('aria-busy')) return;
+                    events.push(['scroll']);
+                    nextRows();
+                };
+            }
             function showRows(items) {
-                document.querySelector('tbody').innerHTML = items.map((item, i) =>
-                    '<tr class="slds-hint-parent">' + [
+                const grid = options.overview;
+                const rowContainer = document.querySelector('#rows');
+                rowContainer.innerHTML = items.map(item =>
+                    (grid ? '<div role="row" style="min-height:160px">' : '<tr class="slds-hint-parent">') + [
                         '<div class="slds-truncate" title="' + escape(item.name) + '">' + escape(item.name) + '</div><button type="button" class="native-control" aria-label="Native action">↗</button>',
                         escape(item.folder), 'Landing Page', options.noAsset && item === target ? '' : item.asset, 'Draft', 'Today',
-                        '<div id="fixture-SLDSDataTableRow-' + item.asset + '-SLDSDataTableRowActions"><button type="button" aria-haspopup="true" aria-expanded="false">Actions</button></div>'
-                    ].map((value, column) => '<td data-label="' + labels[column] + '">' + value + '</td>').join('') + '</tr>'
+                        '<div id="fixture-SLDSDataTableRow-' + item.asset + '-SLDSDataTableRowActions"><button type="button" class="row-actions"' +
+                            (grid ? '' : ' aria-haspopup="true" aria-expanded="false"') + '>Actions</button></div>'
+                    ].map((value, column) => (grid ? '<div role="gridcell"' : '<td') + ' data-label="' + labels[column] + '">' + value + (grid ? '</div>' : '</td>'))
+                    .join('') + (grid ? '</div>' : '</tr>')
                 ).join('');
-                for (const [index, row] of [...document.querySelectorAll('tbody tr')].entries()) {
+                for (const [index, row] of [...rowContainer.children].entries()) {
                     const item = items[index];
                     row.querySelector('.native-control').onclick = () => events.push(['native', item.asset]);
                     row.querySelector('.slds-truncate').onclick = () => {
                         events.push(['open', item.asset]);
                         view.innerHTML = '<h1 id="native-editor">' + escape(item.name) + '</h1>';
                     };
-                    const trigger = row.querySelector('[aria-haspopup]');
+                    const trigger = row.querySelector('.row-actions');
                     trigger.onclick = () => {
                         const old = row.querySelector('[role="menu"]');
-                        trigger.setAttribute('aria-expanded', String(!old));
+                        if (!grid) trigger.setAttribute('aria-expanded', String(!old));
                         if (old) { old.remove(); return; }
                         trigger.insertAdjacentHTML('afterend', '<div role="menu"><button role="menuitem">Page Properties</button><button role="menuitem">Publish</button></div>');
                         row.querySelector('[role="menuitem"]').onclick = () => {
                             events.push(['properties', item.asset]);
                             row.querySelector('[role="menu"]').remove();
-                            trigger.setAttribute('aria-expanded', 'false');
+                            if (!grid) trigger.setAttribute('aria-expanded', 'false');
                             if (options.delayProperties) setTimeout(() => showDetails(item), 700);
                             else showDetails(item);
                         };
@@ -134,9 +155,10 @@ async function run() {
                 if (url.origin === app && url.pathname === '/fixture') return request.fulfill({ contentType: 'text/html', body: documentHTML(options) });
                 return request.abort();
             });
-            await page.goto(`${shell}${route}`);
-            const doc = options.direct ? page : page.frameLocator('iframe');
-            const appFrame = options.direct ? page.mainFrame() : page.frames().find(frame => frame.url().startsWith(app));
+            await page.goto(options.overview ? `${app}/fixture?mid=123` : `${shell}${route}`);
+            const direct = options.direct || options.overview;
+            const doc = direct ? page : page.frameLocator('iframe');
+            const appFrame = direct ? page.mainFrame() : page.frames().find(frame => frame.url().startsWith(app));
             const form = doc.getByRole('form', { name: 'Ricerca CloudPages per Page ID' });
             await form.waitFor();
             const status = form.getByRole('status');
@@ -182,6 +204,35 @@ async function run() {
                 ['native-search', '999'], ['native-search', ''], ['native', '42'], ['all'],
                 ['properties', '42'], ['more'], ['properties', '987654'], ['open', '987654']
             ]);
+            await f.close();
+        }
+
+        {
+            const f = await fixture({ overview: true });
+            const native = f.doc.getByRole('searchbox', { name: 'Search' });
+            await native.fill('4160');
+            await f.start('42');
+            await f.finished(/Svuota il filtro Salesforce/);
+            assert.equal(await native.inputValue(), '4160');
+            assert.equal(await f.form.locator('xpath=following-sibling::*[1]').getAttribute('id'), 'viewport');
+            await native.fill('');
+            await f.form.getByLabel('Page ID', { exact: true }).fill('42');
+            await f.form.getByLabel('Page ID', { exact: true }).press('Enter');
+            await f.finished(/Corrispondenza trovata/);
+            assert.ok((await f.form.textContent()).includes('Page ID 42 · ID asset 987654'));
+            await f.form.getByRole('button', { name: 'Apri pagina' }).click();
+            await f.doc.locator('#native-editor').waitFor();
+            await f.form.waitFor({ state: 'detached' });
+            assert.deepEqual(await f.events(), [['native-search', '4160'], ['native-search', ''],
+                ['properties', '42'], ['scroll'], ['properties', '987654'], ['open', '987654']]);
+            await f.close();
+        }
+
+        {
+            const f = await fixture({ overview: true });
+            await f.doc.getByRole('button', { name: 'Recycle Bin' }).click();
+            await f.form.waitFor({ state: 'detached' });
+            assert.deepEqual(await f.events(), []);
             await f.close();
         }
 

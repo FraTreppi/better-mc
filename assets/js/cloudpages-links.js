@@ -5,13 +5,26 @@
     if (location.protocol !== 'https:' || location.port || !host) return;
     const shellOrigin = `https://mc.${host[1]}.exacttarget.com`;
     const channel = 'sfmcfix-cloudpages-context';
-    const isShell = window === window.top;
+    const isTop = window === window.top;
+    const isShell = isTop && location.origin === shellOrigin && /^\/cloud\/?$/i.test(location.pathname);
     const inCloudPages = () => /^#app\/CloudPages(?:\/|$)/i.test(location.hash);
-    if (isShell && (location.origin !== shellOrigin || location.pathname !== '/cloud/')) return;
-    if (!isShell && (window.parent !== window.top || location.ancestorOrigins?.[0] !== shellOrigin)) return;
+    const stackHost = new RegExp(`^(?:[a-z0-9-]+\\.)?${host[1]}\\.(?:exacttarget|marketingcloud|marketingcloudapps)\\.com$`, 'i');
+    function trustedOrigin(value) {
+        try {
+            const url = new URL(value);
+            return url.protocol === 'https:' && !url.port && stackHost.test(url.hostname);
+        } catch (_) {
+            return false;
+        }
+    }
+    const ancestors = Array.from(location.ancestorOrigins || []);
+    if (!isTop && (!ancestors.length || !ancestors.every(trustedOrigin))) return;
+    const shellFrame = !isTop && window.parent === window.top && ancestors[0] === shellOrigin;
 
     const frames = new Map();
-    let active = isShell && inCloudPages();
+    let routeContext = isShell && inCloudPages() ? true : null;
+    let active = false;
+    let suspended = false;
     let job;
     let result;
     let pendingDetails;
@@ -23,7 +36,7 @@
     let details;
     let open;
 
-    const visible = node => node?.getClientRects().length && node.checkVisibility({ checkVisibilityCSS: true }) &&
+    const visible = node => node?.getClientRects().length && node.checkVisibility?.({ checkVisibilityCSS: true }) !== false &&
         !node.closest('[aria-hidden="true"]');
     const text = node => node?.textContent.trim().replace(/\s+/g, ' ') || '';
     const actions = 'button, a, [role="button"], [role="menuitem"], [role="tab"]';
@@ -38,8 +51,8 @@
     const selected = node => node?.matches('[aria-selected="true"], [aria-current="page"], [aria-pressed="true"]') ||
         node?.closest('.slds-is-active');
     const tableLabels = ['Name', 'Location', 'Type', 'ID', 'Status', 'Modified'];
-    const nativeSearch = () => only(shown(document, 'input[placeholder]').filter(node =>
-        /^Enter at least three characters to search\.?$/i.test(node.placeholder.trim())));
+    const searchHint = /^Enter at least three characters to search\.?$/i;
+    const listRows = 'tbody tr, [role="row"]:has([role="gridcell"], [role="cell"])';
     const properties = /^(Page Properties|Page Details|Properties|Proprietà(?: della pagina)?|Dettagli (?:della )?pagina)$/i;
     const detailHeadings = 'h1, h2, h3, h4, [role="heading"]';
     const pageDetails = /^(Page Details|Dettagli (?:della )?pagina)$/i;
@@ -50,20 +63,48 @@
     };
     let scope = readScope();
 
+    function nativeSearch() {
+        const inputs = shown(document, 'input:not([type]), input[type="text"], input[type="search"]');
+        if (!inputs.length) return null;
+        const described = only(inputs.filter(node => searchHint.test(node.placeholder.trim()) ||
+            (node.getAttribute('aria-describedby') || '').split(/\s+/).some(id => searchHint.test(text(document.getElementById(id))))));
+        if (described) return described;
+        const hint = only(leaves(shown(document, 'label, p, span, div, small').filter(node => searchHint.test(text(node)))));
+        // Overview can show this instruction under the field rather than as its placeholder.
+        for (let container = hint?.parentElement, level = 0; container && level < 4; container = container.parentElement, level++) {
+            const input = only(inputs.filter(node => container.contains(node)));
+            if (input) return input;
+        }
+        return null;
+    }
+
+    function overview() {
+        if (!nativeSearch()) return false;
+        const labels = new Set(['CloudPages', 'Overview', 'Recycle Bin']);
+        const elements = document.querySelectorAll('h1, h2, [role="heading"], a, button, [role="tab"], strong, b, span, div');
+        for (const node of elements) {
+            const label = text(node);
+            if (labels.has(label) && visible(node)) labels.delete(label);
+            if (!labels.size) return true;
+        }
+        return false;
+    }
+
+    const rowCell = (row, label) => row.querySelector(`td[data-label="${label}"], [role="gridcell"][data-label="${label}"], [role="cell"][data-label="${label}"]`);
+
     function listing() {
-        return only(shown(document, 'table').filter(table => {
-            const headings = Array.from(table.querySelectorAll('thead th'), text);
+        return only(shown(document, 'table, [role="table"], [role="grid"]').filter(table => {
+            const headings = Array.from(table.querySelectorAll('thead th, [role="columnheader"]'), text);
             if (tableLabels.every(label => headings.includes(label))) return true;
             // Salesforce can append sort instructions to its column headers.
-            const row = table.querySelector('tbody tr.slds-hint-parent');
-            return row && tableLabels.every(label => row.querySelector(`td[data-label="${label}"]`));
+            const row = table.querySelector(listRows);
+            return row && tableLabels.every(label => rowCell(row, label));
         }));
     }
 
     function rowInfo(row) {
-        if (!row.matches('tr.slds-hint-parent')) return null;
-        const cell = label => row.querySelector(`td[data-label="${label}"]`);
-        const nameElement = cell('Name')?.querySelector('.slds-truncate');
+        const cell = label => rowCell(row, label);
+        const nameElement = cell('Name')?.querySelector('.slds-truncate, a');
         const name = nameElement?.title || text(nameElement);
         const type = text(cell('Type'));
         if (!name || !type || !cell('ID')) return null;
@@ -75,7 +116,7 @@
         return { row, key, name, location, type, assetId, nameElement, action };
     }
 
-    const rows = table => shown(table, 'tbody tr').map(rowInfo);
+    const rows = table => shown(table, listRows).map(rowInfo);
     const signature = table => table ? JSON.stringify(rows(table).map(info => info?.key)) : '';
     const busy = table => table.closest('[aria-busy="true"]') || table.querySelector('[aria-busy="true"]');
     const currentList = () => {
@@ -83,10 +124,17 @@
         return table && !busy(table) && table;
     };
 
+    function scrollViewport(table) {
+        for (let node = table; node && node !== document.body; node = node.parentElement) {
+            if (/^(auto|scroll)$/.test(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight) return node;
+        }
+        return null;
+    }
+
     async function until(scan, read, message, timeout = 6000) {
         const end = performance.now() + timeout;
         do {
-            if (readScope() !== scope) contextChanged(isShell ? inCloudPages() : active);
+            if (readScope() !== scope) contextChanged();
             scan.signal.throwIfAborted();
             const value = read();
             if (value) return value;
@@ -111,7 +159,7 @@
     }
 
     function menu(trigger, action, before) {
-        if (trigger.getAttribute('aria-expanded') !== 'true') return null;
+        if (trigger.getAttribute('aria-expanded') === 'false') return null;
         const selector = '[role="menu"], .slds-dropdown';
         const linked = document.getElementById(trigger.getAttribute('aria-controls'));
         if (visible(linked)) return linked;
@@ -160,16 +208,18 @@
     async function inspect(scan, info) {
         if (!visible(info.nameElement)) throw new Error('La riga è cambiata durante la scansione.');
         let control = only(named(info.row, properties));
-        const trigger = info.action?.querySelector('button[aria-haspopup="true"], button[aria-haspopup="menu"]');
+        const trigger = info.action && (info.action.querySelector('button[aria-haspopup="true"], button[aria-haspopup="menu"]') ||
+            only(shown(info.action, 'button')));
         if (!enabled(control) && enabled(trigger)) {
-            if (trigger.getAttribute('aria-expanded') === 'true') throw new Error('Chiudi il menu Salesforce e ripeti la ricerca.');
+            const expanded = trigger.getAttribute('aria-expanded') === 'true';
+            if (expanded) throw new Error('Chiudi il menu Salesforce e ripeti la ricerca.');
             const before = new Set(shown(document, '[role="menu"], .slds-dropdown'));
             trigger.click();
             const popup = await until(scan, () => menu(trigger, info.action, before), 'Il menu della pagina non è leggibile.');
             control = only(named(popup, properties));
             if (!enabled(control)) {
                 trigger.click();
-                await until(scan, () => trigger.getAttribute('aria-expanded') !== 'true', 'Il menu della pagina è rimasto aperto.');
+                await until(scan, () => !visible(popup), 'Il menu della pagina è rimasto aperto.');
             }
         }
         scan.signal.throwIfAborted();
@@ -242,17 +292,23 @@
                 const pagination = named(document, /^(Load More|Carica altri|Carica altro)$/i);
                 const more = only(pagination);
                 if (pagination.length > 1 || (more && !enabled(more))) throw new Error('La paginazione Salesforce non è disponibile.');
-                if (!more) {
-                    const scope = coverage ? '' : ' La vista All Pages senza filtri non è confermata.';
+                const moreInOverview = !more && overview() && shown(document, 'div, span, p').some(node => /^\d+\+\s+items?$/i.test(text(node)));
+                if (!more && !moreInOverview) {
+                    const scope = coverage ? '' : ' La copertura dell’inventario della BU non è confermata.';
                     return coverage && unread.size === 0 && !unknown
                         ? `Nessuna corrispondenza nelle ${checked.size} pagine verificate in All Pages.`
                         : `Ricerca parziale. Nessuna corrispondenza nelle ${checked.size} pagine verificate.${scope} Alcune pagine o cartelle potrebbero non essere coperte.`;
                 }
                 const previous = signature(table);
-                more.click();
+                if (more) more.click();
+                else {
+                    const viewport = scrollViewport(table);
+                    if (!viewport) throw new Error('Salesforce indica altre righe, ma il riquadro non consente di caricarle.');
+                    viewport.scrollTop = viewport.scrollHeight;
+                }
                 await until(scan, () => {
                     const next = currentList();
-                    return next && signature(next) !== previous;
+                    return next && (signature(next) !== previous || (!more && named(document, /^(Load More|Carica altri|Carica altro)$/i).length));
                 }, 'Salesforce non ha caricato altre righe.');
             }
         } catch (error) {
@@ -262,8 +318,9 @@
     }
 
     function makePanel() {
-        panel = document.createElement('form');
+        panel = document.createElement('div');
         panel.id = 'sfmcfix-cloudpages-page-id';
+        panel.setAttribute('role', 'form');
         panel.setAttribute('aria-label', 'Ricerca CloudPages per Page ID');
         panel.style.cssText = 'padding:8px 12px;background:#fff;border:1px solid #c9d5e3;border-radius:4px;color:#181818;font:14px/1.5 Arial,sans-serif';
         const label = document.createElement('label');
@@ -276,7 +333,7 @@
         input.required = true;
         input.style.cssText = 'width:10em;margin:0 8px;padding:3px 6px;border:1px solid #747474;border-radius:3px';
         search = document.createElement('button');
-        search.type = 'submit';
+        search.type = 'button';
         search.textContent = 'Cerca';
         cancel = document.createElement('button');
         cancel.type = 'button';
@@ -290,7 +347,10 @@
         open.textContent = 'Apri pagina';
         open.hidden = true;
         panel.append(label, input, search, cancel, status, details, open);
-        panel.addEventListener('submit', startSearch);
+        search.addEventListener('click', startSearch);
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Enter' && !event.isComposing) startSearch(event);
+        });
         cancel.addEventListener('click', () => abort('Ricerca annullata.'));
         open.addEventListener('click', openResult);
     }
@@ -304,32 +364,40 @@
     function render() {
         if (!document.body) return;
         if (readScope() !== scope) {
-            contextChanged(isShell ? inCloudPages() : active);
+            contextChanged();
             return;
         }
-        updatePendingDetails();
+        const libraryContext = routeContext === true || (routeContext === null && (overview() || (active && (job || result))));
+        const recycleBin = libraryContext && named(document, /^Recycle Bin$/i).some(selected);
+        active = !suspended && libraryContext && !recycleBin;
         if (!active) {
+            if (recycleBin) abort('Ricerca interrotta dopo il passaggio al cestino.');
             panel?.remove();
             return;
         }
+        updatePendingDetails();
         const table = listing();
-        const anchor = table || allPages();
-        if (!anchor && !job && !result) {
+        const native = nativeSearch();
+        const anchor = table ? (scrollViewport(table) || table) : allPages();
+        const toolbar = !anchor && native && native.parentElement !== document.body && native.parentElement;
+        if (!anchor && !toolbar && !job && !result) {
             panel?.remove();
             return;
         }
         if (!panel) makePanel();
-        const floating = Boolean(job || result?.view || !anchor);
+        const floating = Boolean(job || result?.view || (!anchor && !toolbar));
         const position = floating ? 'fixed' : '';
         if (panel.style.position !== position) {
             Object.assign(panel.style, { position, top: floating ? '12px' : '', right: floating ? '12px' : '',
                 maxWidth: floating ? 'min(520px, calc(100% - 24px))' : '', zIndex: floating ? '2147483647' : '' });
         }
-        if (!floating && anchor) {
-            // Place the form above the list, outside Salesforce rows and actions.
-            if (anchor === table && table.previousElementSibling !== panel) table.before(panel);
-            if (anchor !== table && !panel.isConnected) document.body.append(panel);
-        } else if (panel.parentElement !== document.body) document.body.append(panel);
+        if (floating) {
+            if (panel.parentElement !== document.body) document.body.append(panel);
+        } else if (toolbar) {
+            if (toolbar.nextElementSibling !== panel) toolbar.after(panel);
+        } else if (anchor.previousElementSibling !== panel) {
+            anchor.before(panel);
+        }
     }
 
     function abort(reason) {
@@ -379,7 +447,7 @@
         cancel.hidden = false;
         status.textContent = 'Apertura della CloudPage…';
         try {
-            if (readScope() !== scope) contextChanged(isShell ? inCloudPages() : active);
+            if (readScope() !== scope) contextChanged();
             scan.signal.throwIfAborted();
             if (visible(match.view.root)) await returnToList(scan, match.view);
             scan.signal.throwIfAborted();
@@ -399,15 +467,19 @@
         }
     }
 
-    function contextChanged(enabled) {
+    function contextChanged() {
         scope = readScope();
-        active = enabled;
         abort('Ricerca interrotta dopo un cambio di contesto Salesforce.');
         if (panel) {
             clearResult();
             if (!job && status.textContent) status.textContent = '';
         }
         render();
+    }
+
+    function reportRoute(enabled) {
+        if (enabled || routeContext !== null) routeContext = enabled;
+        contextChanged();
     }
 
     if (isShell) {
@@ -419,23 +491,20 @@
         };
         window.addEventListener('message', event => {
             if (event.data?.channel !== channel || event.data.ready !== true) return;
-            let origin;
-            try { origin = new URL(event.origin); } catch (_) { return; }
-            if (origin.protocol !== 'https:' || origin.port || !origin.hostname.match(
-                new RegExp(`^(?:[a-z0-9-]+\\.)?${host[1]}\\.(?:exacttarget|marketingcloud|marketingcloudapps)\\.com$`, 'i'))) return;
+            if (!trustedOrigin(event.origin)) return;
             const frame = Array.from(document.querySelectorAll('iframe')).find(node => node.contentWindow === event.source);
             if (frame) {
-                frames.set(frame, origin.origin);
-                event.source.postMessage({ channel, active: inCloudPages() }, origin.origin);
+                frames.set(frame, event.origin);
+                event.source.postMessage({ channel, active: inCloudPages() }, event.origin);
             }
         });
-        window.addEventListener('hashchange', () => { contextChanged(inCloudPages()); notify(); });
+        window.addEventListener('hashchange', () => { reportRoute(inCloudPages()); notify(); });
         document.addEventListener('pointerdown', event => { if (event.isTrusted && !panel?.contains(event.target)) notify(); }, true);
         document.addEventListener('keydown', event => { if (event.isTrusted && !panel?.contains(event.target)) notify(); }, true);
-    } else {
+    } else if (shellFrame) {
         window.addEventListener('message', event => {
             if (event.source === window.top && event.origin === shellOrigin && event.data?.channel === channel &&
-                typeof event.data.active === 'boolean') contextChanged(event.data.active);
+                typeof event.data.active === 'boolean') reportRoute(event.data.active);
         });
         window.top.postMessage({ channel, ready: true }, shellOrigin);
     }
@@ -449,17 +518,25 @@
             render();
         }
     }, true);
-    window.addEventListener('pagehide', () => contextChanged(false));
+    window.addEventListener('pagehide', () => { suspended = true; contextChanged(); });
     window.addEventListener('pageshow', event => {
         if (!event.persisted) return;
-        if (isShell) contextChanged(inCloudPages());
-        else window.top.postMessage({ channel, ready: true }, shellOrigin);
+        suspended = false;
+        if (isShell) reportRoute(inCloudPages());
+        else {
+            contextChanged();
+            if (shellFrame) window.top.postMessage({ channel, ready: true }, shellOrigin);
+        }
     });
 
     function start() {
         render();
-        new MutationObserver(render).observe(document.body, { childList: true, subtree: true, attributes: true,
-            attributeFilter: ['hidden', 'class', 'aria-hidden', 'aria-selected'] });
+        let scheduled;
+        new MutationObserver(() => {
+            if (scheduled) return;
+            scheduled = requestAnimationFrame(() => { scheduled = null; render(); });
+        }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true,
+            attributeFilter: ['hidden', 'class', 'aria-hidden', 'aria-selected', 'aria-current', 'aria-pressed', 'role'] });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
     else start();
