@@ -1,6 +1,6 @@
 {
   "name": "sfmc-ui-fixer-build",
-  "version": "1.1.48",
+  "version": "1.1.49",
   "private": true,
   "scripts": { "build": "node tools/build-extension.mjs", "test": "node --test tests/*.test.cjs tests/de-usage-engine.test.mjs" },
   "devDependencies": { "esbuild": "0.25.12", "fast-xml-parser": "5.12.0", "node-sql-parser": "5.4.0" }

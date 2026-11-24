@@ -1,3 +1,7 @@
+# 1.1.49 — 24 novembre 2026
+
+- **Copia nome** verifica se la pagina consente l’accesso agli appunti. Quando Salesforce lo blocca, seleziona il nome per la copia manuale, evitando l’avviso di Edge.
+
 # 1.1.48 — 24 novembre 2026
 
 - L’intestazione **Page ID** è allineata ai valori della colonna anche nell’elenco CloudPages con intestazioni fisse.

@@ -187,7 +187,8 @@ async function run() {
                     return;
                 }
                 if (url.origin === shell && url.pathname === '/cloud/') {
-                    return request.fulfill({ contentType: 'text/html', body: options.direct ? documentHTML(options) :
+                    const headers = options.clipboardDenied ? { 'permissions-policy': 'clipboard-write=()' } : {};
+                    return request.fulfill({ contentType: 'text/html', headers, body: options.direct ? documentHTML(options) :
                         `<!doctype html><button id="bu" onclick="document.querySelector('iframe').src='${app}/fixture?mid=999'">Cambia BU</button>
                         <iframe width="900" height="600" src="${options.inner || options.crossFrame ? embedded + '/host' : app + '/fixture?mid=123'}"></iframe>` });
                 }
@@ -253,6 +254,28 @@ async function run() {
                 await context.clearCookies({ name: 'fixture_cloudpages_session' });
             };
             return { page, doc, launcher, form, show, start, finished, events, reading, reads, close };
+        }
+
+        {
+            const f = await fixture({ direct: true, overview: true, clipboardDenied: true });
+            const session = await context.newCDPSession(f.page);
+            const violations = [];
+            session.on('Log.entryAdded', ({ entry }) => {
+                if (entry.text.includes('The Clipboard API has been blocked')) violations.push(entry.text);
+            });
+            await session.send('Log.enable');
+            assert.equal(await f.page.evaluate(() => document.featurePolicy.allowsFeature('clipboard-write')), false);
+            await f.start('4288');
+            await f.finished(/Corrispondenza trovata/);
+            await f.form.getByRole('button', { name: 'Copia nome' }).click();
+            await f.finished(/Nome selezionato/);
+            assert.equal(await f.page.evaluate(() => document.getSelection().toString()), first.name);
+            await f.page.keyboard.press('Control+c');
+            const native = f.doc.getByRole('searchbox', { name: 'Search' });
+            await native.press('Control+v');
+            assert.equal(await native.inputValue(), first.name);
+            assert.deepEqual(violations, []);
+            await f.close();
         }
 
         {
@@ -427,7 +450,9 @@ async function run() {
         }
 
         {
+            await context.grantPermissions(['clipboard-write'], { origin: shell });
             const f = await fixture({ direct: true, overview: true, noNativeOpening: true });
+            assert.equal(await f.page.evaluate(() => document.featurePolicy.allowsFeature('clipboard-write')), true);
             await f.start('4288');
             await f.finished(/Corrispondenza trovata/);
             await f.form.getByRole('button', { name: 'Apri pagina' }).click();
@@ -435,16 +460,14 @@ async function run() {
             const copy = f.form.getByRole('button', { name: 'Copia nome' });
             assert.equal(await copy.isVisible(), true);
             await copy.click();
-            await f.finished(/Nome copiato|Nome selezionato/);
-            if ((await f.form.getByRole('status').textContent()).includes('Nome selezionato')) {
-                await f.page.keyboard.press('Control+c');
-            }
+            await f.finished(/Nome copiato/);
             const native = f.doc.getByRole('searchbox', { name: 'Search' });
             await native.press('Control+v');
             assert.equal(await native.inputValue(), first.name);
             assert.equal(await f.form.getByText(first.name, { exact: true }).isVisible(), true);
             assert.deepEqual(await f.events(), [['open', first.asset], ['native-search', first.name]]);
             await f.close();
+            await context.clearPermissions();
         }
 
         {

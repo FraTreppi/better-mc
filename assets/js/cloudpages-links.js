@@ -622,19 +622,23 @@
     async function copyResultName(event) {
         if (!event.isTrusted || !result) return;
         const found = result;
-        try {
-            await navigator.clipboard.writeText(found.name);
-            if (result === found && !opening) status.textContent = 'Nome copiato.';
-        } catch (_) {
-            if (result !== found || !panelExpanded) return;
-            resultName.focus({ preventScroll: true });
-            const selection = document.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(resultName);
-            selection.removeAllRanges();
-            selection.addRange(range);
-            if (!opening) status.textContent = 'Nome selezionato. Premi Ctrl+C o ⌘+C per copiarlo.';
+        if (document.featurePolicy?.allowsFeature('clipboard-write') && navigator.clipboard?.writeText) {
+            try {
+                await navigator.clipboard.writeText(found.name);
+                if (result === found && !opening) status.textContent = 'Nome copiato.';
+                return;
+            } catch (_) {
+                // The browser can deny clipboard access even when the document allows it.
+            }
         }
+        if (result !== found || !panelExpanded) return;
+        resultName.focus({ preventScroll: true });
+        const selection = document.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(resultName);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        if (!opening) status.textContent = 'Nome selezionato. Premi Ctrl+C o ⌘+C per copiarlo.';
     }
 
     function findResultRow(found) {

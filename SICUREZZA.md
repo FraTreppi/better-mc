@@ -1,6 +1,6 @@
 # Sicurezza e protezione dei dati
 
-Versione 1.1.48 · 24 novembre 2026
+Versione 1.1.49 · 24 novembre 2026
 
 L’estensione non può essere dichiarata sicura al 100%. Questa versione corregge i problemi individuati nel codice della 1.1.10 e riduce l’accesso concesso alle pagine. Non è una certificazione di sicurezza, una revisione del Chrome Web Store o una verifica dell’intera infrastruttura Salesforce.
 
@@ -117,7 +117,7 @@ Per dati che richiedono protezioni ulteriori serve una scelta architetturale: pe
 
 Il content script isolato legge l’elenco CloudPages della BU attiva. La shell HTTPS e il suo iframe diretto nello stesso stack si scambiano solo segnali di contesto. Per ogni ID asset dell’elenco l’estensione usa il solo GET interno `/fuelapi/internal/v2/cloudpages/sites` sul dominio `cloud-pages` dello stesso stack, con il parametro `siteAssetId`. Quando l’elenco è su un altro dominio, il service worker verifica la rotta della scheda e il documento mittente. Il browser gestisce la sessione e l’estensione acquisisce solo l’associazione verificata tra `siteAssetId` e `defaultPageId`.
 
-La colonna Page ID usa i valori verificati durante la ricerca. I valori temporanei vengono rimossi al cambio di contesto. Le scorciatoie di copia, la selezione di un Page ID e la ricerca nativa lasciano disponibili risultato e valori temporanei. Il comando **Copia nome** scrive, su richiesta, solo il nome del risultato negli appunti.
+La colonna Page ID usa i valori verificati durante la ricerca. I valori temporanei vengono rimossi al cambio di contesto. Le scorciatoie di copia, la selezione di un Page ID e la ricerca nativa lasciano disponibili risultato e valori temporanei. Quando la policy del documento lo consente, **Copia nome** scrive su richiesta solo il nome del risultato negli appunti. Se la scrittura è bloccata, il comando seleziona il nome per la copia manuale.
 
 La scansione usa i controlli nativi per selezionare la vista e caricare righe. Interazione con Salesforce, cambio di contesto e scadenza interrompono le richieste. L’apertura del risultato richiede un clic e usa la riga nativa della BU corrente. Il GET è in sola lettura e non richiede nuovi permessi.
 

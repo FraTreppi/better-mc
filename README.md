@@ -1,4 +1,4 @@
-# SFMC UI Fixer — Multi BU 1.1.48
+# SFMC UI Fixer — Multi BU 1.1.49
 
 **Autore della versione Multi BU: Francesco Trepiccioni.** Derivata da SFMC UI Fixer di Simone Luise.
 
