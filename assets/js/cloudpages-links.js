@@ -30,6 +30,7 @@
     let job;
     let result;
     let pendingDetails;
+    let returningToList;
     let launcher;
     let panel;
     let panelExpanded = false;
@@ -62,9 +63,13 @@
     const listRows = 'tbody tr, [role="row"]:has([role="gridcell"], [role="cell"])';
     const headerCells = 'thead th, [role="columnheader"]';
     const ownColumn = '[data-sfmcfix-cloudpages-column]';
-    const properties = /^(Page Properties|Page Details|Properties|Proprietà(?: della pagina)?|Dettagli (?:della )?pagina)$/i;
-    const detailHeadings = 'h1, h2, h3, h4, [role="heading"]';
-    const pageDetails = /^(Page Details|Dettagli (?:della )?pagina)$/i;
+    const properties = /^(?:(?:Landing )?Page (?:Properties|Details)|Content Details|Properties|Proprietà(?: della pagina)?|Dettagli (?:della )?pagina)$/i;
+    const detailHeadings = 'h1, h2, h3, h4, [role="heading"], .slds-modal__title, .slds-panel__header-title';
+    const nativeClose = /^(?:Close(?: (?:dialog|modal|properties))?|Chiudi(?: proprietà)?)$/i;
+    const nativeCancel = /^(?:Cancel|Annulla)$/i;
+    const nativeBack = /^(?:Back(?: to (?:CloudPages|Overview|the list))?|Go Back|Torna (?:all’elenco|a CloudPages)|Indietro)$/i;
+    const pageIdLabel = /^(?:Page ID|ID (?:della )?pagina)\s*:?$/i;
+    const inlinePageId = /^(?:Page ID|ID (?:della )?pagina)\s*:?\s*(\d+)$/i;
     const searchableType = /^(Landing Page|Interactive Email Page)$/i;
     const readScope = () => {
         const params = new URLSearchParams(location.search);
@@ -188,13 +193,38 @@
             if (tag === 'div') cell.setAttribute('role', heading ? 'columnheader' : 'gridcell');
             if (tag === 'th') cell.scope = 'col';
             cell.style.cssText = 'box-sizing:border-box;width:90px;min-width:90px;flex:0 0 90px;padding-inline:8px;white-space:nowrap';
+            if (heading) {
+                cell.style.position = 'relative';
+                cell.style.overflow = 'visible';
+                const label = document.createElement('span');
+                label.style.cssText = 'position:absolute;inset-inline-start:8px;transform:translateY(-50%);pointer-events:none';
+                cell.append(label);
+            }
             columnCells.add(cell);
         }
-        if (cell.textContent !== value) {
-            cell.textContent = value;
+        const label = heading ? cell.firstElementChild : cell;
+        if (label.textContent !== value) {
+            label.textContent = value;
             cell.title = value === '—' ? 'Page ID da verificare' : '';
         }
         if (anchor.nextElementSibling !== cell) anchor.after(cell);
+        if (heading) {
+            // Salesforce can position the native header text above its table cell.
+            // Align to the text, including in the fixed header layout.
+            const walker = document.createTreeWalker(anchor, NodeFilter.SHOW_TEXT);
+            let center;
+            for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+                if (node.nodeValue.trim() !== 'ID' || !visible(node.parentElement)) continue;
+                const range = document.createRange();
+                range.selectNodeContents(node);
+                const box = range.getBoundingClientRect();
+                if (box.width <= 4 || box.height <= 4) continue;
+                center = box.top + box.height / 2;
+                break;
+            }
+            const native = anchor.getBoundingClientRect();
+            label.style.top = `${(center ?? native.top + native.height / 2) - cell.getBoundingClientRect().top}px`;
+        }
         current.add(cell);
     }
 
@@ -235,29 +265,48 @@
     }
 
     const visibleDialogs = () => leaves(shown(document, '[role="dialog"], .slds-modal'));
+    const detailsVisible = view => visible(view?.heading || view?.root);
+    const dismissControl = root => only(shown(root, 'button.slds-modal__close, button.slds-panel__close')) ||
+        only(named(root, nativeClose)) || only(named(root, nativeCancel));
+    const pageIdFields = root => shown(root, 'label, dt, th, span, div, p, strong, b').filter(node => !node.closest(ownColumn));
+    const visiblePageIdLabels = () => leaves(pageIdFields(document).filter(node =>
+        !node.closest('table, [role="grid"], [role="table"], [role="menu"]') &&
+        (pageIdLabel.test(text(node)) || inlinePageId.test(text(node)))));
 
-    function detailView(info) {
-        const dialog = only(visibleDialogs().filter(root =>
-            properties.test(root.getAttribute('aria-label') || '') || named(root, properties, detailHeadings).length === 1));
-        if (dialog) return { root: dialog, dialog };
-        if (visible(info.row)) return null;
-        const heading = only(named(document, pageDetails, detailHeadings));
+    function detailView(transition) {
+        const dialog = only(visibleDialogs().filter(root => !transition.dialogs.has(root) &&
+            (properties.test(root.getAttribute('aria-label') || '') ||
+                named(root, properties, detailHeadings).length || detailPageId(root) !== null)));
+        if (dialog) return { root: dialog, dialog, back: transition.back };
+        const heading = only(named(document, properties, detailHeadings).filter(node => !transition.headings.has(node) &&
+            !node.closest('table, [role="grid"], [role="menu"]'))) ||
+            only(visiblePageIdLabels().filter(node => !transition.labels.has(node)));
         if (!heading) return null;
-        // In the native details view the heading and labelled field are in the same card.
-        const card = heading.closest('section, article, aside, [role="region"], .slds-card');
-        return { root: card || heading.parentElement?.parentElement, dialog: null };
+        const card = heading.closest('section, article, aside, [role="region"], .slds-card, .slds-panel') ||
+            heading.parentElement?.parentElement;
+        if (!card) return null;
+        if (visible(transition.info.row)) {
+            for (let root = card, depth = 0; root && root !== document.body && depth < 4; root = root.parentElement, depth++) {
+                if (root.contains(transition.info.row)) break;
+                if (dismissControl(root) && detailPageId(root) !== null) {
+                    return { root, dialog: root, heading, back: transition.back };
+                }
+            }
+            return null;
+        }
+        return { root: card, dialog: null, heading, back: transition.back };
     }
 
     function updatePendingDetails() {
         if (!pendingDetails) return;
-        pendingDetails.view ||= detailView(pendingDetails.info);
-        if (pendingDetails.view && !visible(pendingDetails.view.root)) pendingDetails = null;
+        pendingDetails.view ||= detailView(pendingDetails);
+        if (pendingDetails.view && !detailsVisible(pendingDetails.view)) pendingDetails = null;
     }
 
     function detailPageId(root) {
         if (!root) return null;
-        const fields = shown(root, 'label, dt, th, span, div, p, strong, b');
-        const labels = leaves(fields.filter(node => /^(Page ID|ID (?:della )?pagina)\s*:?$/i.test(text(node))));
+        const fields = pageIdFields(root);
+        const labels = leaves(fields.filter(node => pageIdLabel.test(text(node))));
         const ids = new Set();
         for (const label of labels) {
             const value = label.control || label.nextElementSibling || label.parentElement?.nextElementSibling;
@@ -265,11 +314,36 @@
                 const id = pageNumber(typeof value.value === 'string' ? value.value : text(value));
                 if (id !== null) ids.add(id);
             }
+            const siblingText = label.nextSibling;
+            if (siblingText?.nodeType === Node.TEXT_NODE) {
+                const id = pageNumber(siblingText.nodeValue);
+                if (id !== null) ids.add(id);
+            }
         }
-        if (labels.length) return labels.length === 1 && ids.size === 1 ? [...ids][0] : null;
-        const inline = leaves(fields.filter(node => /^(Page ID|ID (?:della )?pagina)\s*:\s*\d+$/i.test(text(node))));
-        for (const field of inline) ids.add(pageNumber(text(field).split(':')[1]));
-        return inline.length === 1 && ids.size === 1 ? [...ids][0] : null;
+        for (const field of leaves(fields.filter(node => inlinePageId.test(text(node))))) {
+            ids.add(pageNumber(text(field).match(inlinePageId)[1]));
+        }
+        return ids.size === 1 ? [...ids][0] : null;
+    }
+
+    function pageIdInView(view) {
+        if (view.dialog) return detailPageId(view.root);
+        for (let root = view.root, depth = 0; root && root !== document.body && depth < 4; root = root.parentElement, depth++) {
+            const id = detailPageId(root);
+            if (id !== null) return id;
+        }
+        return null;
+    }
+
+    function canRestoreList(back) {
+        if (!back) return false;
+        const navigation = window.navigation;
+        const entry = navigation?.currentEntry;
+        if (back.key && entry) {
+            return entry.index === back.index + 1 && navigation.entries()[back.index]?.key === back.key;
+        }
+        return history.length === back.length + 1 &&
+            (location.pathname !== back.path || location.hash.split('?')[0] !== back.hash);
     }
 
     async function inspect(scan, info) {
@@ -290,31 +364,48 @@
             }
         }
         scan.signal.throwIfAborted();
-        const nameLink = info.nameElement.closest('a[href]');
-        if (!enabled(control) && nameLink && (nameLink.origin !== location.origin ||
-            (nameLink.target && nameLink.target.toLowerCase() !== '_self') || nameLink.hasAttribute('download'))) {
-            throw new Error('La riga non espone un controllo nativo per leggere i dettagli in questa vista.');
-        }
-        const transition = { info, view: null };
+        if (!enabled(control)) return null;
+        const entry = window.navigation?.currentEntry;
+        const transition = {
+            info,
+            view: null,
+            dialogs: new Set(visibleDialogs()),
+            headings: new Set(named(document, properties, detailHeadings)),
+            labels: new Set(visiblePageIdLabels()),
+            back: { key: entry?.key, index: entry?.index, length: history.length, path: location.pathname, hash: location.hash.split('?')[0] }
+        };
         pendingDetails = transition;
-        (enabled(control) ? control : info.nameElement).click();
+        control.click();
         const view = await until(scan, () => {
             updatePendingDetails();
             return pendingDetails === transition && transition.view;
         }, 'Salesforce non ha mostrato dettagli riconoscibili per una pagina.');
         pendingDetails = null;
-        const pageId = await until(scan, () => detailPageId(view.root), null, 2500);
+        const pageId = await until(scan, () => pageIdInView(view), null, 2500);
         return { ...view, pageId };
     }
 
     async function returnToList(scan, view) {
-        const control = view.dialog
-            ? (only(named(view.dialog, /^(Close(?: dialog)?|Chiudi)$/i)) || only(named(view.dialog, /^(Cancel|Annulla)$/i)))
-            : only(named(document, /^(Home)$/i, 'a, button, [role="link"]'));
-        if (!enabled(control)) throw new Error('Il ritorno dai dettagli all’elenco richiede un controllo nativo riconoscibile.');
-        control.click();
-        await until(scan, () => !visible(view.root) && (currentList() || allPages()), 'L’elenco non è tornato disponibile.');
-        if (!view.dialog) await chooseAllPages(scan);
+        returningToList = scan;
+        try {
+            const control = view.dialog ? dismissControl(view.dialog) : (
+                only(named(document, nativeBack)) ||
+                only(named(document, /^(Home|CloudPages)$/i, '.slds-breadcrumb a, nav[aria-label*="breadcrumb" i] a')) ||
+                only(named(document, /^Home$/i, 'a, button, [role="link"]'))
+            );
+            scan.signal.throwIfAborted();
+            if (enabled(control)) control.click();
+            else if (!view.dialog && canRestoreList(view.back)) {
+                // Restore the same-document history entry observed immediately before opening Properties.
+                history.back();
+            } else {
+                throw new Error('Chiudi Properties per tornare all’elenco CloudPages. La scansione si è fermata.');
+            }
+            await until(scan, () => !detailsVisible(view) && (currentList() || allPages()), 'L’elenco non è tornato disponibile.');
+            if (!view.dialog) await chooseAllPages(scan);
+        } finally {
+            returningToList = null;
+        }
     }
 
     async function scanLibrary(scan, previousMatch) {
@@ -322,9 +413,9 @@
         const unread = new Set();
         let unknown = false;
         try {
-            if (visible(previousMatch?.view.root)) await returnToList(scan, previousMatch.view);
+            if (detailsVisible(previousMatch?.view)) await returnToList(scan, previousMatch.view);
             updatePendingDetails();
-            if (visibleDialogs().length || named(document, pageDetails, detailHeadings).length) {
+            if (visibleDialogs().length || named(document, properties, detailHeadings).length) {
                 throw new Error('Torna all’elenco CloudPages prima di cercare.');
             }
             if (pendingDetails) {
@@ -347,9 +438,22 @@
                         unread.add(info.key);
                         continue;
                     }
-                    status.textContent = `Ricerca Page ID ${scan.pageId}… ${checked.size} pagine verificate.`;
+                    const verified = info.assetId && verifiedPageIds.get(info.key);
+                    if (verified) {
+                        checked.add(info.key);
+                        if (verified === scan.pageId) {
+                            result = { ...info, pageId: verified };
+                            return 'Corrispondenza trovata.';
+                        }
+                        continue;
+                    }
+                    status.textContent = `Ricerca Page ID ${scan.pageId}. Controllo le proprietà di ${info.name}… ${checked.size} pagine verificate.`;
                     const view = await inspect(scan, info);
                     scan.signal.throwIfAborted();
+                    if (!view) {
+                        unread.add(info.key);
+                        continue;
+                    }
                     (view.pageId === null ? unread : checked).add(info.key);
                     if (view.pageId !== null && info.assetId) {
                         verifiedPageIds.set(info.key, view.pageId);
@@ -398,7 +502,7 @@
         launcher.id = 'sfmcfix-cloudpages-page-id-launcher';
         launcher.textContent = 'Page ID';
         launcher.setAttribute('aria-controls', 'sfmcfix-cloudpages-page-id');
-        launcher.style.cssText = 'display:inline-flex;align-items:center;flex:none;min-height:32px;padding:0 10px;margin-inline:4px;white-space:nowrap;background:white;color:#0176d3;border:1px solid #747474;border-radius:4px;cursor:pointer';
+        launcher.style.cssText = 'display:inline-flex;align-items:center;align-self:flex-start;vertical-align:top;box-sizing:border-box;flex:none;height:32px;padding:0 10px;margin-inline:4px;white-space:nowrap;background:white;color:#0176d3;border:1px solid #747474;border-radius:4px;cursor:pointer';
         launcher.addEventListener('click', () => setPanelExpanded(!panelExpanded));
 
         panel = document.createElement('div');
@@ -465,6 +569,7 @@
     }
 
     function placeLauncher(native, anchor) {
+        launcher.style.height = `${Math.max(24, Math.round(native?.getBoundingClientRect().height || 32))}px`;
         if (!native) {
             if (anchor?.previousElementSibling !== launcher) anchor?.before(launcher);
             return;
@@ -570,7 +675,7 @@
         status.textContent = message;
         if (result) {
             details.textContent = `${result.name} · Posizione ${result.location || 'non disponibile'} · Page ID ${result.pageId} · ID asset ${result.assetId ?? 'non disponibile'}`;
-            open.hidden = !result.view.dialog;
+            open.hidden = Boolean(result.view && !result.view.dialog);
         }
         render();
     }
@@ -587,7 +692,7 @@
         try {
             if (readScope() !== scope) contextChanged();
             scan.signal.throwIfAborted();
-            if (visible(match.view.root)) await returnToList(scan, match.view);
+            if (detailsVisible(match.view)) await returnToList(scan, match.view);
             scan.signal.throwIfAborted();
             const table = currentList();
             const info = table && only(rows(table).filter(item => item?.key === match.key));
@@ -643,7 +748,12 @@
                 event.source.postMessage({ channel, active: inCloudPages() }, event.origin);
             }
         });
-        window.addEventListener('hashchange', () => { reportRoute(inCloudPages(), true); notify(); });
+        window.addEventListener('hashchange', () => {
+            const enabled = inCloudPages();
+            if (enabled && job && !job.signal.aborted && (pendingDetails || returningToList === job)) return;
+            reportRoute(enabled, true);
+            notify();
+        });
         document.addEventListener('pointerdown', event => { if (event.isTrusted && !insideControls(event.target)) notify(); }, true);
         document.addEventListener('keydown', event => { if (event.isTrusted && !insideControls(event.target)) notify(); }, true);
     } else if (shellFrame) {
@@ -676,7 +786,7 @@
 
     function start() {
         render();
-        window.addEventListener('resize', () => { if (panel?.isConnected) positionPanel(); });
+        window.addEventListener('resize', render);
         let scheduled;
         new MutationObserver(() => {
             if (scheduled) return;

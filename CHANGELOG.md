@@ -1,3 +1,8 @@
+# 1.1.44 — 24 novembre 2026
+
+- La ricerca riconosce la schermata **Properties** e rientra nell’elenco dopo una mancata corrispondenza. Le ricerche successive riusano i Page ID verificati mentre il contesto rimane lo stesso.
+- Allineati il pulsante **Page ID** con **Search** e l’intestazione della colonna con le intestazioni native fisse.
+
 # 1.1.43 — 24 novembre 2026
 
 - Spostato il comando **Page ID** nella barra di CloudPages, accanto a **Search** e all’imbuto. Il pulsante apre la ricerca esatta.

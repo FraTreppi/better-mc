@@ -4,7 +4,13 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.43 — 24 novembre 2026
+## Versione attuale 1.1.44 — 24 novembre 2026
+
+La scansione legge i campi **Page ID** delle proprietà native aperte dalla riga corrispondente. Gestisce le proprietà in un dialogo e in una schermata separata. Dopo una mancata corrispondenza usa un controllo nativo di chiusura o ritorno. Se manca, usa la cronologia solo quando ha osservato la transizione a una nuova voce nello stesso documento. Se il ritorno non è verificabile, la ricerca è parziale. Le righe che non espongono Properties vengono saltate. L’editor si apre dal comando **Apri pagina** del risultato in elenco.
+
+Prove simulate con prima pagina **4288**, seconda pagina **4160** e una ricerca iniziale senza corrispondenze. Verificano la chiusura della schermata Properties, il ritorno anche tramite cronologia, la ricerca successiva dai valori verificati, l’apertura della riga corretta e l’allineamento all’intestazione fissa.
+
+## Versione 1.1.43 — 24 novembre 2026
 
 Il pulsante **Page ID** si inserisce nella barra accanto al campo **Search** e apre un riquadro separato. Il comando **Mostra colonna Page ID** inserisce celle locali dopo la colonna **ID** nelle tabelle riconosciute. Anche le intestazioni separate dalle righe vengono associate al contenitore più vicino che le comprende entrambe. La ricerca conserva in memoria i Page ID letti dai dettagli e li associa alle righe con ID asset verificabile. Cambio di contesto e ricarica svuotano questi valori.
 

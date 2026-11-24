@@ -15,15 +15,19 @@ const target = { asset: '987654', page: '42', name: 'Pagina <due> & "speciale"',
 
 function documentHTML(options) {
     const filter = options.noFilter ? '' : options.overview
-        ? '<div><div id="toolbar" style="display:flex;justify-content:flex-end"><div id="search-field" class="slds-input-has-icon"><input type="search" aria-label="Search" placeholder="Search"><button type="button" aria-label="Clear search">×</button></div><button type="button" id="native-filter" aria-label="Filter">Filtro</button><button type="button" id="native-columns" aria-label="Columns">Colonne</button></div><p>Enter at least three characters to search.</p></div>'
+        ? '<div id="toolbar" style="display:flex;justify-content:flex-end"><div id="search-field" class="slds-input-has-icon"><input type="search" style="height:40px" aria-label="Search" placeholder="Search"><button type="button" aria-label="Clear search">×</button><p>Enter at least three characters to search.</p></div><button type="button" id="native-filter" aria-label="Filter">Filtro</button><button type="button" id="native-columns" aria-label="Columns">Colonne</button></div>'
         : '<input placeholder="Enter at least three characters to search">';
     const overview = options.inner
         ? '<header><h1>CloudPages</h1><button disabled>Add Content</button></header>'
         : options.overview
         ? '<header><b>CloudPages</b><nav><button>Overview</button><button onclick="this.setAttribute(\'aria-current\', \'page\');">Recycle Bin</button></nav></header>'
         : '';
-    const headers = labels.map(label => options.overview && !options.inner
-        ? `<div role="columnheader">${label}</div>` : `<th>${label}</th>`).join('');
+    const headers = labels.map(label => {
+        if (options.inner && label === 'ID') {
+            return '<th style="position:relative"><span id="native-id-heading" style="position:absolute;top:-14px">ID</span></th>';
+        }
+        return options.overview && !options.inner ? `<div role="columnheader">${label}</div>` : `<th>${label}</th>`;
+    }).join('');
     const list = options.inner
         ? `<div id="inventory-count">20+ items</div><table><thead><tr>${headers}</tr></thead></table>
            <div id="viewport" style="height:90px;overflow:auto"><table id="list"><tbody id="rows"></tbody></table></div>`
@@ -33,8 +37,8 @@ function documentHTML(options) {
     return `<!doctype html><html><body><main id="view"></main><script>
         const options = ${JSON.stringify(options)};
         const labels = ${JSON.stringify(labels)};
-        const first = ${JSON.stringify(first)};
-        const target = ${JSON.stringify(target)};
+        const first = ${JSON.stringify(options.fullProperties ? { ...first, page: '4288' } : first)};
+        const target = ${JSON.stringify(options.fullProperties ? { ...target, page: '4160' } : target)};
         const view = document.querySelector('#view');
         window.events = [];
         let isAll = false;
@@ -95,6 +99,11 @@ function documentHTML(options) {
                         const old = row.querySelector('[role="menu"]');
                         if (!grid) trigger.setAttribute('aria-expanded', String(!old));
                         if (old) { old.remove(); return; }
+                        if (options.noProperties && item === first) {
+                            trigger.insertAdjacentHTML('afterend', '<div role="menu"><button role="menuitem">Publish</button></div>');
+                            row.querySelector('[role="menuitem"]').onclick = () => events.push(['write']);
+                            return;
+                        }
                         trigger.insertAdjacentHTML('afterend', '<div role="menu"><button role="menuitem">Page Properties</button><button role="menuitem">Publish</button></div>');
                         row.querySelector('[role="menuitem"]').onclick = () => {
                             events.push(['properties', item.asset]);
@@ -119,6 +128,23 @@ function documentHTML(options) {
             showRows(rows);
         }
         function showDetails(item) {
+            if (options.fullProperties) {
+                view.innerHTML = '<header><section>' + (options.noHeading ? '<div>Properties</div>' : '<h1>Properties</h1>') + '</section>' +
+                    (options.history ? '' : '<button type="button" aria-label="Back to CloudPages">←</button>') +
+                    '</header><article><p><strong>Page ID</strong> ' + item.page + '</p><p>ID ' + item.asset + '</p>' +
+                    '<button type="button" id="save">Save</button></article>';
+                const returnToLibrary = () => {
+                    events.push(['back', item.asset]); isAll = false; expanded = false; showList();
+                };
+                if (options.history) {
+                    history.pushState({ properties: true }, '', '#properties');
+                    window.addEventListener('popstate', returnToLibrary, { once: true });
+                } else {
+                    view.querySelector('[aria-label="Back to CloudPages"]').onclick = returnToLibrary;
+                }
+                view.querySelector('#save').onclick = () => events.push(['write']);
+                return;
+            }
             const id = options.missingId && item === first ? '' :
                 '<div><div><span>Page ID</span></div><div>' + item.page + '</div></div>';
             const card = '<article><h2>Page Details</h2><div>Draft</div>' + id + '</article>';
@@ -238,6 +264,10 @@ async function run() {
             const native = f.doc.getByRole('searchbox', { name: 'Search' });
             assert.equal(await f.launcher.locator('xpath=preceding-sibling::*[1]').getAttribute('id'), 'search-field');
             assert.equal(await f.launcher.locator('xpath=following-sibling::*[1]').getAttribute('id'), 'native-filter');
+            const launcherBox = await f.launcher.boundingBox();
+            const searchBox = await native.boundingBox();
+            assert.ok(Math.abs(launcherBox.height - searchBox.height) <= 1, 'Page ID matches the height of Search');
+            assert.ok(Math.abs(launcherBox.y - searchBox.y) <= 1, 'Page ID and Search start at the same height');
             const column = '[data-sfmcfix-cloudpages-column]';
             const toggle = f.form.getByRole('checkbox', { name: 'Mostra colonna Page ID' });
             await f.doc.getByRole('button', { name: 'Filter', exact: true }).click();
@@ -246,6 +276,12 @@ async function run() {
             assert.equal(await f.launcher.getAttribute('aria-expanded'), 'true');
             await toggle.check();
             assert.deepEqual(await f.doc.locator(column).allTextContents(), ['Page ID', '—']);
+            if (options.inner) {
+                const idBox = await f.doc.locator('#native-id-heading').boundingBox();
+                const pageIdBox = await f.doc.locator(`th${column} > span`).boundingBox();
+                assert.ok(Math.abs((idBox.y + idBox.height / 2) - (pageIdBox.y + pageIdBox.height / 2)) <= 2,
+                    'Page ID stays on the line of the fixed native headers');
+            }
             await native.fill('4160');
             await f.start('42');
             await f.finished(/Svuota il filtro Salesforce/);
@@ -286,6 +322,31 @@ async function run() {
             assert.ok((await f.form.textContent()).includes('Page ID 42 · ID asset non disponibile'));
             assert.equal(await f.doc.getByRole('heading', { name: target.name }).count(), 1);
             assert.deepEqual(await f.events(), [['all'], ['properties', '42'], ['home'], ['all'], ['more'], ['properties', '987654']]);
+            await f.close();
+        }
+
+        for (const options of [{}, { history: true }, { noHeading: true }]) {
+            const f = await fixture({ fullProperties: true, ...options });
+            await f.start('1234');
+            await f.finished(/Nessuna corrispondenza nelle 2 pagine verificate/);
+            assert.equal(await f.doc.getByRole('heading', { name: 'Properties', exact: true }).count(), 0);
+            assert.deepEqual((await f.events()).filter(([event]) => event === 'properties' || event === 'back'),
+                [['properties', '42'], ['back', '42'], ['properties', '987654'], ['back', '987654']]);
+            await f.start('4160');
+            await f.finished(/Corrispondenza trovata/);
+            assert.ok((await f.form.textContent()).includes('Page ID 4160 · ID asset 987654'));
+            assert.equal((await f.events()).filter(([event]) => event === 'properties').length, 2);
+            await f.form.getByRole('button', { name: 'Apri pagina', exact: true }).click();
+            await f.doc.locator('#native-editor').waitFor();
+            assert.deepEqual((await f.events()).at(-1), ['open', '987654']);
+            await f.close();
+        }
+
+        {
+            const f = await fixture({ noProperties: true });
+            await f.start('42');
+            await f.finished(/Corrispondenza trovata/);
+            assert.deepEqual(await f.events(), [['all'], ['more'], ['properties', '987654']]);
             await f.close();
         }
 

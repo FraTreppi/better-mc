@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.43 · Autore: Francesco Trepiccioni
+Versione 1.1.44 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Le funzioni dell’interfaccia lavorano con la sessione Salesforce già aperta. L’analisi degli utilizzi DE collega direttamente l’estensione alle API Salesforce in sola lettura.
 
@@ -331,7 +331,7 @@ Dopo un cambio BU, conserva prima il testo che ti serve e premi **Clear** prima 
 
 Per vedere i valori nella tabella, spunta **Mostra colonna Page ID** nel riquadro. La colonna si aggiunge accanto a **ID**. Mostra i valori verificati durante la scansione, mentre **—** indica che il valore della riga è ancora da verificare. Puoi chiudere il riquadro lasciando la colonna visibile.
 
-La scansione usa **All Pages** quando disponibile o l’elenco di **Overview**. Usa **Load More** o scorre il riquadro se Salesforce indica altre righe. Così può controllare anche pagine di altre cartelle incluse nell’elenco. Durante la scansione l’elenco e i dettagli Salesforce possono cambiare. Premi **Annulla ricerca** per interromperla. Quando l’inventario, il caricamento o il Page ID non sono verificabili, compare **Ricerca parziale** con il numero delle pagine verificate.
+La scansione usa **All Pages** quando disponibile o l’elenco di **Overview**. Usa **Load More** o scorre il riquadro se Salesforce indica altre righe. Così può controllare anche pagine di altre cartelle incluse nell’elenco. Il riquadro indica quali proprietà sta leggendo. Dopo una mancata corrispondenza torna all’elenco per proseguire. Premi **Annulla ricerca** per interromperla. Quando l’inventario, il ritorno all’elenco o il Page ID non sono verificabili, compare **Ricerca parziale** con il numero delle pagine verificate.
 
 Per cercare l’**ID asset** della colonna **ID**, continua a usare il campo Salesforce. La ricerca Page ID usa solo la vista nativa della BU attiva e legge i dettagli senza salvare o pubblicare pagine.
 
