@@ -1,3 +1,7 @@
+# 1.1.51 — 25 novembre 2026
+
+- In CloudPages, **Ctrl** e **Ctrl+C** lasciano proseguire la ricerca Page ID. Un clic su un numero già verificato lo seleziona per la copia.
+
 # 1.1.50 — 25 novembre 2026
 
 - In CloudPages, i valori della colonna **Page ID** restano visibili quando premi **Ctrl**. Puoi selezionare un numero e copiarlo con **Ctrl+C** o **⌘+C**.

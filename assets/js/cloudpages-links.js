@@ -69,7 +69,6 @@
     const listRows = 'tbody tr, [role="row"]:has([role="gridcell"], [role="cell"])';
     const headerCells = 'thead th, [role="columnheader"]';
     const ownColumn = '[data-sfmcfix-cloudpages-column]';
-    const passiveKey = /^(?:(?:Control|Meta|Alt|Shift)(?:Left|Right)?|Tab)$/;
     const copyModifier = /^(?:Control|Meta)(?:Left|Right)?$/;
     const searchableType = /^(Landing Page|Interactive Email Page)$/i;
     const landingPage = /^Landing Page$/i;
@@ -104,23 +103,37 @@
         return target === native || field?.contains(target);
     }
 
-    function interrupts(event) {
-        if (!event.isTrusted || insideControls(event.target) || event.target.closest?.(ownColumn)) return false;
-        return event.type !== 'keydown' || (!event.ctrlKey && !event.metaKey && !event.altKey &&
-            !passiveKey.test(event.key) && !passiveKey.test(event.code));
+    function nativeInteraction(event) {
+        return event.isTrusted && !insideControls(event.target) && !event.target.closest?.(ownColumn);
+    }
+
+    function selectedColumnCell() {
+        const selection = document.getSelection();
+        if (!selection || selection.isCollapsed) return null;
+        const node = selection.getRangeAt(0).commonAncestorContainer;
+        return (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement)?.closest(ownColumn);
+    }
+
+    function selectText(node) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const selection = document.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
     }
 
     function protectPageIdCopy(event) {
         if (!event.isTrusted || event.target.closest?.('input, textarea') || event.target.isContentEditable) return;
-        if (event.type !== 'copy' && !copyModifier.test(event.key) && !copyModifier.test(event.code) &&
-            !((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey &&
-                (event.key?.toLowerCase() === 'c' || event.code === 'KeyC'))) return;
-        const selection = document.getSelection();
-        if (!selection || selection.isCollapsed) return;
-        const node = selection.getRangeAt(0).commonAncestorContainer;
-        const cell = (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement)?.closest(ownColumn);
+        const copyShortcut = (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey &&
+            (event.key?.toLowerCase() === 'c' || event.code === 'KeyC');
+        if (event.type !== 'copy' && !copyShortcut && event.key !== 'Unidentified' &&
+            !copyModifier.test(event.key) && !copyModifier.test(event.code)) return;
+        const selectedCell = selectedColumnCell();
+        const cell = selectedCell || event.target.closest?.(ownColumn);
+        if (!cell || pageNumber(cell.textContent) === null) return;
+        if (event.type === 'keydown' && copyShortcut && !selectedCell) selectText(cell);
         // Keep the browser's default copy action and shield the selected value from page shortcuts.
-        if (cell && pageNumber(cell.textContent) !== null) event.stopImmediatePropagation();
+        event.stopImmediatePropagation();
     }
 
     function cloudPagesList(table, native) {
@@ -236,7 +249,13 @@
                 cell.append(label);
             } else {
                 cell.style.userSelect = 'text';
-                for (const type of ['click', 'dblclick']) cell.addEventListener(type, event => event.stopPropagation());
+                cell.addEventListener('click', event => {
+                    event.stopPropagation();
+                    if (!event.isTrusted || pageNumber(cell.textContent) === null || selectedColumnCell() === cell) return;
+                    cell.focus({ preventScroll: true });
+                    selectText(cell);
+                });
+                cell.addEventListener('dblclick', event => event.stopPropagation());
             }
             columnCells.add(cell);
         }
@@ -244,6 +263,10 @@
         if (label.textContent !== value) {
             label.textContent = value;
             cell.title = value === '—' ? 'Page ID da verificare' : '';
+            if (!heading) {
+                if (value === '—') cell.removeAttribute('tabindex');
+                else cell.tabIndex = 0;
+            }
         }
         if (anchor.nextElementSibling !== cell) anchor.after(cell);
         current.add(cell);
@@ -648,11 +671,7 @@
         }
         if (result !== found || !panelExpanded) return;
         resultName.focus({ preventScroll: true });
-        const selection = document.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(resultName);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        selectText(resultName);
         if (!opening) status.textContent = 'Nome selezionato. Premi Ctrl+C o ⌘+C per copiarlo.';
     }
 
@@ -796,11 +815,9 @@
             reportRoute(inCloudPages(), true);
             notify();
         });
-        const notifyInteraction = event => {
-            if (frames.size && interrupts(event) && !searchInteraction(event.target)) notify();
-        };
-        document.addEventListener('pointerdown', notifyInteraction, true);
-        document.addEventListener('keydown', notifyInteraction, true);
+        document.addEventListener('click', event => {
+            if (frames.size && nativeInteraction(event) && !searchInteraction(event.target)) notify();
+        }, true);
     } else if (shellFrame) {
         window.addEventListener('message', event => {
             if (event.source === window.top && event.origin === shellOrigin && event.data?.channel === channel &&
@@ -810,8 +827,9 @@
     }
 
     for (const type of ['keydown', 'keyup', 'copy']) window.addEventListener(type, protectPageIdCopy, true);
-    for (const type of ['input', 'pointerdown', 'keydown']) document.addEventListener(type, event => {
-        if ((!job && !opening && !result && !verifiedPageIds.size) || !interrupts(event)) return;
+    // Track native actions and edits without treating standalone keystrokes as navigation.
+    for (const type of ['input', 'click']) document.addEventListener(type, event => {
+        if ((!job && !opening && !result && !verifiedPageIds.size) || !nativeInteraction(event)) return;
         if (job || opening) abort('Operazione interrotta dall’interazione con Salesforce.');
         if (searchInteraction(event.target)) return;
         if (location.hostname !== metadataHost && verifiedPageIds.size) {

@@ -164,7 +164,7 @@ async function run() {
             });
         }, shell);
         const errors = [];
-        async function fixture(options = {}) {
+        async function fixture(options = {}, holdTargetRead) {
             const requests = [];
             const reads = [];
             const page = await context.newPage();
@@ -179,6 +179,7 @@ async function run() {
                     reads.push([mid, asset, [...url.searchParams.keys()], Boolean(native.headers().authorization)]);
                     const record = [first, target].find(item => item.asset === asset);
                     if (options.delay && mid !== '999') await new Promise(resolve => setTimeout(resolve, 800));
+                    if (asset === target.asset && holdTargetRead) await holdTargetRead;
                     const authenticated = !options.sessionCookie ||
                         (await native.allHeaders()).cookie?.includes('fixture_cloudpages_session=active');
                     const status = !authenticated ? 401 : (record === first && options.http) || (record ? 200 : 404);
@@ -191,7 +192,7 @@ async function run() {
                         }] : [];
                         return await request.fulfill({ status, json: { page: 1, pageSize: 50, totalCount: entities.length, entities } });
                     } catch (error) {
-                        if (!options.delay) throw error;
+                        if (!options.delay && !holdTargetRead) throw error;
                     }
                     return;
                 }
@@ -249,7 +250,10 @@ async function run() {
                 }
             };
             const events = () => doc.locator('body').evaluate(() => window.events);
-            const reading = () => context.waitForEvent('request', { predicate: request => new URL(request.url()).pathname === sites });
+            const reading = assetId => context.waitForEvent('request', { predicate: request => {
+                const url = new URL(request.url());
+                return url.pathname === sites && (!assetId || url.searchParams.get('siteAssetId') === assetId);
+            } });
             const close = async (openedFromProperties = false) => {
                 assert.equal((await events()).some(([event]) => event === 'properties'), openedFromProperties);
                 assert.equal((await events()).some(([event]) => event === 'delete'), false);
@@ -531,6 +535,43 @@ async function run() {
         }
 
         {
+            const pending = Promise.withResolvers();
+            const f = await fixture({ direct: true, overview: true, clipboardDenied: true }, pending.promise);
+            const cells = f.doc.locator('[role="gridcell"][data-sfmcfix-cloudpages-column]');
+            const cancel = f.form.getByRole('button', { name: 'Annulla ricerca' });
+            await f.show();
+            await f.form.getByRole('checkbox', { name: 'Mostra colonna Page ID' }).check();
+            try {
+                await Promise.all([f.reading(target.asset), f.start(target.page)]);
+                assert.deepEqual(await cells.allTextContents(), [first.page, '—']);
+                await f.page.evaluate(() => document.activeElement.blur());
+                const session = await context.newCDPSession(f.page);
+                // A keyboard event without a recognized key or code cannot signal navigation.
+                for (const type of ['rawKeyDown', 'keyUp']) {
+                    await session.send('Input.dispatchKeyEvent', { type, key: 'Unidentified' });
+                }
+                await session.detach();
+                assert.deepEqual(await cells.allTextContents(), [first.page, '—']);
+                await cells.first().click();
+                assert.equal(await f.page.evaluate(() => document.getSelection().toString()), first.page);
+                await f.page.keyboard.down('Control');
+                assert.equal(await cancel.isVisible(), true);
+                assert.equal(await f.page.evaluate(() => document.getSelection().toString()), first.page);
+                await f.page.keyboard.press('KeyC');
+                await f.page.keyboard.up('Control');
+                assert.equal(await cancel.isVisible(), true);
+            } finally {
+                pending.resolve();
+            }
+            await f.finished(/Corrispondenza trovata/);
+            assert.deepEqual(await cells.allTextContents(), [first.page, target.page]);
+            const native = f.doc.getByRole('searchbox', { name: 'Search' });
+            await native.press('Control+v');
+            assert.equal(await native.inputValue(), first.page);
+            await f.close();
+        }
+
+        {
             const f = await fixture({ direct: true, delay: true });
             await Promise.all([f.reading(), f.start('42')]);
             await f.form.getByRole('button', { name: 'Annulla ricerca' }).click();
@@ -582,7 +623,7 @@ async function run() {
             await Promise.all([f.reading(), f.start('4288')]);
             await Promise.all([
                 f.page.waitForEvent('framenavigated', frame => frame.url() === `${app}/fixture?mid=999`),
-                f.page.locator('#bu').click()
+                f.page.locator('#bu').press('Enter')
             ]);
             await f.launcher.waitFor();
             assert.equal(await f.form.count(), 0);

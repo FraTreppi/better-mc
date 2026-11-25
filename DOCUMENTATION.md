@@ -4,7 +4,11 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.50 — 25 novembre 2026
+## Versione attuale 1.1.51 — 25 novembre 2026
+
+Il tasto premuto da solo non annulla la ricerca **Page ID**. L’estensione intercetta le azioni native e le modifiche ai campi, e continua a verificare il contesto e l’inventario durante la scansione. Un clic su un Page ID verificato lo seleziona per la copia del browser, anche durante una lettura in corso.
+
+## Versione 1.1.50 — 25 novembre 2026
 
 La colonna **Page ID** riconosce i tasti modificatori anche dal loro codice fisico. Quando la selezione è dentro un singolo Page ID, il content script protegge la copia dai gestori della pagina e usa il comando di copia del browser.
 

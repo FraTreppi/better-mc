@@ -1,6 +1,6 @@
 # SFMC UI Fixer — Guida utente
 
-Versione 1.1.50 · Autore: Francesco Trepiccioni
+Versione 1.1.51 · Autore: Francesco Trepiccioni
 
 L’estensione aggiunge strumenti alle schermate di Marketing Cloud: collegamenti tra moduli, rubrica dei destinatari di prova, cronologie locali, operazioni sui record delle Data Extension e strumenti SQL. Le funzioni dell’interfaccia lavorano con la sessione Salesforce già aperta. L’analisi degli utilizzi DE collega direttamente l’estensione alle API Salesforce in sola lettura.
 
@@ -330,7 +330,7 @@ Dopo un cambio BU, conserva prima il testo che ti serve e premi **Clear** prima 
 3. Il risultato mostra nome, posizione, Page ID e ID asset. Premi **Apri pagina** per aprire i dettagli in Salesforce. Se la riga è fuori dalla vista, l’estensione la cerca con l’ID asset nel campo nativo.
 4. Premi **Copia nome**. Se Salesforce blocca la copia automatica, il pulsante seleziona il nome e puoi copiarlo con **Ctrl+C** o **⌘+C**. Puoi incollare il nome in **Search** lasciando visibile il risultato.
 
-Per vedere i valori nella tabella, spunta **Mostra colonna Page ID** nel riquadro. L’intestazione **Page ID** compare accanto a **ID**. La colonna mostra i valori verificati durante la scansione. Il trattino **—** indica che il valore della riga è ancora da verificare. Puoi chiudere il riquadro, selezionare un numero nella colonna e copiarlo con **Ctrl+C** o **⌘+C**.
+Per vedere i valori nella tabella, spunta **Mostra colonna Page ID** nel riquadro. L’intestazione **Page ID** compare accanto a **ID**. La colonna mostra i valori verificati durante la scansione. Il trattino **—** indica che il valore della riga è ancora da verificare. Clicca su un numero per selezionarlo e premi **Ctrl+C** o **⌘+C** per copiarlo, anche mentre la ricerca è in corso.
 
 La scansione resta nell’elenco e legge i metadati delle landing page in **All Pages**, quando disponibile, o in **Overview**, anche quando l’elenco è sul dominio principale di Marketing Cloud. Usa **Load More** o scorre il riquadro se Salesforce indica altre righe. Premi **Annulla ricerca** per interromperla. Se Salesforce rifiuta la lettura, oppure mancano metadati o parti dell’inventario, compare **Ricerca parziale** con il numero delle pagine verificate.
 
