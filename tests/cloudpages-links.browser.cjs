@@ -154,6 +154,15 @@ async function run() {
         const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 15000 });
         const version = JSON.parse(await fs.readFile(path.join(extension, 'manifest.json'), 'utf8')).version;
         assert.equal(await worker.evaluate(() => chrome.runtime.getManifest().version), version);
+        await context.addInitScript(shellOrigin => {
+            if (window === window.top || window.parent !== window.top || location.ancestorOrigins[0] !== shellOrigin) return;
+            window.addEventListener('message', event => {
+                if (event.source === window.top && event.origin === shellOrigin &&
+                    event.data?.channel === 'sfmcfix-cloudpages-context' && typeof event.data.active === 'boolean') {
+                    document.documentElement.dataset.fixtureRouteReady = '';
+                }
+            });
+        }, shell);
         const errors = [];
         async function fixture(options = {}) {
             const requests = [];
@@ -208,6 +217,7 @@ async function run() {
                 `${shell}${options.outsideCloudPages ? '/cloud/#app/Email/' : route}`);
             const direct = options.direct || (options.overview && !options.inner);
             const outer = direct ? page : page.frameLocator('iframe');
+            if (!direct) await outer.locator('html[data-fixture-route-ready]').waitFor({ timeout: 5000 });
             const doc = options.inner ? outer.frameLocator('iframe') : outer;
             const launcher = doc.getByRole('button', { name: 'Page ID', exact: true });
             const form = doc.getByRole('form', { name: 'Ricerca CloudPages per Page ID' });
@@ -215,7 +225,10 @@ async function run() {
             assert.equal(await launcher.getAttribute('aria-expanded'), 'false');
             assert.equal(await form.count(), 0);
             const show = async () => {
-                if (!await form.isVisible()) await launcher.click();
+                if (!await form.isVisible()) {
+                    if (direct) await launcher.click();
+                    else await launcher.press('Enter');
+                }
                 try {
                     await form.waitFor({ timeout: 4000 });
                 } catch (error) {
@@ -387,7 +400,7 @@ async function run() {
         }
 
         {
-            const f = await fixture({ direct: true, overview: true, trackRowClicks: true });
+            const f = await fixture({ direct: true, overview: true, trackRowClicks: true, clipboardDenied: true });
             await f.start('4288');
             await f.finished(/Corrispondenza trovata/);
             assert.ok((await f.form.textContent()).includes('Page ID 4288 · ID asset 294630'));
@@ -399,15 +412,38 @@ async function run() {
             const numbers = f.doc.locator('[role="gridcell"][data-sfmcfix-cloudpages-column]');
             await numbers.first().click();
             assert.deepEqual(await numbers.allTextContents(), ['4288', '42']);
+            const session = await context.newCDPSession(f.page);
+            // A browser can report a physical modifier without identifying its logical key.
+            for (const type of ['rawKeyDown', 'keyUp']) {
+                await session.send('Input.dispatchKeyEvent', { type, key: 'Unidentified', code: 'ControlLeft' });
+            }
+            assert.deepEqual(await numbers.allTextContents(), [first.page, target.page]);
+            await session.detach();
             await numbers.last().dblclick({ position: { x: 12, y: 8 } });
-            assert.deepEqual(await numbers.allTextContents(), ['4288', '42']);
-            assert.equal(await numbers.last().evaluate(() => document.getSelection().toString().trim()), '42');
+            assert.deepEqual(await numbers.allTextContents(), [first.page, target.page]);
+            const selection = () => f.page.evaluate(() => document.getSelection().toString().trim());
+            assert.equal(await selection(), target.page);
+            await f.page.evaluate(() => {
+                document.addEventListener('keydown', event => {
+                    if (event.key === 'Control') document.getSelection().removeAllRanges();
+                });
+                document.addEventListener('copy', event => event.preventDefault());
+            });
+            await f.page.keyboard.down('Control');
+            assert.deepEqual(await numbers.allTextContents(), [first.page, target.page]);
+            assert.equal(await selection(), target.page);
+            await f.page.keyboard.press('KeyC');
+            await f.page.keyboard.up('Control');
+            assert.deepEqual(await numbers.allTextContents(), [first.page, target.page]);
+            const native = f.doc.getByRole('searchbox', { name: 'Search' });
+            await native.press('Control+v');
+            assert.equal(await native.inputValue(), target.page);
             await f.doc.locator('#viewport').evaluate(node => { node.scrollTop = 0; });
             assert.equal(await f.doc.locator('[data-sfmcfix-cloudpages-heading]').textContent(), 'Page ID');
             assert.deepEqual(f.reads.map(([source, asset]) => [source, asset]), [
                 ['worker', first.asset], ['worker', first.asset], ['worker', target.asset]
             ]);
-            assert.deepEqual(await f.events(), [['scroll']]);
+            assert.deepEqual(await f.events(), [['scroll'], ['native-search', target.page]]);
             await f.close();
         }
 
@@ -562,7 +598,7 @@ async function run() {
         }
 
         assert.deepEqual(errors, []);
-        console.log(`PASS Manifest V3 ${version}, CloudPages DOM fixtures, native controls, cross-folder pagination, exact short IDs, partial, cancellation and BU/route change (${process.env.SFMCFIX_BROWSER_CHANNEL || 'chromium'}).`);
+        console.log(`PASS Manifest V3 ${version}, CloudPages DOM fixtures, Page ID clipboard copy, native controls, cross-folder pagination, exact short IDs, partial, cancellation and BU/route change (${process.env.SFMCFIX_BROWSER_CHANNEL || 'chromium'}).`);
     } finally {
         await context?.close();
         await fs.rm(profile, { recursive: true, force: true });

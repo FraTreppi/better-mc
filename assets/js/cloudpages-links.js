@@ -69,6 +69,8 @@
     const listRows = 'tbody tr, [role="row"]:has([role="gridcell"], [role="cell"])';
     const headerCells = 'thead th, [role="columnheader"]';
     const ownColumn = '[data-sfmcfix-cloudpages-column]';
+    const passiveKey = /^(?:(?:Control|Meta|Alt|Shift)(?:Left|Right)?|Tab)$/;
+    const copyModifier = /^(?:Control|Meta)(?:Left|Right)?$/;
     const searchableType = /^(Landing Page|Interactive Email Page)$/i;
     const landingPage = /^Landing Page$/i;
     const properties = /^(?:(?:Landing )?Page (?:Properties|Details)|Content Details|Properties|Proprietà(?: della pagina)?|Dettagli (?:della )?pagina)$/i;
@@ -105,7 +107,20 @@
     function interrupts(event) {
         if (!event.isTrusted || insideControls(event.target) || event.target.closest?.(ownColumn)) return false;
         return event.type !== 'keydown' || (!event.ctrlKey && !event.metaKey && !event.altKey &&
-            !['Control', 'Meta', 'Alt', 'Shift', 'Tab'].includes(event.key));
+            !passiveKey.test(event.key) && !passiveKey.test(event.code));
+    }
+
+    function protectPageIdCopy(event) {
+        if (!event.isTrusted || event.target.closest?.('input, textarea') || event.target.isContentEditable) return;
+        if (event.type !== 'copy' && !copyModifier.test(event.key) && !copyModifier.test(event.code) &&
+            !((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey &&
+                (event.key?.toLowerCase() === 'c' || event.code === 'KeyC'))) return;
+        const selection = document.getSelection();
+        if (!selection || selection.isCollapsed) return;
+        const node = selection.getRangeAt(0).commonAncestorContainer;
+        const cell = (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement)?.closest(ownColumn);
+        // Keep the browser's default copy action and shield the selected value from page shortcuts.
+        if (cell && pageNumber(cell.textContent) !== null) event.stopImmediatePropagation();
     }
 
     function cloudPagesList(table, native) {
@@ -794,6 +809,7 @@
         window.top.postMessage({ channel, ready: true }, shellOrigin);
     }
 
+    for (const type of ['keydown', 'keyup', 'copy']) window.addEventListener(type, protectPageIdCopy, true);
     for (const type of ['input', 'pointerdown', 'keydown']) document.addEventListener(type, event => {
         if ((!job && !opening && !result && !verifiedPageIds.size) || !interrupts(event)) return;
         if (job || opening) abort('Operazione interrotta dall’interazione con Salesforce.');

@@ -1,3 +1,7 @@
+# 1.1.50 — 25 novembre 2026
+
+- In CloudPages, i valori della colonna **Page ID** restano visibili quando premi **Ctrl**. Puoi selezionare un numero e copiarlo con **Ctrl+C** o **⌘+C**.
+
 # 1.1.49 — 24 novembre 2026
 
 - **Copia nome** verifica se la pagina consente l’accesso agli appunti. Quando Salesforce lo blocca, seleziona il nome per la copia manuale, evitando l’avviso di Edge.

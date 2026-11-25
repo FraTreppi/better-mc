@@ -4,7 +4,11 @@ Per le istruzioni operative usare [GUIDA_UTENTE.md](GUIDA_UTENTE.md). Le protezi
 
 Analisi del 20 ottobre 2026. Oggetto: i file presenti nella cartella `stable`, non una sessione Marketing Cloud autenticata. Le indicazioni sulle funzionalità derivano dalla lettura dei sorgenti; i test della nuova versione usano dati e interfacce simulate. Dove un comportamento dipende da Salesforce è indicato esplicitamente.
 
-## Versione attuale 1.1.49 — 24 novembre 2026
+## Versione attuale 1.1.50 — 25 novembre 2026
+
+La colonna **Page ID** riconosce i tasti modificatori anche dal loro codice fisico. Quando la selezione è dentro un singolo Page ID, il content script protegge la copia dai gestori della pagina e usa il comando di copia del browser.
+
+## Versione 1.1.49 — 24 novembre 2026
 
 **Copia nome** verifica la policy effettiva `clipboard-write` del documento prima di chiamare l’API degli appunti. Quando la policy blocca la scrittura, l’estensione seleziona il nome nel riquadro e indica la scorciatoia di copia. Le prove browser simulano il blocco con `Permissions-Policy: clipboard-write=()` e verificano il copia-incolla manuale, l’assenza della violazione nel registro del browser e la copia automatica quando la policy la consente.
 
